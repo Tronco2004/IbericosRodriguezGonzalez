@@ -1,0 +1,89 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import { obtenerUsuarioDelToken } from '../../../lib/auth';
+
+const token = Astro.cookies.get('auth_token')?.value;
+const usuario = token ? obtenerUsuarioDelToken(token) : null;
+
+if (!usuario || usuario.rol !== 'admin') {
+  return Astro.redirect('/sin-acceso');
+}
+
+// Datos simulados de usuarios
+const usuarios = [
+  { id: 1, nombre: 'Admin Ibéricos', email: 'admin@ibericosrg.com', rol: 'admin', estado: 'activo', fecha_registro: '2025-12-01' },
+  { id: 2, nombre: 'Juan García', email: 'cliente@example.com', rol: 'cliente', estado: 'activo', fecha_registro: '2025-12-15' },
+  { id: 3, nombre: 'María López', email: 'maria@example.com', rol: 'cliente', estado: 'activo', fecha_registro: '2026-01-05' }
+];
+---
+
+<Layout>
+  <div style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
+    <div style="margin-bottom: 2rem;">
+      <a href="/admin/dashboard" style="color: #a89968; text-decoration: none; font-weight: 600;">← Volver al Panel</a>
+    </div>
+
+    <h1 style="color: #001a33; font-size: 2rem; margin-bottom: 2rem;">Gestionar Usuarios</h1>
+
+    <div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: #f5f5f5; border-bottom: 2px solid #ddd;">
+            <th style="padding: 1rem; text-align: left; color: #001a33; font-weight: 700;">Nombre</th>
+            <th style="padding: 1rem; text-align: left; color: #001a33; font-weight: 700;">Email</th>
+            <th style="padding: 1rem; text-align: center; color: #001a33; font-weight: 700;">Rol</th>
+            <th style="padding: 1rem; text-align: center; color: #001a33; font-weight: 700;">Estado</th>
+            <th style="padding: 1rem; text-align: center; color: #001a33; font-weight: 700;">Registrado</th>
+            <th style="padding: 1rem; text-align: center; color: #001a33; font-weight: 700;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {usuarios.map((usuarioItem) => (
+            <tr style="border-bottom: 1px solid #eee;">
+              <td style="padding: 1rem; color: #001a33; font-weight: 600;">{usuarioItem.nombre}</td>
+              <td style="padding: 1rem; color: #666;">{usuarioItem.email}</td>
+              <td style="padding: 1rem; text-align: center;">
+                <span style={`
+                  display: inline-block;
+                  padding: 0.3rem 0.8rem;
+                  border-radius: 3px;
+                  font-size: 0.8rem;
+                  font-weight: 600;
+                  ${usuarioItem.rol === 'admin' ? 'background: #001a33; color: white;' : 'background: #e8e8e8; color: #333;'}
+                `}>
+                  {usuarioItem.rol.toUpperCase()}
+                </span>
+              </td>
+              <td style="padding: 1rem; text-align: center;">
+                <span style={`
+                  display: inline-block;
+                  padding: 0.3rem 0.8rem;
+                  border-radius: 3px;
+                  font-size: 0.8rem;
+                  font-weight: 600;
+                  ${usuarioItem.estado === 'activo' ? 'background: #e8f5e9; color: #2e7d32;' : 'background: #ffebee; color: #c62828;'}
+                `}>
+                  {usuarioItem.estado === 'activo' ? '✓ Activo' : '✗ Inactivo'}
+                </span>
+              </td>
+              <td style="padding: 1rem; text-align: center; color: #666; font-size: 0.9rem;">{usuarioItem.fecha_registro}</td>
+              <td style="padding: 1rem; text-align: center; display: flex; gap: 0.5rem; justify-content: center;">
+                <a href={`/admin/usuarios/${usuarioItem.id}/editar`} style="
+                  padding: 0.4rem 0.8rem;
+                  background: #001a33;
+                  color: white;
+                  border-radius: 4px;
+                  text-decoration: none;
+                  font-size: 0.85rem;
+                  font-weight: 600;
+                ">
+                  Editar
+                </a>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</Layout>

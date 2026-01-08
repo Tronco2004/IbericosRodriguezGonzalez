@@ -1,0 +1,168 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const redirect = Astro.url.searchParams.get('redirect') || '/';
+---
+
+<Layout>
+  <div style="min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 2rem;">
+    <div style="max-width: 400px; width: 100%;">
+      <div style="text-align: center; margin-bottom: 3rem;">
+        <h1 style="color: #001a33; font-size: 2rem; margin-bottom: 0.5rem;">Iniciar Sesión</h1>
+        <p style="color: #666; opacity: 0.8;">Accede a tu cuenta de Ibéricos RG</p>
+      </div>
+
+      <div style="background: #f0f7ff; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.85rem; color: #333;">
+        <p><strong>📝 Demo:</strong></p>
+        <p>Admin: admin@ibericosrg.com / admin123</p>
+        <p>Cliente: cliente@example.com / cliente123</p>
+        <p style="margin-top: 1rem;"><a href="/registro" style="color: #0066cc; text-decoration: underline;">¿No tienes cuenta? Regístrate aquí</a></p>
+      </div>
+
+      <form id="loginForm" style="background: #f5f5f5; padding: 2rem; border-radius: 8px;">
+        <div style="margin-bottom: 1.5rem;">
+          <label style="display: block; margin-bottom: 0.5rem; color: #001a33; font-weight: 600;">
+            Email
+          </label>
+          <input 
+            type="email" 
+            name="email" 
+            required 
+            placeholder="tu@email.com"
+            style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; box-sizing: border-box;"
+          />
+        </div>
+
+        <div style="margin-bottom: 2rem;">
+          <label style="display: block; margin-bottom: 0.5rem; color: #001a33; font-weight: 600;">
+            Contraseña
+          </label>
+          <input 
+            type="password" 
+            name="password" 
+            required 
+            placeholder="••••••••"
+            style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; box-sizing: border-box;"
+          />
+        </div>
+
+        <button 
+          type="submit" 
+          style="
+            width: 100%; 
+            padding: 0.75rem; 
+            background: linear-gradient(135deg, #001a33, #2d2d2d);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s;
+          "
+          onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(0, 26, 51, 0.2)'"
+          onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'"
+        >
+          Iniciar Sesión
+        </button>
+
+        <div id="errorMessage" style="
+          display: none;
+          margin-top: 1rem;
+          padding: 1rem;
+          background: #fee;
+          border: 1px solid #fcc;
+          color: #c33;
+          border-radius: 4px;
+          font-size: 0.9rem;
+        "></div>
+
+        <div id="loadingMessage" style="
+          display: none;
+          margin-top: 1rem;
+          text-align: center;
+          color: #666;
+        ">
+          Verificando credenciales...
+        </div>
+      </form>
+
+      <div style="margin-top: 2rem; padding: 1.5rem; background: #fffaf0; border-radius: 8px; border-left: 4px solid #a89968;">
+        <p style="color: #666; font-size: 0.9rem; margin: 0;">
+          <strong>Credenciales de prueba:</strong>
+        </p>
+        <p style="color: #666; font-size: 0.9rem; margin: 0.5rem 0 0 0;">
+          Admin: admin@ibericosrg.com / admin123
+        </p>
+        <p style="color: #666; font-size: 0.9rem; margin: 0.5rem 0 0 0;">
+          Cliente: cliente@example.com / cliente123
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script define:vars={{redirect}}>
+    document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const errorDiv = document.getElementById('errorMessage');
+      const loadingDiv = document.getElementById('loadingMessage');
+      const form = e.target;
+      const submitBtn = form.querySelector('button[type="submit"]');
+      
+      const email = form.email.value;
+      const password = form.password.value;
+
+      // Mostrar loading
+      loadingDiv.style.display = 'block';
+      errorDiv.style.display = 'none';
+      submitBtn.disabled = true;
+
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email, password }),
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include' // IMPORTANTE: para guardar cookies
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.usuario) {
+          // Login exitoso
+          const redirectUrl = data.redirect_url || '/productos';
+          
+          console.log('✅ Login exitoso');
+          console.log('Usuario:', data.usuario.nombre);
+          console.log('Rol:', data.usuario.rol);
+          console.log('Redirecting to:', redirectUrl);
+          
+          // Guardar en localStorage
+          localStorage.setItem('auth_token', data.usuario.id);
+          localStorage.setItem('user_role', data.usuario.rol);
+          localStorage.setItem('user_name', data.usuario.nombre);
+          localStorage.setItem('user_id', data.usuario.id);
+          
+          console.log('💾 Token guardado en localStorage');
+          
+          // Redirigir inmediatamente
+          window.location.href = redirectUrl;
+        } else {
+          // Error de credenciales
+          errorDiv.style.display = 'block';
+          errorDiv.textContent = data.message || 'Credenciales inválidas';
+          loadingDiv.style.display = 'none';
+          submitBtn.disabled = false;
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        errorDiv.style.display = 'block';
+        errorDiv.textContent = 'Error al conectar con el servidor';
+        loadingDiv.style.display = 'none';
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</Layout>

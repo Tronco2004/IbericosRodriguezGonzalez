@@ -1,0 +1,80 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import { obtenerUsuarioDelToken } from '../../../lib/auth';
+
+const token = Astro.cookies.get('auth_token')?.value;
+const usuario = token ? obtenerUsuarioDelToken(token) : null;
+
+if (!usuario || usuario.rol !== 'admin') {
+  return Astro.redirect('/sin-acceso');
+}
+
+// Datos simulados de pedidos
+const pedidos = [
+  { id: 1, numero: 'PED-001', cliente: 'Juan García', total: 12199, estado: 'pendiente', fecha: '2026-01-08' },
+  { id: 2, numero: 'PED-002', cliente: 'María López', total: 4000, estado: 'confirmado', fecha: '2026-01-07' },
+  { id: 3, numero: 'PED-003', cliente: 'Carlos Rodríguez', total: 27998, estado: 'enviado', fecha: '2026-01-06' }
+];
+---
+
+<Layout>
+  <div style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
+    <div style="margin-bottom: 2rem;">
+      <a href="/admin/dashboard" style="color: #a89968; text-decoration: none; font-weight: 600;">← Volver al Panel</a>
+    </div>
+
+    <h1 style="color: #001a33; font-size: 2rem; margin-bottom: 2rem;">Gestionar Pedidos</h1>
+
+    <div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: #f5f5f5; border-bottom: 2px solid #ddd;">
+            <th style="padding: 1rem; text-align: left; color: #001a33; font-weight: 700;">Pedido</th>
+            <th style="padding: 1rem; text-align: left; color: #001a33; font-weight: 700;">Cliente</th>
+            <th style="padding: 1rem; text-align: center; color: #001a33; font-weight: 700;">Total</th>
+            <th style="padding: 1rem; text-align: center; color: #001a33; font-weight: 700;">Estado</th>
+            <th style="padding: 1rem; text-align: center; color: #001a33; font-weight: 700;">Fecha</th>
+            <th style="padding: 1rem; text-align: center; color: #001a33; font-weight: 700;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {pedidos.map((pedido) => (
+            <tr style="border-bottom: 1px solid #eee;">
+              <td style="padding: 1rem; color: #001a33; font-weight: 600;">{pedido.numero}</td>
+              <td style="padding: 1rem; color: #666;">{pedido.cliente}</td>
+              <td style="padding: 1rem; text-align: center; color: #a89968; font-weight: 700;">€{(pedido.total / 100).toFixed(2)}</td>
+              <td style="padding: 1rem; text-align: center;">
+                <span style={`
+                  display: inline-block;
+                  padding: 0.3rem 0.8rem;
+                  border-radius: 3px;
+                  font-size: 0.8rem;
+                  font-weight: 600;
+                  ${pedido.estado === 'pendiente' ? 'background: #fff3cd; color: #856404;' : ''}
+                  ${pedido.estado === 'confirmado' ? 'background: #d1ecf1; color: #0c5460;' : ''}
+                  ${pedido.estado === 'enviado' ? 'background: #e8f5e9; color: #2e7d32;' : ''}
+                `}>
+                  {pedido.estado.toUpperCase()}
+                </span>
+              </td>
+              <td style="padding: 1rem; text-align: center; color: #666;">{pedido.fecha}</td>
+              <td style="padding: 1rem; text-align: center;">
+                <a href={`/admin/pedidos/${pedido.id}`} style="
+                  padding: 0.4rem 0.8rem;
+                  background: #001a33;
+                  color: white;
+                  border-radius: 4px;
+                  text-decoration: none;
+                  font-size: 0.85rem;
+                  font-weight: 600;
+                ">
+                  Ver Detalles
+                </a>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</Layout>

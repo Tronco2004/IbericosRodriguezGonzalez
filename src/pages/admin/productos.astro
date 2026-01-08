@@ -1,0 +1,102 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import { obtenerUsuarioDelToken } from '../../../lib/auth';
+
+const token = Astro.cookies.get('auth_token')?.value;
+const usuario = token ? obtenerUsuarioDelToken(token) : null;
+
+if (!usuario || usuario.rol !== 'admin') {
+  return Astro.redirect('/sin-acceso');
+}
+
+// Datos simulados de productos
+const productos = [
+  { id: 1, nombre: 'Jamón Ibérico Reserva', precio: 9999, stock: 15, categoria: 'Jamones', estado: 'activo' },
+  { id: 2, nombre: 'Queso Manchego Premium', precio: 2200, stock: 30, categoria: 'Quesos', estado: 'activo' },
+  { id: 3, nombre: 'Chorizo de Bellota', precio: 1800, stock: 25, categoria: 'Embutidos', estado: 'activo' }
+];
+---
+
+<Layout>
+  <div style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
+    <div style="margin-bottom: 2rem;">
+      <a href="/admin/dashboard" style="color: #a89968; text-decoration: none; font-weight: 600;">← Volver al Panel</a>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+      <h1 style="color: #001a33; font-size: 2rem; margin: 0;">Gestionar Productos</h1>
+      <a href="/admin/productos?action=crear" style="
+        background: linear-gradient(135deg, #001a33, #2d2d2d);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 700;
+      ">
+        + Nuevo Producto
+      </a>
+    </div>
+
+    <div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: #f5f5f5; border-bottom: 2px solid #ddd;">
+            <th style="padding: 1rem; text-align: left; color: #001a33; font-weight: 700;">Nombre</th>
+            <th style="padding: 1rem; text-align: left; color: #001a33; font-weight: 700;">Categoría</th>
+            <th style="padding: 1rem; text-align: center; color: #001a33; font-weight: 700;">Precio</th>
+            <th style="padding: 1rem; text-align: center; color: #001a33; font-weight: 700;">Stock</th>
+            <th style="padding: 1rem; text-align: center; color: #001a33; font-weight: 700;">Estado</th>
+            <th style="padding: 1rem; text-align: center; color: #001a33; font-weight: 700;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {productos.map((producto) => (
+            <tr style="border-bottom: 1px solid #eee;">
+              <td style="padding: 1rem; color: #001a33; font-weight: 600;">{producto.nombre}</td>
+              <td style="padding: 1rem; color: #666;">{producto.categoria}</td>
+              <td style="padding: 1rem; text-align: center; color: #a89968; font-weight: 700;">€{(producto.precio / 100).toFixed(2)}</td>
+              <td style="padding: 1rem; text-align: center; color: #666;">{producto.stock}</td>
+              <td style="padding: 1rem; text-align: center;">
+                <span style={`
+                  display: inline-block;
+                  padding: 0.3rem 0.8rem;
+                  border-radius: 3px;
+                  font-size: 0.8rem;
+                  font-weight: 600;
+                  ${producto.estado === 'activo' ? 'background: #e8f5e9; color: #2e7d32;' : 'background: #ffebee; color: #c62828;'}
+                `}>
+                  {producto.estado === 'activo' ? '✓ Activo' : '✗ Inactivo'}
+                </span>
+              </td>
+              <td style="padding: 1rem; text-align: center; display: flex; gap: 0.5rem; justify-content: center;">
+                <a href={`/admin/productos/${producto.id}/editar`} style="
+                  padding: 0.4rem 0.8rem;
+                  background: #001a33;
+                  color: white;
+                  border-radius: 4px;
+                  text-decoration: none;
+                  font-size: 0.85rem;
+                  font-weight: 600;
+                ">
+                  Editar
+                </a>
+                <button style="
+                  padding: 0.4rem 0.8rem;
+                  background: #dc3545;
+                  color: white;
+                  border: none;
+                  border-radius: 4px;
+                  font-size: 0.85rem;
+                  font-weight: 600;
+                  cursor: pointer;
+                ">
+                  Eliminar
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</Layout>

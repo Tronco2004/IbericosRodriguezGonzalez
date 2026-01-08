@@ -1,0 +1,116 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Registro">
+  <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+      <div>
+        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          Crear cuenta
+        </h2>
+        <p class="mt-2 text-center text-sm text-gray-600">
+          O <a href="/login" class="font-medium text-indigo-600 hover:text-indigo-500">inicia sesión aquí</a>
+        </p>
+      </div>
+
+      <form id="registerForm" class="mt-8 space-y-6">
+        <div class="rounded-md shadow-sm -space-y-px">
+          <div>
+            <label for="nombre" class="sr-only">Nombre</label>
+            <input
+              id="nombre"
+              name="nombre"
+              type="text"
+              required
+              class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+              placeholder="Tu nombre completo"
+            />
+          </div>
+          <div>
+            <label for="email" class="sr-only">Email</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+              placeholder="tu@email.com"
+            />
+          </div>
+          <div>
+            <label for="password" class="sr-only">Contraseña</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+              placeholder="Contraseña (mín 6 caracteres)"
+            />
+          </div>
+        </div>
+
+        <div id="messageContainer"></div>
+
+        <div>
+          <button
+            type="submit"
+            class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+            id="submitBtn"
+          >
+            Crear cuenta
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('registerForm') as HTMLFormElement;
+    const submitBtn = document.getElementById('submitBtn') as HTMLButtonElement;
+    const messageContainer = document.getElementById('messageContainer') as HTMLDivElement;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const nombre = (document.getElementById('nombre') as HTMLInputElement).value;
+      const email = (document.getElementById('email') as HTMLInputElement).value;
+      const password = (document.getElementById('password') as HTMLInputElement).value;
+
+      if (password.length < 6) {
+        messageContainer.innerHTML = '<p class="text-red-600 text-sm text-center">La contraseña debe tener al menos 6 caracteres</p>';
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Registrando...';
+
+      try {
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nombre, email, password })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          messageContainer.innerHTML = '<p class="text-green-600 text-sm text-center">¡Registro exitoso! Redirigiendo al login...</p>';
+          console.log('✅ Registro exitoso:', data.userId);
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 2000);
+        } else {
+          messageContainer.innerHTML = `<p class="text-red-600 text-sm text-center">${data.message}</p>`;
+        }
+      } catch (error) {
+        messageContainer.innerHTML = '<p class="text-red-600 text-sm text-center">Error al registrarse. Intenta de nuevo.</p>';
+        console.log('❌ Error:', error);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Crear cuenta';
+      }
+    });
+  </script>
+</Layout>

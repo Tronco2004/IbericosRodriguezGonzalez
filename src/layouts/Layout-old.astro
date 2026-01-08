@@ -1,0 +1,290 @@
+---
+const title = "IbericosRG - Surtidos Ibéricos Premium";
+const description = "Descubre nuestra colección de productos ibéricos de la más alta calidad";
+---
+
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <style is:global>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html {
+        font-family: 'Inter', system-ui, sans-serif;
+        background-color: #faf9f7;
+        color: #2d2d2d;
+        scroll-behavior: smooth;
+      }
+      body {
+        line-height: 1.6;
+      }
+      h1, h2, h3, h4, h5, h6 {
+        font-family: 'Playfair Display', Georgia, serif;
+        font-weight: 700;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      button {
+        cursor: pointer;
+        border: none;
+        font-family: 'Inter', system-ui, sans-serif;
+      }
+      input, select {
+        font-family: 'Inter', system-ui, sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Navbar -->
+    <header style="
+      background: #fff;
+      padding: 1.2rem 0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    ">
+      <div style="max-width: 1400px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center;">
+        <a href="/" style="
+          font-size: 1.8rem;
+          background: linear-gradient(135deg, #001a33, #5c4a3d);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          font-weight: 700;
+          font-family: 'Playfair Display', serif;
+          text-decoration: none;
+        ">Ibéricos RG</a>
+        
+        <nav style="display: flex; gap: 3rem; align-items: center;">
+          <a href="/" style="
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: color 0.3s;
+            color: #001a33;
+          " onmouseover="this.style.color='#a89968'" onmouseout="this.style.color='#001a33'">Inicio</a>
+          <a href="/productos" style="
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: color 0.3s;
+            color: #001a33;
+          " onmouseover="this.style.color='#a89968'" onmouseout="this.style.color='#001a33'">Catálogo</a>
+          <div style="position: relative; group;">
+            <a href="/categoria/jamones" style="
+              font-size: 0.95rem;
+              font-weight: 500;
+              transition: color 0.3s;
+              color: #001a33;
+            " onmouseover="this.style.color='#a89968'" onmouseout="this.style.color='#001a33'">Jamones</a>
+          </div>
+          <a href="/categoria/quesos" style="
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: color 0.3s;
+            color: #001a33;
+          " onmouseover="this.style.color='#a89968'" onmouseout="this.style.color='#001a33'">Quesos</a>
+          <a href="/categoria/embutidos" style="
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: color 0.3s;
+            color: #001a33;
+          " onmouseover="this.style.color='#a89968'" onmouseout="this.style.color='#001a33'">Embutidos</a>
+
+          {/* Botón de login / usuario dinámico */}
+          <div id="authContainer"></div>
+
+                <div id="userMenu" style="
+                  display: none;
+                  position: absolute;
+                  top: 100%;
+                  right: 0;
+                  background: white;
+                  border-radius: 6px;
+                  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+                  min-width: 200px;
+                  z-index: 1000;
+                  margin-top: 0.5rem;
+                  overflow: hidden;
+                ">
+                  <div style="padding: 0.75rem 1rem; border-bottom: 1px solid #eee; background: #f5f5f5;">
+                    <p style="margin: 0; font-size: 0.9rem; color: #666;">
+                      <strong>{usuario.nombre}</strong>
+                    </p>
+                    <p style="margin: 0.25rem 0 0 0; font-size: 0.8rem; color: #999;">
+                      {usuario.email}
+                    </p>
+                    <span style="
+                      display: inline-block;
+                      background: #a89968;
+                      color: white;
+                      padding: 0.2rem 0.6rem;
+                      border-radius: 3px;
+                      font-size: 0.75rem;
+                      text-transform: uppercase;
+                      margin-top: 0.5rem;
+                    ">
+                      {usuario.rol}
+                    </span>
+                  </div>
+
+                  {usuario.rol === 'admin' && (
+                    <a href="/admin/dashboard" style="
+                      display: block;
+                      padding: 0.75rem 1rem;
+                      color: #001a33;
+                      text-decoration: none;
+                      transition: background 0.3s;
+                      border-bottom: 1px solid #eee;
+                    " onmouseover="this.style.background='#f9f9f9'" onmouseout="this.style.background='white'">
+                      📊 Panel Admin
+                    </a>
+                  )}
+
+                  <a href="/mi-cuenta" style="
+                    display: block;
+                    padding: 0.75rem 1rem;
+                    color: #001a33;
+                    text-decoration: none;
+                    transition: background 0.3s;
+                    border-bottom: 1px solid #eee;
+                  " onmouseover="this.style.background='#f9f9f9'" onmouseout="this.style.background='white'">
+                    👤 Mi Cuenta
+                  </a>
+
+                  <a href="/mis-pedidos" style="
+                    display: block;
+                    padding: 0.75rem 1rem;
+                    color: #001a33;
+                    text-decoration: none;
+                    transition: background 0.3s;
+                    border-bottom: 1px solid #eee;
+                  " onmouseover="this.style.background='#f9f9f9'" onmouseout="this.style.background='white'">
+                    📋 Mis Pedidos
+                  </a>
+
+                  <button id="logoutBtn" style="
+                    width: 100%;
+                    padding: 0.75rem 1rem;
+                    background: #fee;
+                    color: #c33;
+                    border: none;
+                    text-align: left;
+                    cursor: pointer;
+                    transition: background 0.3s;
+                    font-weight: 600;
+                  " onmouseover="this.style.background='#fdd'" onmouseout="this.style.background='#fee'">
+                    🚪 Cerrar Sesión
+                  </button>
+                </div>
+              </div>
+
+              <a href="/carrito" style="
+                background: linear-gradient(135deg, #a89968, #8b7a5f);
+                color: #001a33;
+                padding: 0.7rem 1.8rem;
+                border-radius: 4px;
+                font-size: 0.8rem;
+                font-weight: 700;
+                transition: transform 0.3s, box-shadow 0.3s;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                text-decoration: none;
+              " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 24px rgba(168, 153, 104, 0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                🛒 Carrito
+              </a>
+            </>
+          )}
+        </nav>
+
+        <script>
+          const userMenuBtn = document.getElementById('userMenuBtn');
+          const userMenu = document.getElementById('userMenu');
+          const dropdownIcon = document.getElementById('dropdownIcon');
+          const logoutBtn = document.getElementById('logoutBtn');
+
+          if (userMenuBtn) {
+            userMenuBtn.addEventListener('click', () => {
+              if (userMenu.style.display === 'none') {
+                userMenu.style.display = 'block';
+                dropdownIcon.style.transform = 'rotate(180deg)';
+              } else {
+                userMenu.style.display = 'none';
+                dropdownIcon.style.transform = 'rotate(0deg)';
+              }
+            });
+
+            document.addEventListener('click', (e) => {
+              if (!userMenuBtn.contains(e.target) && !userMenu.contains(e.target)) {
+                userMenu.style.display = 'none';
+                dropdownIcon.style.transform = 'rotate(0deg)';
+              }
+            });
+          }
+
+          if (logoutBtn) {
+            logoutBtn.addEventListener('click', async () => {
+              const response = await fetch('/api/auth/logout', { method: 'POST' });
+              if (response.ok) {
+                window.location.href = '/';
+              }
+            });
+          }
+        </script>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main style="max-width: 1400px; margin: 0 auto; padding: 2rem;">
+      <slot />
+    </main>
+
+    <!-- Footer -->
+    <footer style="
+      background: linear-gradient(135deg, #001a33, #2d2d2d);
+      color: #f8f7f4;
+      padding: 4rem 2rem;
+      margin-top: 4rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    ">
+      <div style="max-width: 1400px; margin: 0 auto;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; margin-bottom: 2rem;">
+          <div>
+            <h4 style="font-size: 1.2rem; margin-bottom: 1rem; color: #a89968;">Ibéricos RG</h4>
+            <p style="opacity: 0.8; font-size: 0.9rem;">Los mejores productos ibéricos con minimalismo sofisticado y autenticidad garantizada.</p>
+          </div>
+          <div>
+            <h5 style="font-size: 0.95rem; margin-bottom: 1rem; color: #a89968; text-transform: uppercase;">Categorías</h5>
+            <ul style="list-style: none;">
+              <li style="margin-bottom: 0.5rem;"><a href="/categoria/jamones" style="opacity: 0.8; transition: opacity 0.3s;">Jamones Premium</a></li>
+              <li style="margin-bottom: 0.5rem;"><a href="/categoria/quesos" style="opacity: 0.8; transition: opacity 0.3s;">Quesos Artesanales</a></li>
+              <li style="margin-bottom: 0.5rem;"><a href="/categoria/embutidos" style="opacity: 0.8; transition: opacity 0.3s;">Embutidos Ibéricos</a></li>
+            </ul>
+          </div>
+          <div>
+            <h5 style="font-size: 0.95rem; margin-bottom: 1rem; color: #a89968; text-transform: uppercase;">Información</h5>
+            <ul style="list-style: none;">
+              <li style="margin-bottom: 0.5rem;"><a href="#" style="opacity: 0.8; transition: opacity 0.3s;">Sobre Nosotros</a></li>
+              <li style="margin-bottom: 0.5rem;"><a href="#" style="opacity: 0.8; transition: opacity 0.3s;">Envíos</a></li>
+              <li style="margin-bottom: 0.5rem;"><a href="#" style="opacity: 0.8; transition: opacity 0.3s;">Contacto</a></li>
+            </ul>
+          </div>
+        </div>
+        <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 2rem; text-align: center; opacity: 0.8; font-size: 0.9rem;">
+          <p>&copy; 2026 Ibéricos RG. Todos los derechos reservados. | Calidad Premium Garantizada</p>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
