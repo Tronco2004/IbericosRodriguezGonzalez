@@ -1,0 +1,17 @@
+{
+  "name": "ibericosr-g",
+  "version": "1.0.0",
+  "description": "IbericosRG - Tienda online de moda masculina premium",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "astro": "4.1.2"
+  },
+  "devDependencies": {
+    "typescript": "5.3.3"
+  }
+}

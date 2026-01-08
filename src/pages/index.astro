@@ -1,0 +1,211 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const productos = [
+  {
+    id: 1,
+    nombre: "Jamón Ibérico Reserva",
+    precio: 9999,
+    imagen: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=500&h=500&fit=crop",
+    categoria: "jamones",
+    descripcion: "Jamón ibérico de bellota curado 48 meses",
+    rating: 4.9
+  },
+  {
+    id: 2,
+    nombre: "Queso Manchego Premium",
+    precio: 2200,
+    imagen: "https://images.unsplash.com/photo-1452195463300-e83e0a2a7a25?w=500&h=500&fit=crop",
+    categoria: "quesos",
+    descripcion: "Queso artesanal de oveja manchega",
+    rating: 4.8
+  },
+  {
+    id: 3,
+    nombre: "Chorizo de Bellota",
+    precio: 1800,
+    imagen: "https://images.unsplash.com/photo-1557803104268-0ef0f060e15f?w=500&h=500&fit=crop",
+    categoria: "embutidos",
+    descripcion: "Chorizo ibérico con pimentón de la Vera",
+    rating: 4.7
+  }
+];
+---
+
+<Layout>
+  <!-- Hero Section Mejorado -->
+  <section style="
+    background: linear-gradient(135deg, #001a33 0%, #2d2d2d 50%, #5c4a3d 100%);
+    color: #f8f7f4;
+    padding: 8rem 3rem;
+    border-radius: 12px;
+    margin-bottom: 4rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 12px 48px rgba(0, 26, 51, 0.2);
+  ">
+    <div style="position: absolute; top: -50%; right: -10%; width: 400px; height: 400px; background: rgba(168, 153, 104, 0.1); border-radius: 50%; blur: 120px;"></div>
+    <div style="position: relative; z-index: 2; max-width: 800px; margin: 0 auto;">
+      <span style="color: #a89968; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700;">Bienvenido a la Excelencia</span>
+      <h1 style="font-size: 4rem; margin: 0.5rem 0 1.5rem 0; line-height: 1.1; font-family: 'Playfair Display', serif;">Ibéricos RG</h1>
+      <p style="font-size: 1.2rem; opacity: 0.85; margin-bottom: 2.5rem; line-height: 1.6;">Los mejores surtidos ibéricos con minimalismo sofisticado. Calidad premium, autenticidad garantizada y experiencia de lujo en cada compra.</p>
+      <div style="display: flex; gap: 1rem; justify-content: center;">
+        <a href="/productos" style="
+          background: linear-gradient(135deg, #a89968, #d4a574);
+          color: #001a33;
+          padding: 1rem 2.5rem;
+          display: inline-block;
+          font-weight: 700;
+          transition: all 0.3s;
+          border-radius: 6px;
+          font-size: 1rem;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        " onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 32px rgba(168, 153, 104, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+          Explorar Catálogo →
+        </a>
+        <a href="#beneficios" style="
+          border: 2px solid #a89968;
+          color: #a89968;
+          padding: 0.9rem 2.3rem;
+          display: inline-block;
+          font-weight: 700;
+          transition: all 0.3s;
+          border-radius: 6px;
+          font-size: 1rem;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        " onmouseover="this.style.background='rgba(168, 153, 104, 0.1)'" onmouseout="this.style.background='transparent'">
+          Saber Más
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Destacados Section -->
+  <section style="margin-bottom: 5rem;">
+    <div style="text-align: center; margin-bottom: 3rem;">
+      <span style="color: #a89968; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;">DESTACADOS</span>
+      <h2 style="font-size: 3.2rem; margin: 0.5rem 0 1rem 0; color: #001a33;">Nuestras Joyas</h2>
+      <p style="opacity: 0.7; font-size: 1.05rem; max-width: 600px; margin: 0 auto;">Una selección cuidada de los productos más exclusivos y deseados de nuestra colección</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2.5rem;">
+      {productos.map((producto) => (
+        <article style="
+          background: #fff;
+          border-radius: 10px;
+          overflow: hidden;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          transform: translateY(0);
+        " onmouseover="this.style.transform='translateY(-12px)'; this.style.boxShadow='0 16px 40px rgba(0, 0, 0, 0.12)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0, 0, 0, 0.08)'">
+          <div style="position: relative; overflow: hidden; height: 280px;">
+            <img src={producto.imagen} alt={producto.nombre} style="
+              width: 100%;
+              height: 100%;
+              object-fit: cover;
+              transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            " onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'" />
+            <div style="
+              position: absolute;
+              top: 1rem;
+              right: 1rem;
+              background: #a89968;
+              color: #001a33;
+              padding: 0.5rem 1rem;
+              border-radius: 6px;
+              font-weight: 700;
+              font-size: 0.9rem;
+              box-shadow: 0 4px 12px rgba(168, 153, 104, 0.3);
+            ">
+              ★ {producto.rating}
+            </div>
+          </div>
+          
+          <div style="padding: 1.8rem;">
+            <span style="color: #a89968; font-size: 0.75rem; text-transform: uppercase; font-weight: 700; letter-spacing: 1px;">{producto.categoria}</span>
+            <h3 style="font-size: 1.4rem; margin: 0.8rem 0 0.5rem 0; color: #001a33;">{producto.nombre}</h3>
+            <p style="opacity: 0.65; margin-bottom: 1.5rem; font-size: 0.95rem; line-height: 1.5;">{producto.descripcion}</p>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 1.9rem; font-weight: 700; color: #001a33;">€{(producto.precio / 100).toFixed(2)}</span>
+              <a href={`/productos/${producto.id}`} style="
+                background: linear-gradient(135deg, #001a33, #2d2d2d);
+                color: #f8f7f4;
+                padding: 0.6rem 1.4rem;
+                border-radius: 6px;
+                font-weight: 700;
+                font-size: 0.85rem;
+                transition: all 0.3s;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+              " onmouseover="this.style.transform='translateX(4px)'; this.style.boxShadow='0 6px 16px rgba(0, 26, 51, 0.2)'" onmouseout="this.style.transform='translateX(0)'; this.style.boxShadow='none'">
+                Ver Detalles →
+              </a>
+            </div>
+          </div>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <!-- Beneficios Section -->
+  <section id="beneficios" style="
+    background: linear-gradient(135deg, #f8f7f4 0%, #efefeb 100%);
+    padding: 4rem 3rem;
+    border-radius: 12px;
+    margin-bottom: 4rem;
+  ">
+    <h2 style="text-align: center; font-size: 2.5rem; margin-bottom: 3rem; color: #001a33;">¿Por Qué Elegirnos?</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 2.5rem;">
+      <div style="text-align: center;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🚚</div>
+        <h4 style="font-size: 1.2rem; margin-bottom: 0.5rem; color: #001a33;">Envío Rápido</h4>
+        <p style="opacity: 0.75; font-size: 0.95rem; line-height: 1.6;">Entrega en 2-3 días laborales a toda España con seguimiento en tiempo real</p>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">⭐</div>
+        <h4 style="font-size: 1.2rem; margin-bottom: 0.5rem; color: #001a33;">Calidad Premium</h4>
+        <p style="opacity: 0.75; font-size: 0.95rem; line-height: 1.6;">Productos seleccionados de la más alta calidad con certificación de origen</p>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div>
+        <h4 style="font-size: 1.2rem; margin-bottom: 0.5rem; color: #001a33;">100% Seguro</h4>
+        <p style="opacity: 0.75; font-size: 0.95rem; line-height: 1.6;">Compras encriptadas y garantía de satisfacción o devolución sin preguntas</p>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">💎</div>
+        <h4 style="font-size: 1.2rem; margin-bottom: 0.5rem; color: #001a33;">Lujo Auténtico</h4>
+        <p style="opacity: 0.75; font-size: 0.95rem; line-height: 1.6;">Embalaje premium con presentación elegante para regalar con confianza</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section style="
+    background: linear-gradient(135deg, #001a33, #2d2d2d);
+    color: #f8f7f4;
+    padding: 3rem;
+    border-radius: 12px;
+    text-align: center;
+  ">
+    <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">Descubre Nuestro Catálogo</h2>
+    <p style="opacity: 0.85; margin-bottom: 2rem; font-size: 1.05rem;">Explorar todos nuestros productos y encontrar tus favoritos</p>
+    <a href="/productos" style="
+      background: linear-gradient(135deg, #a89968, #d4a574);
+      color: #001a33;
+      padding: 1rem 2.5rem;
+      display: inline-block;
+      font-weight: 700;
+      transition: all 0.3s;
+      border-radius: 6px;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    " onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 32px rgba(168, 153, 104, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+      Ver Todos los Productos →
+    </a>
+  </section>
+</Layout>

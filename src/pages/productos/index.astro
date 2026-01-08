@@ -1,0 +1,62 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+const productos = [
+  { id: 1, nombre: "Jamón Ibérico Reserva", precio: 9999, categoria: "jamones", imagen: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=500&h=500&fit=crop", rating: 4.9 },
+  { id: 2, nombre: "Queso Manchego Premium", precio: 2200, categoria: "quesos", imagen: "https://images.unsplash.com/photo-1452195463300-e83e0a2a7a25?w=500&h=500&fit=crop", rating: 4.8 },
+  { id: 3, nombre: "Chorizo de Bellota", precio: 1800, categoria: "embutidos", imagen: "https://images.unsplash.com/photo-1557803104268-0ef0f060e15f?w=500&h=500&fit=crop", rating: 4.7 }
+];
+---
+
+<Layout>
+  <div style="margin-bottom: 3rem;">
+    <span style="color: #a89968; font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">NUESTRO CATÁLOGO</span>
+    <h2 style="font-size: 3rem; margin: 0.5rem 0 1rem 0;">Todos los Productos</h2>
+    <p style="opacity: 0.7; font-size: 1.1rem;">Descubre nuestra colección completa de surtidos ibéricos premium</p>
+  </div>
+  
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2rem;">
+    {productos.map(p => (
+      <article style="
+        background: #fff;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s;
+        transform: translateY(0);
+      " onmouseover="this.style.transform='translateY(-8px)'; this.style.boxShadow='0 12px 32px rgba(0, 0, 0, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0, 0, 0, 0.08)'">
+        <div style="position: relative; height: 250px; overflow: hidden;">
+          <img src={p.imagen} alt={p.nombre} style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'" />
+          <span style="
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: #a89968;
+            color: #001a33;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 0.8rem;
+          ">★ {p.rating}</span>
+        </div>
+        <div style="padding: 1.5rem;">
+          <span style="color: #a89968; font-size: 0.8rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">{p.categoria}</span>
+          <h3 style="font-size: 1.3rem; margin: 0.5rem 0; color: #001a33;">{p.nombre}</h3>
+          <p style="font-size: 1.6rem; color: #001a33; font-weight: 700; margin-bottom: 1rem;">€{(p.precio / 100).toFixed(2)}</p>
+          <a href={`/productos/${p.id}`} style="
+            display: inline-block;
+            background: linear-gradient(135deg, #001a33, #2d2d2d);
+            color: #f8f7f4;
+            padding: 0.6rem 1.2rem;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+          " onmouseover="this.style.transform='translateX(4px)'" onmouseout="this.style.transform='translateX(0)'">
+            Ver Detalles →
+          </a>
+        </div>
+      </article>
+    ))}
+  </div>
+</Layout>

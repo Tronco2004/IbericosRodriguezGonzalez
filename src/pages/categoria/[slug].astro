@@ -1,0 +1,90 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+const categorias = {
+  jamones: { nombre: "Jamones", descripcion: "Jamones ibéricos de la más alta calidad" },
+  quesos: { nombre: "Quesos", descripcion: "Quesos artesanales españoles" },
+  embutidos: { nombre: "Embutidos", descripcion: "Embutidos ibéricos premium" }
+};
+
+export function getStaticPaths() {
+  return [
+    { params: { slug: 'jamones' } },
+    { params: { slug: 'quesos' } },
+    { params: { slug: 'embutidos' } }
+  ];
+}
+
+const { slug } = Astro.params;
+const categoria = categorias[slug as keyof typeof categorias];
+
+if (!categoria) {
+  return Astro.redirect('/productos');
+}
+
+const productosCategoria = [
+  { id: 1, nombre: "Jamón Ibérico Reserva", precio: 9999, categoria: "jamones" },
+  { id: 2, nombre: "Queso Manchego Premium", precio: 2200, categoria: "quesos" },
+  { id: 3, nombre: "Chorizo de Bellota", precio: 1800, categoria: "embutidos" }
+].filter(p => p.categoria === slug);
+---
+
+<Layout>
+  <div style="margin-bottom: 3rem;">
+    <a href="/productos" style="
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #a89968;
+      text-decoration: none;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      transition: all 0.3s;
+    " onmouseover="this.style.transform='translateX(-4px)'" onmouseout="this.style.transform='translateX(0)'">
+      ← Todos los productos
+    </a>
+    <h1 style="font-size: 3rem; margin: 0; color: #001a33;">{categoria.nombre}</h1>
+    <p style="opacity: 0.7; font-size: 1.1rem; margin-top: 0.5rem;">{categoria.descripcion}</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2rem;">
+    {productosCategoria.map(p => (
+      <article style="
+        background: #fff;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s;
+        transform: translateY(0);
+      " onmouseover="this.style.transform='translateY(-8px)'; this.style.boxShadow='0 12px 32px rgba(0, 0, 0, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0, 0, 0, 0.08)'">
+        <div style="position: relative; height: 250px; overflow: hidden; background: linear-gradient(135deg, #f8f7f4 0%, #e8e6e0 100%); display: flex; align-items: center; justify-content: center;">
+          <div style="text-align: center; opacity: 0.5;">
+            <div style="font-size: 3rem;">📦</div>
+            <p style="font-size: 0.8rem; color: #666; margin: 0.5rem 0 0 0;">{p.categoria}</p>
+          </div>
+        </div>
+        <div style="padding: 1.5rem;">
+          <span style="color: #a89968; font-size: 0.8rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">{p.categoria}</span>
+          <h3 style="font-size: 1.3rem; margin: 0.5rem 0; color: #001a33;">{p.nombre}</h3>
+          <p style="font-size: 1.6rem; color: #001a33; font-weight: 700; margin-bottom: 1rem;">€{(p.precio / 100).toFixed(2)}</p>
+          <a href={`/productos/${p.id}`} style="
+            display: inline-block;
+            background: linear-gradient(135deg, #001a33, #2d2d2d);
+            color: #f8f7f4;
+            padding: 0.6rem 1.2rem;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+          " onmouseover="this.style.transform='translateX(4px)'" onmouseout="this.style.transform='translateX(0)'">
+            Ver Detalles →
+          </a>
+        </div>
+      </article>
+    ))}
+  </div>
+
+  {productosCategoria.length === 0 && (
+    <p style="text-align: center; padding: 2rem; color: #666;">No hay productos en esta categoría</p>
+  )}
+</Layout>
