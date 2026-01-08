@@ -1,0 +1,191 @@
+---
+import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
+
+---
+<ProtectedLayout requireAdmin={true}>
+  <div style="max-width: 1400px; margin: 0 auto; padding: 2rem;">
+    <!-- Header -->
+    <div style="margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 2px solid #ddd;">
+      <h1 style="color: #001a33; font-size: 2.5rem; margin: 0;">Panel de Administración</h1>
+      <p style="color: #666; margin: 0.5rem 0 0 0; font-size: 1.1rem;">
+        Bienvenido, <strong>Admin</strong>
+      </p>
+    </div>
+
+    <!-- Estadísticas Rápidas -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+      <div style="
+        background: linear-gradient(135deg, #001a33, #2d2d2d);
+        color: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 26, 51, 0.1);
+      ">
+        <div style="font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem;">📦</div>
+        <p style="margin: 0; font-size: 0.9rem; opacity: 0.8;">Productos</p>
+        <div style="font-size: 2rem; font-weight: 700; margin-top: 0.5rem;">12</div>
+      </div>
+
+      <div style="
+        background: linear-gradient(135deg, #a89968, #d4af37);
+        color: #001a33;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(168, 153, 104, 0.1);
+      ">
+        <div style="font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem;">📋</div>
+        <p style="margin: 0; font-size: 0.9rem; opacity: 0.8;">Pedidos Hoy</p>
+        <div style="font-size: 2rem; font-weight: 700; margin-top: 0.5rem;">5</div>
+      </div>
+
+      <div style="
+        background: linear-gradient(135deg, #2d2d2d, #5c4a3d);
+        color: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(45, 45, 45, 0.1);
+      ">
+        <div style="font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem;">👥</div>
+        <p style="margin: 0; font-size: 0.9rem; opacity: 0.8;">Clientes Activos</p>
+        <div style="font-size: 2rem; font-weight: 700; margin-top: 0.5rem;">48</div>
+      </div>
+
+      <div style="
+        background: linear-gradient(135deg, #5c4a3d, #a89968);
+        color: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(92, 74, 61, 0.1);
+      ">
+        <div style="font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem;">💰</div>
+        <p style="margin: 0; font-size: 0.9rem; opacity: 0.8;">Ingresos Este Mes</p>
+        <div style="font-size: 2rem; font-weight: 700; margin-top: 0.5rem;">€2.5K</div>
+      </div>
+    </div>
+
+    <!-- Menú de Opciones -->
+    <div style="margin-bottom: 3rem;">
+      <h2 style="color: #001a33; font-size: 1.8rem; margin-bottom: 1.5rem;">Gestión de la Tienda</h2>
+      
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">
+        <!-- Productos -->
+        <a href="/admin/productos" style="
+          background: white;
+          border: 2px solid #001a33;
+          padding: 2rem;
+          border-radius: 8px;
+          text-decoration: none;
+          transition: all 0.3s;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        " onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 32px rgba(0, 26, 51, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0, 0, 0, 0.08)'">
+          <div style="font-size: 3rem; margin-bottom: 1rem;">📦</div>
+          <h3 style="color: #001a33; font-size: 1.3rem; margin: 0 0 0.5rem 0;">Gestionar Productos</h3>
+          <p style="color: #666; margin: 0; font-size: 0.95rem;">
+            Crear, editar, eliminar y ver todos los productos de tu tienda
+          </p>
+          <div style="margin-top: 1rem; color: #a89968; font-weight: 600;">Ver más →</div>
+        </a>
+
+        <!-- Pedidos -->
+        <a href="/admin/pedidos" style="
+          background: white;
+          border: 2px solid #a89968;
+          padding: 2rem;
+          border-radius: 8px;
+          text-decoration: none;
+          transition: all 0.3s;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        " onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 32px rgba(168, 153, 104, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0, 0, 0, 0.08)'">
+          <div style="font-size: 3rem; margin-bottom: 1rem;">📋</div>
+          <h3 style="color: #001a33; font-size: 1.3rem; margin: 0 0 0.5rem 0;">Gestionar Pedidos</h3>
+          <p style="color: #666; margin: 0; font-size: 0.95rem;">
+            Ver, actualizar estado y gestionar todos los pedidos de clientes
+          </p>
+          <div style="margin-top: 1rem; color: #a89968; font-weight: 600;">Ver más →</div>
+        </a>
+
+        <!-- Usuarios -->
+        <a href="/admin/usuarios" style="
+          background: white;
+          border: 2px solid #2d2d2d;
+          padding: 2rem;
+          border-radius: 8px;
+          text-decoration: none;
+          transition: all 0.3s;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        " onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 32px rgba(45, 45, 45, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0, 0, 0, 0.08)'">
+          <div style="font-size: 3rem; margin-bottom: 1rem;">👥</div>
+          <h3 style="color: #001a33; font-size: 1.3rem; margin: 0 0 0.5rem 0;">Gestionar Usuarios</h3>
+          <p style="color: #666; margin: 0; font-size: 0.95rem;">
+            Ver, editar roles y gestionar usuarios registrados en el sistema
+          </p>
+          <div style="margin-top: 1rem; color: #a89968; font-weight: 600;">Ver más →</div>
+        </a>
+
+        <!-- Estadísticas -->
+        <a href="/admin/estadisticas" style="
+          background: white;
+          border: 2px solid #8b7a5f;
+          padding: 2rem;
+          border-radius: 8px;
+          text-decoration: none;
+          transition: all 0.3s;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        " onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 32px rgba(139, 122, 95, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0, 0, 0, 0.08)'">
+          <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+          <h3 style="color: #001a33; font-size: 1.3rem; margin: 0 0 0.5rem 0;">Estadísticas</h3>
+          <p style="color: #666; margin: 0; font-size: 0.95rem;">
+            Ver reportes, gráficos y análisis del rendimiento de la tienda
+          </p>
+          <div style="margin-top: 1rem; color: #a89968; font-weight: 600;">Ver más →</div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Acciones Rápidas -->
+    <div style="background: #f5f5f5; padding: 2rem; border-radius: 8px;">
+      <h2 style="color: #001a33; font-size: 1.3rem; margin-top: 0;">Acciones Rápidas</h2>
+      
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
+        <a href="/admin/productos?action=crear" style="
+          background: linear-gradient(135deg, #001a33, #2d2d2d);
+          color: white;
+          padding: 1rem;
+          border-radius: 6px;
+          text-decoration: none;
+          text-align: center;
+          font-weight: 600;
+          transition: all 0.3s;
+        " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(0, 26, 51, 0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+          + Nuevo Producto
+        </a>
+
+        <a href="/admin/pedidos?estado=pendiente" style="
+          background: linear-gradient(135deg, #2d2d2d, #5c4a3d);
+          color: white;
+          padding: 1rem;
+          border-radius: 6px;
+          text-decoration: none;
+          text-align: center;
+          font-weight: 600;
+          transition: all 0.3s;
+        " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(45, 45, 45, 0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+          📋 Pedidos Pendientes
+        </a>
+
+        <a href="/admin/usuarios" style="
+          background: linear-gradient(135deg, #5c4a3d, #a89968);
+          color: white;
+          padding: 1rem;
+          border-radius: 6px;
+          text-decoration: none;
+          text-align: center;
+          font-weight: 600;
+          transition: all 0.3s;
+        " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(92, 74, 61, 0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+          👤 Gestionar Usuarios
+        </a>
+      </div>
+    </div>
+  </div>
+</ProtectedLayout>
