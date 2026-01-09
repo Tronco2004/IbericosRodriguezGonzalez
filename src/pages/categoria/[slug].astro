@@ -1,12 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 
-const categorias = {
-  jamones: { nombre: "Jamones", descripcion: "Jamones ibéricos de la más alta calidad" },
-  quesos: { nombre: "Quesos", descripcion: "Quesos artesanales españoles" },
-  embutidos: { nombre: "Embutidos", descripcion: "Embutidos ibéricos premium" }
-};
-
 export function getStaticPaths() {
   return [
     { params: { slug: 'jamones' } },
@@ -16,75 +10,444 @@ export function getStaticPaths() {
 }
 
 const { slug } = Astro.params;
-const categoria = categorias[slug as keyof typeof categorias];
 
-if (!categoria) {
-  return Astro.redirect('/productos');
-}
+const categoryTitles = {
+  jamones: { title: 'Jamones Premium', subtitle: 'Nuestros mejores jamones ibéricos' },
+  quesos: { title: 'Quesos Artesanales', subtitle: 'Quesos de denominación de origen' },
+  embutidos: { title: 'Embutidos Selectos', subtitle: 'Embutidos tradicionales' }
+};
 
-const productosCategoria = [
-  { id: 1, nombre: "Jamón Ibérico Reserva", precio: 9999, categoria: "jamones" },
-  { id: 2, nombre: "Queso Manchego Premium", precio: 2200, categoria: "quesos" },
-  { id: 3, nombre: "Chorizo de Bellota", precio: 1800, categoria: "embutidos" }
-].filter(p => p.categoria === slug);
+const info = categoryTitles[slug] || { title: 'Productos', subtitle: 'Nuestros productos' };
 ---
 
 <Layout>
-  <div style="margin-bottom: 3rem;">
-    <a href="/productos" style="
-      display: inline-flex;
+  <div style="text-align: center; margin-bottom: 4rem; padding: 2rem 0;">
+    <span style="color: #a89968; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 3px; display: inline-block; padding: 0.5rem 1.5rem; background: rgba(168, 153, 104, 0.08); border-radius: 50px; margin-bottom: 1rem;">{slug.toUpperCase()}</span>
+    <h1 style="font-size: 3.5rem; margin: 1rem 0 0.8rem 0; color: #001a33; font-weight: 800; letter-spacing: -1px;">{info.title}</h1>
+    <div style="width: 80px; height: 3px; background: linear-gradient(90deg, #a89968, #d4a574); margin: 1.5rem auto; border-radius: 10px;"></div>
+    <p style="opacity: 0.6; font-size: 1.1rem; max-width: 700px; margin: 1.5rem auto 0; font-weight: 500; letter-spacing: 0.3px;">{info.subtitle}</p>
+  </div>
+
+  <div id="productosGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2.5rem; margin-top: 3rem; padding: 0 1rem; max-width: 100%;">
+  </div>
+
+  <style>
+    article {
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 26, 51, 0.06);
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    article:hover {
+      box-shadow: 0 16px 32px rgba(0, 26, 51, 0.12);
+      transform: translateY(-12px);
+    }
+
+    .product-image-wrapper {
+      position: relative;
+      width: 100%;
+      height: 300px;
+      overflow: hidden;
+      background: linear-gradient(135deg, #f8f7f4, #efefec);
+    }
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    article:hover img {
+      transform: scale(1.12);
+    }
+
+    .category-badge {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: rgba(168, 153, 104, 0.95);
+      color: white;
+      padding: 6px 16px;
+      border-radius: 50px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .product-info {
+      padding: 1.5rem 1.2rem;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .product-header {
+      margin-bottom: 0.8rem;
+    }
+
+    .product-rating {
+      display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.4rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .stars {
       color: #a89968;
-      text-decoration: none;
-      font-weight: 600;
+      font-size: 0.7rem;
+      letter-spacing: 0.5px;
+    }
+
+    .rating-text {
+      font-size: 0.7rem;
+      color: #999;
+      font-weight: 500;
+    }
+
+    .product-name {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #001a33;
+      margin: 0.5rem 0 0.4rem 0;
+      letter-spacing: -0.3px;
+      line-height: 1.2;
+    }
+
+    .product-description {
+      font-size: 0.85rem;
+      color: #888;
       margin-bottom: 1rem;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .product-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 0.8rem;
+      border-top: 1px solid #f0ede7;
+      gap: 0.8rem;
+    }
+
+    .product-price {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #a89968;
+      letter-spacing: -0.3px;
+    }
+
+    .btn-comprar {
+      background: #001a33;
+      color: white;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .btn-comprar:hover {
+      background: #a89968;
+      box-shadow: 0 6px 12px rgba(168, 153, 104, 0.25);
+    }
+
+    .btn-comprar:active {
+      transform: scale(0.97);
+    }
+
+    @media (max-width: 640px) {
+      #productosGrid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+
+      article {
+        border-radius: 12px;
+      }
+
+      .product-name {
+        font-size: 1.2rem;
+      }
+
+      .product-price {
+        font-size: 1.3rem;
+      }
+
+      .product-info {
+        padding: 1.5rem 1.25rem;
+      }
+    }
+  </style>
+
+  <script define:vars={{ categoria: slug }}>
+    async function cargarProductos() {
+      try {
+        const response = await fetch('/api/admin/productos');
+        const data = await response.json();
+        
+        let productos = [];
+        
+        if (data.success && data.productos && data.productos.length > 0) {
+          productos = data.productos.map((p) => ({
+            id: p.id,
+            nombre: p.nombre,
+            precio: (p.precio_centimos / 100).toFixed(2),
+            categoria: p.categorias?.slug || 'desconocida',
+            imagen: p.imagen_url || 'https://images.unsplash.com/photo-1557803104268-0ef0f060e15f?w=500&h=500&fit=crop',
+            descripcion: p.descripcion || 'Sin descripción',
+            rating: p.rating || 4.8
+          }));
+        }
+
+        const productosFiltrados = productos.filter((p) => p.categoria === categoria);
+
+        const grid = document.getElementById('productosGrid');
+        if (productosFiltrados.length === 0) {
+          grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 4rem 2rem;"><p style="opacity: 0.6; font-size: 1.1rem; margin: 0;">No hay productos en esta categoría</p></div>';
+          return;
+        }
+
+        grid.innerHTML = productosFiltrados.map((p) => `
+          <article>
+            <div class="product-image-wrapper">
+              <img src="${p.imagen}" alt="${p.nombre}" loading="lazy" />
+              <div class="category-badge">${categoria}</div>
+            </div>
+            <div class="product-info">
+              <div class="product-header">
+                <div class="product-rating">
+                  <span class="stars">★★★★★</span>
+                  <span class="rating-text">${p.rating}</span>
+                </div>
+                <h3 class="product-name">${p.nombre}</h3>
+                <p class="product-description">${p.descripcion}</p>
+              </div>
+              <div class="product-footer">
+                <div class="product-price">€${p.precio}</div>
+                <button class="btn-comprar">Agregar</button>
+              </div>
+            </div>
+          </article>
+        `).join('');
+
+      } catch (error) {
+        console.error('Error al cargar productos:', error);
+        const grid = document.getElementById('productosGrid');
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 4rem 2rem;"><p style="color: #999;">Error al cargar los productos</p></div>';
+      }
+    }
+
+    cargarProductos();
+  </script>
+</Layout>
+  return [
+    { params: { slug: 'jamones' } },
+    { params: { slug: 'quesos' } },
+    { params: { slug: 'embutidos' } }
+  ];
+}
+
+const { slug } = Astro.params;
+
+const categoryTitles = {
+  jamones: { title: 'Jamones Premium', subtitle: 'Nuestros mejores jamones ibéricos' },
+  quesos: { title: 'Quesos Artesanales', subtitle: 'Quesos de denominación de origen' },
+  embutidos: { title: 'Embutidos Selectos', subtitle: 'Embutidos tradicionales' }
+};
+
+const info = categoryTitles[slug] || { title: 'Productos', subtitle: 'Nuestros productos' };
+---
+
+<Layout>
+  <div style="margin-bottom: 3rem; text-align: center;">
+    <span style="color: #a89968; font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">{slug.toUpperCase()}</span>
+    <h1 style="font-size: 3rem; margin: 0.5rem 0 1rem 0;">{info.title}</h1>
+    <p style="opacity: 0.7; font-size: 1.1rem;">{info.subtitle}</p>
+  </div>
+  
+  <div id="productosGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2.5rem; margin-bottom: 3rem;">
+    <!-- Cargará con JavaScript -->
+  </div>
+
+  <style>
+    .producto-card {
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
       transition: all 0.3s;
-    " onmouseover="this.style.transform='translateX(-4px)'" onmouseout="this.style.transform='translateX(0)'">
-      ← Todos los productos
-    </a>
-    <h1 style="font-size: 3rem; margin: 0; color: #001a33;">{categoria.nombre}</h1>
-    <p style="opacity: 0.7; font-size: 1.1rem; margin-top: 0.5rem;">{categoria.descripcion}</p>
-  </div>
+      transform: translateY(0);
+    }
 
-  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2rem;">
-    {productosCategoria.map(p => (
-      <article style="
-        background: #fff;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        transition: all 0.3s;
-        transform: translateY(0);
-      " onmouseover="this.style.transform='translateY(-8px)'; this.style.boxShadow='0 12px 32px rgba(0, 0, 0, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0, 0, 0, 0.08)'">
-        <div style="position: relative; height: 250px; overflow: hidden; background: linear-gradient(135deg, #f8f7f4 0%, #e8e6e0 100%); display: flex; align-items: center; justify-content: center;">
-          <div style="text-align: center; opacity: 0.5;">
-            <div style="font-size: 3rem;">📦</div>
-            <p style="font-size: 0.8rem; color: #666; margin: 0.5rem 0 0 0;">{p.categoria}</p>
-          </div>
-        </div>
-        <div style="padding: 1.5rem;">
-          <span style="color: #a89968; font-size: 0.8rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">{p.categoria}</span>
-          <h3 style="font-size: 1.3rem; margin: 0.5rem 0; color: #001a33;">{p.nombre}</h3>
-          <p style="font-size: 1.6rem; color: #001a33; font-weight: 700; margin-bottom: 1rem;">€{(p.precio / 100).toFixed(2)}</p>
-          <a href={`/productos/${p.id}`} style="
-            display: inline-block;
-            background: linear-gradient(135deg, #001a33, #2d2d2d);
-            color: #f8f7f4;
-            padding: 0.6rem 1.2rem;
-            border-radius: 4px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            transition: all 0.3s;
-          " onmouseover="this.style.transform='translateX(4px)'" onmouseout="this.style.transform='translateX(0)'">
-            Ver Detalles →
-          </a>
-        </div>
-      </article>
-    ))}
-  </div>
+    .producto-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+    }
 
-  {productosCategoria.length === 0 && (
-    <p style="text-align: center; padding: 2rem; color: #666;">No hay productos en esta categoría</p>
-  )}
+    .producto-imagen {
+      position: relative;
+      height: 280px;
+      overflow: hidden;
+      background: #f5f5f5;
+    }
+
+    .producto-imagen img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.4s ease;
+    }
+
+    .producto-card:hover .producto-imagen img {
+      transform: scale(1.08);
+    }
+
+    .producto-contenido {
+      padding: 1.8rem;
+    }
+
+    .producto-categoria {
+      color: #a89968;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    .producto-nombre {
+      font-size: 1.3rem;
+      margin: 0.5rem 0;
+      color: #001a33;
+      font-weight: 700;
+    }
+
+    .producto-descripcion {
+      opacity: 0.65;
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      min-height: 3em;
+    }
+
+    .producto-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .producto-precio {
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: #001a33;
+    }
+
+    .btn-detail {
+      background: linear-gradient(135deg, #001a33, #2d2d2d);
+      color: #f8f7f4;
+      padding: 0.6rem 1.4rem;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-detail:hover {
+      transform: translateX(4px);
+      box-shadow: 0 6px 16px rgba(0, 26, 51, 0.2);
+    }
+  </style>
+
+  <script define:vars={{ categoria: slug }}>
+    // Cargar productos desde Supabase
+    async function cargarProductos() {
+      try {
+        const response = await fetch('/api/admin/productos');
+        const data = await response.json();
+        
+        let productos = [];
+        
+        if (data.success && data.productos && data.productos.length > 0) {
+          // Convertir productos de Supabase al formato esperado
+          productos = data.productos.map((p) => ({
+            id: p.id,
+            nombre: p.nombre,
+            precio: p.precio_centimos,
+            categoria: p.categorias?.slug || 'desconocida',
+            imagen: p.imagen_url || 'https://images.unsplash.com/photo-1557803104268-0ef0f060e15f?w=500&h=500&fit=crop',
+            descripcion: p.descripcion || 'Sin descripción',
+            rating: p.rating || 4.8
+          }));
+        }
+
+        // Filtrar por categoría
+        const productosFiltrados = productos.filter((p) => p.categoria === categoria);
+
+        const grid = document.getElementById('productosGrid');
+        if (productosFiltrados.length === 0) {
+          grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 2rem; opacity: 0.7;">No hay productos en esta categoría.</p>';
+          return;
+        }
+
+        grid.innerHTML = productosFiltrados.map((p) => `
+          <article class="producto-card">
+            <div class="producto-imagen">
+              <img src="${p.imagen}" alt="${p.nombre}" />
+              <span style="
+                position: absolute;
+                top: 1rem;
+                right: 1rem;
+                background: #a89968;
+                color: #001a33;
+                padding: 0.4rem 0.8rem;
+                border-radius: 4px;
+                font-weight: 700;
+                font-size: 0.8rem;
+              ">★ ${p.rating}</span>
+            </div>
+            <div class="producto-contenido">
+              <span class="producto-categoria">${p.categoria}</span>
+              <h3 class="producto-nombre">${p.nombre}</h3>
+              <p class="producto-descripcion">${p.descripcion}</p>
+              <div class="producto-footer">
+                <span class="producto-precio">€${(p.precio / 100).toFixed(2)}</span>
+                <a href="/productos/${p.id}" class="btn-detail">Ver Detalles →</a>
+              </div>
+            </div>
+          </article>
+        `).join('');
+      } catch (error) {
+        console.error('Error cargando productos:', error);
+        const grid = document.getElementById('productosGrid');
+        grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 2rem; opacity: 0.7;">Error cargando productos</p>';
+      }
+    }
+
+    // Cargar al iniciar
+    cargarProductos();
+  </script>
 </Layout>

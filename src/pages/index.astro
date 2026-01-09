@@ -131,17 +131,7 @@ const productos = [
             
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <span style="font-size: 1.9rem; font-weight: 700; color: #001a33;">€{(producto.precio / 100).toFixed(2)}</span>
-              <a href={`/productos/${producto.id}`} style="
-                background: linear-gradient(135deg, #001a33, #2d2d2d);
-                color: #f8f7f4;
-                padding: 0.6rem 1.4rem;
-                border-radius: 6px;
-                font-weight: 700;
-                font-size: 0.85rem;
-                transition: all 0.3s;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-              " onmouseover="this.style.transform='translateX(4px)'; this.style.boxShadow='0 6px 16px rgba(0, 26, 51, 0.2)'" onmouseout="this.style.transform='translateX(0)'; this.style.boxShadow='none'">
+              <a href={`/productos/${producto.id}`} class="btn-detail">
                 Ver Detalles →
               </a>
             </div>
@@ -150,6 +140,27 @@ const productos = [
       ))}
     </div>
   </section>
+
+  <style>
+    .btn-detail {
+      background: linear-gradient(135deg, #001a33, #2d2d2d);
+      color: #f8f7f4;
+      padding: 0.6rem 1.4rem;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-detail:hover {
+      transform: translateX(4px);
+      box-shadow: 0 6px 16px rgba(0, 26, 51, 0.2);
+    }
+  </style>
 
   <!-- Beneficios Section -->
   <section id="beneficios" style="

@@ -1,0 +1,139 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+export function getStaticPaths() {
+  return [
+    { params: { slug: 'jamones' } },
+    { params: { slug: 'quesos' } },
+    { params: { slug: 'embutidos' } }
+  ];
+}
+
+const { slug } = Astro.params;
+
+const categoryTitles = {
+  jamones: { title: 'Jamones Premium', subtitle: 'Nuestros mejores jamones ibéricos' },
+  quesos: { title: 'Quesos Artesanales', subtitle: 'Quesos de denominación de origen' },
+  embutidos: { title: 'Embutidos Selectos', subtitle: 'Embutidos tradicionales' }
+};
+
+const info = categoryTitles[slug] || { title: 'Productos', subtitle: 'Nuestros productos' };
+---
+
+<Layout>
+  <div style="text-align: center; margin-bottom: 3rem;">
+    <span style="color: #a89968; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;">{slug.toUpperCase()}</span>
+    <h2 style="font-size: 3.2rem; margin: 0.5rem 0 1rem 0; color: #001a33;">{info.title}</h2>
+    <p style="opacity: 0.7; font-size: 1.05rem; max-width: 600px; margin: 0 auto;">{info.subtitle}</p>
+  </div>
+
+  <div id="productosGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2.5rem; margin-bottom: 3rem;">
+    <!-- Cargará con JavaScript -->
+  </div>
+
+  <style>
+    .btn-detail {
+      background: linear-gradient(135deg, #001a33, #2d2d2d);
+      color: #f8f7f4;
+      padding: 0.6rem 1.4rem;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-detail:hover {
+      transform: translateX(4px);
+      box-shadow: 0 6px 16px rgba(0, 26, 51, 0.2);
+    }
+  </style>
+
+  <script define:vars={{ categoria: slug }}>
+    async function cargarProductos() {
+      try {
+        const response = await fetch('/api/admin/productos');
+        const data = await response.json();
+        
+        let productos = [];
+        
+        if (data.success && data.productos && data.productos.length > 0) {
+          productos = data.productos.map((p) => ({
+            id: p.id,
+            nombre: p.nombre,
+            precio: p.precio_centimos,
+            categoria: p.categorias?.slug || 'desconocida',
+            imagen: p.imagen_url || 'https://images.unsplash.com/photo-1557803104268-0ef0f060e15f?w=500&h=500&fit=crop',
+            descripcion: p.descripcion || 'Sin descripción',
+            rating: p.rating || 4.8
+          }));
+        }
+
+        const productosFiltrados = productos.filter((p) => p.categoria === categoria);
+
+        const grid = document.getElementById('productosGrid');
+        if (productosFiltrados.length === 0) {
+          grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 2rem; opacity: 0.7;">No hay productos en esta categoría.</p>';
+          return;
+        }
+
+        grid.innerHTML = productosFiltrados.map((p) => `
+          <article style="
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateY(0);
+          ">
+            <div style="position: relative; overflow: hidden; height: 280px;">
+              <img src="${p.imagen}" alt="${p.nombre}" style="
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+                cursor: pointer;
+              " onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'" />
+              <div style="
+                position: absolute;
+                top: 1rem;
+                right: 1rem;
+                background: #a89968;
+                color: #001a33;
+                padding: 0.5rem 1rem;
+                border-radius: 6px;
+                font-weight: 700;
+                font-size: 0.9rem;
+                box-shadow: 0 4px 12px rgba(168, 153, 104, 0.3);
+              ">
+                ★ ${p.rating}
+              </div>
+            </div>
+            
+            <div style="padding: 1.8rem;">
+              <span style="color: #a89968; font-size: 0.75rem; text-transform: uppercase; font-weight: 700; letter-spacing: 1px;">${p.categoria}</span>
+              <h3 style="font-size: 1.4rem; margin: 0.8rem 0 0.5rem 0; color: #001a33;">${p.nombre}</h3>
+              <p style="opacity: 0.65; margin-bottom: 1.5rem; font-size: 0.95rem; line-height: 1.5;">${p.descripcion}</p>
+              
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 1.9rem; font-weight: 700; color: #001a33;">€${(p.precio / 100).toFixed(2)}</span>
+                <a href="/productos/${p.id}" class="btn-detail">
+                  Ver Detalles →
+                </a>
+              </div>
+            </div>
+          </article>
+        `).join('');
+      } catch (error) {
+        console.error('Error cargando productos:', error);
+        const grid = document.getElementById('productosGrid');
+        grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 2rem; opacity: 0.7;">Error cargando productos</p>';
+      }
+    }
+
+    cargarProductos();
+  </script>
+</Layout>

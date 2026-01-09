@@ -10,42 +10,25 @@ const { requireAuth = false, requireAdmin = false } = Astro.props;
 ---
 
 <Layout>
-  <script define:vars={{ requireAuth, requireAdmin }}>
-    // Verificar autenticación en cliente
-    const token = localStorage.getItem('auth_token');
+  <script>
     const userRole = localStorage.getItem('user_role');
     const currentPath = window.location.pathname;
 
-    console.log('🔐 Verificando autenticación del cliente');
+    console.log('🔐 Validando acceso:');
     console.log('  Path:', currentPath);
-    console.log('  Token:', token ? '✅ Sí' : '❌ No');
-    console.log('  Rol:', userRole || '❌ No');
+    console.log('  Rol desde localStorage:', userRole);
 
-    // Rutas protegidas que requieren auth
-    const rutasProtegidas = ['/carrito', '/checkout', '/mi-cuenta', '/mis-pedidos'];
-    const esRutaProtegida = rutasProtegidas.some(r => currentPath.startsWith(r));
-    const esRutaAdmin = currentPath.startsWith('/admin');
-
-    // Redirigir si no hay token y se requiere autenticación
-    if ((esRutaProtegida || esRutaAdmin) && !token) {
-      console.log('⛔ Sin autenticación, redirigiendo a login');
-      window.location.href = '/login';
-    }
-
-    // Redirigir si no es admin pero intenta acceder a /admin
-    if (esRutaAdmin && userRole !== 'admin') {
-      console.log('⛔ No es admin, redirigiendo a sin-acceso');
-      window.location.href = '/sin-acceso';
-    }
-
-    // Limpiar localStorage al cerrar sesión
-    if (currentPath === '/api/auth/logout') {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_role');
-      localStorage.removeItem('user_name');
-      localStorage.removeItem('user_id');
+    // Si es una ruta admin y no tiene rol admin, redirigir
+    if (currentPath.startsWith('/admin')) {
+      if (userRole !== 'admin') {
+        console.log('⛔ No es admin, redirigiendo');
+        window.location.href = '/sin-acceso';
+      } else {
+        console.log('✅ Es admin, permitiendo acceso');
+      }
     }
   </script>
 
   <slot />
+</Layout>
 </Layout>

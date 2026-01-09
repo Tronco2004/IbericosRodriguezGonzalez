@@ -28,18 +28,19 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     const userId = authData.user.id;
     const token = authData.session?.access_token;
+    const userEmail = authData.user.email;
 
     console.log('✅ Autenticación en auth exitosa:', userId);
 
-    // 2. Obtener datos del usuario desde tabla usuarios
+    // 2. Obtener datos del usuario desde tabla usuarios usando el email
     const { data: usuarioData, error: dbError } = await supabaseClient
       .from('usuarios')
       .select('id, nombre, email, rol, activo')
-      .eq('id', userId)
+      .eq('email', userEmail)
       .single();
 
-    console.log('🔍 Query a tabla usuarios:');
-    console.log('  Usuario ID:', userId);
+    console.log('🔍 Query a tabla usuarios por email:');
+    console.log('  Email:', userEmail);
     console.log('  Datos encontrados:', usuarioData);
     console.log('  Error:', dbError);
 
@@ -65,10 +66,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     // 3. Guardar sesión en cookies
     cookies.set('auth_token', token || '', {
-      httpOnly: true,
-      secure: false, // false para desarrollo
+      httpOnly: false,
+      secure: false,
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7 // 7 días
+      maxAge: 60 * 60 * 24 * 7
     });
 
     cookies.set('user_role', usuarioData.rol, {
@@ -85,12 +86,14 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       maxAge: 60 * 60 * 24 * 7
     });
 
-    cookies.set('user_id', userId, {
+    cookies.set('user_id', usuarioData.id, {
       httpOnly: false,
       secure: false,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7
     });
+
+    console.log('🍪 Cookies establecidas');
 
     // 4. Determinar redirección según rol
     const redirect_url = usuarioData.rol === 'admin' ? '/admin/dashboard' : '/productos';
@@ -99,10 +102,20 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       JSON.stringify({
         success: true,
         message: 'Login exitoso',
-        usuario: usuarioData,
-        redirect_url,
+        redirect_url: redirect_url,
+        usuario: {
+          id: usuarioData.id,
+          nombre: usuarioData.nombre,
+          email: usuarioData.email,
+          rol: usuarioData.rol
+        }
       }),
-      { status: 200 }
+      { 
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
     );
   } catch (error) {
     console.log('❌ Error inesperado:', error);

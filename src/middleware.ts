@@ -24,9 +24,9 @@ export const onRequest = defineMiddleware((context, next) => {
     console.log('✅ Usuario validado:', userName);
   }
 
-  // Rutas admin - solo para administradores
+  // Las rutas admin se validan en el layout del lado del cliente
   if (path.startsWith('/admin')) {
-    console.log('👑 Ruta admin: validación en cliente via ProtectedLayout');
+    console.log('👑 Ruta admin - validación en cliente');
   }
 
   return next();

@@ -1,62 +1,248 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 
-const productos = [
-  { id: 1, nombre: "Jamón Ibérico Reserva", precio: 9999, categoria: "jamones", imagen: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=500&h=500&fit=crop", rating: 4.9 },
-  { id: 2, nombre: "Queso Manchego Premium", precio: 2200, categoria: "quesos", imagen: "https://images.unsplash.com/photo-1452195463300-e83e0a2a7a25?w=500&h=500&fit=crop", rating: 4.8 },
-  { id: 3, nombre: "Chorizo de Bellota", precio: 1800, categoria: "embutidos", imagen: "https://images.unsplash.com/photo-1557803104268-0ef0f060e15f?w=500&h=500&fit=crop", rating: 4.7 }
-];
+// Los productos se cargarán dinámicamente desde Supabase con JavaScript
 ---
 
 <Layout>
-  <div style="margin-bottom: 3rem;">
-    <span style="color: #a89968; font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">NUESTRO CATÁLOGO</span>
-    <h2 style="font-size: 3rem; margin: 0.5rem 0 1rem 0;">Todos los Productos</h2>
-    <p style="opacity: 0.7; font-size: 1.1rem;">Descubre nuestra colección completa de surtidos ibéricos premium</p>
+  <div style="text-align: center; margin-bottom: 4rem; padding: 2rem 0;">
+    <span style="color: #a89968; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 3px; display: inline-block; padding: 0.5rem 1.5rem; background: rgba(168, 153, 104, 0.08); border-radius: 50px; margin-bottom: 1rem;">CATÁLOGO COMPLETO</span>
+    <h1 style="font-size: 3.5rem; margin: 1rem 0 0.8rem 0; color: #001a33; font-weight: 800; letter-spacing: -1px;">Todos los Productos</h1>
+    <div style="width: 80px; height: 3px; background: linear-gradient(90deg, #a89968, #d4a574); margin: 1.5rem auto; border-radius: 10px;"></div>
+    <p style="opacity: 0.6; font-size: 1.1rem; max-width: 700px; margin: 1.5rem auto 0; font-weight: 500; letter-spacing: 0.3px;">Descubre nuestra colección completa de productos ibéricos premium</p>
   </div>
   
-  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2rem;">
-    {productos.map(p => (
-      <article style="
-        background: #fff;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        transition: all 0.3s;
-        transform: translateY(0);
-      " onmouseover="this.style.transform='translateY(-8px)'; this.style.boxShadow='0 12px 32px rgba(0, 0, 0, 0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0, 0, 0, 0.08)'">
-        <div style="position: relative; height: 250px; overflow: hidden;">
-          <img src={p.imagen} alt={p.nombre} style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'" />
-          <span style="
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            background: #a89968;
-            color: #001a33;
-            padding: 0.4rem 0.8rem;
-            border-radius: 4px;
-            font-weight: 700;
-            font-size: 0.8rem;
-          ">★ {p.rating}</span>
-        </div>
-        <div style="padding: 1.5rem;">
-          <span style="color: #a89968; font-size: 0.8rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">{p.categoria}</span>
-          <h3 style="font-size: 1.3rem; margin: 0.5rem 0; color: #001a33;">{p.nombre}</h3>
-          <p style="font-size: 1.6rem; color: #001a33; font-weight: 700; margin-bottom: 1rem;">€{(p.precio / 100).toFixed(2)}</p>
-          <a href={`/productos/${p.id}`} style="
-            display: inline-block;
-            background: linear-gradient(135deg, #001a33, #2d2d2d);
-            color: #f8f7f4;
-            padding: 0.6rem 1.2rem;
-            border-radius: 4px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            transition: all 0.3s;
-          " onmouseover="this.style.transform='translateX(4px)'" onmouseout="this.style.transform='translateX(0)'">
-            Ver Detalles →
-          </a>
-        </div>
-      </article>
-    ))}
+  <div id="productosGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2.5rem; margin-top: 3rem; padding: 0 1rem; max-width: 100%;">
+    <!-- Cargará con JavaScript -->
   </div>
+
+  <style>
+    article {
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 26, 51, 0.06);
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    article:hover {
+      box-shadow: 0 16px 32px rgba(0, 26, 51, 0.12);
+      transform: translateY(-12px);
+    }
+
+    .product-image-wrapper {
+      position: relative;
+      width: 100%;
+      height: 300px;
+      overflow: hidden;
+      background: linear-gradient(135deg, #f8f7f4, #efefec);
+    }
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    article:hover img {
+      transform: scale(1.12);
+    }
+
+    .category-badge {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: rgba(168, 153, 104, 0.95);
+      color: white;
+      padding: 6px 16px;
+      border-radius: 50px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .product-info {
+      padding: 1.5rem 1.2rem;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .product-header {
+      margin-bottom: 0.8rem;
+    }
+
+    .product-rating {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .stars {
+      color: #a89968;
+      font-size: 0.7rem;
+      letter-spacing: 0.5px;
+    }
+
+    .rating-text {
+      font-size: 0.7rem;
+      color: #999;
+      font-weight: 500;
+    }
+
+    .product-name {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #001a33;
+      margin: 0.5rem 0 0.4rem 0;
+      letter-spacing: -0.3px;
+      line-height: 1.2;
+    }
+
+    .product-description {
+      font-size: 0.85rem;
+      color: #888;
+      margin-bottom: 1rem;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .product-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 0.8rem;
+      border-top: 1px solid #f0ede7;
+      gap: 0.8rem;
+    }
+
+    .product-price {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #a89968;
+      letter-spacing: -0.3px;
+    }
+
+    .btn-comprar {
+      background: #001a33;
+      color: white;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-comprar:hover {
+      background: #a89968;
+      box-shadow: 0 6px 12px rgba(168, 153, 104, 0.25);
+    }
+
+    .btn-comprar:active {
+      transform: scale(0.97);
+    }
+
+    @media (max-width: 640px) {
+      #productosGrid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+
+      article {
+        border-radius: 12px;
+      }
+
+      .product-name {
+        font-size: 1.2rem;
+      }
+
+      .product-price {
+        font-size: 1.3rem;
+      }
+
+      .product-info {
+        padding: 1.5rem 1.25rem;
+      }
+    }
+  </style>
+
+  <script>
+    // Cargar productos desde Supabase
+    async function cargarProductos() {
+      try {
+        const response = await fetch('/api/admin/productos');
+        const data = await response.json();
+        
+        let productos = [];
+        
+        if (data.success && data.productos && data.productos.length > 0) {
+          // Convertir productos de Supabase al formato esperado
+          productos = data.productos.map((p) => ({
+            id: p.id,
+            nombre: p.nombre,
+            precio: (p.precio_centimos / 100).toFixed(2),
+            categoria: p.categorias?.slug || 'desconocida',
+            imagen: p.imagen_url || 'https://images.unsplash.com/photo-1557803104268-0ef0f060e15f?w=500&h=500&fit=crop',
+            descripcion: p.descripcion || 'Sin descripción',
+            rating: p.rating || 4.8
+          }));
+        }
+
+        const grid = document.getElementById('productosGrid');
+        if (productos.length === 0) {
+          grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 4rem 2rem;"><p style="opacity: 0.6; font-size: 1.1rem; margin: 0;">No hay productos disponibles</p></div>';
+          return;
+        }
+
+        grid.innerHTML = productos.map((p) => `
+          <article>
+            <div class="product-image-wrapper">
+              <img src="${p.imagen}" alt="${p.nombre}" loading="lazy" />
+              <div class="category-badge">${p.categoria}</div>
+            </div>
+            <div class="product-info">
+              <div class="product-header">
+                <div class="product-rating">
+                  <span class="stars">★★★★★</span>
+                  <span class="rating-text">${p.rating}</span>
+                </div>
+                <h3 class="product-name">${p.nombre}</h3>
+                <p class="product-description">${p.descripcion}</p>
+              </div>
+              <div class="product-footer">
+                <div class="product-price">€${p.precio}</div>
+                <a href="/productos/${p.id}" class="btn-comprar">Ver más</a>
+              </div>
+            </div>
+          </article>
+        `).join('');
+      } catch (error) {
+        console.error('Error cargando productos:', error);
+        const grid = document.getElementById('productosGrid');
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 4rem 2rem;"><p style="color: #999;">Error al cargar los productos</p></div>';
+      }
+    }
+
+    // Cargar al iniciar
+    cargarProductos();
+  </script>
 </Layout>
