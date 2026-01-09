@@ -78,7 +78,8 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
                 <th style="padding: 1.25rem; text-align: left; color: #0f172a; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Imagen</th>
                 <th style="padding: 1.25rem; text-align: left; color: #0f172a; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Producto</th>
                 <th style="padding: 1.25rem; text-align: left; color: #0f172a; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Categoría</th>
-                <th style="padding: 1.25rem; text-align: center; color: #0f172a; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Precio</th>
+                <th style="padding: 1.25rem; text-align: center; color: #0f172a; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Precio Público</th>
+                <th style="padding: 1.25rem; text-align: center; color: #0f172a; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Precio Empresa</th>
                 <th style="padding: 1.25rem; text-align: center; color: #0f172a; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Stock</th>
                 <th style="padding: 1.25rem; text-align: center; color: #0f172a; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Estado</th>
                 <th style="padding: 1.25rem; text-align: center; color: #0f172a; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Acciones</th>
@@ -159,7 +160,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           </div>
 
           <div>
-            <label style="display: block; color: #0f172a; font-weight: 600; margin-bottom: 0.5rem;">Precio (€)</label>
+            <label style="display: block; color: #0f172a; font-weight: 600; margin-bottom: 0.5rem;">Precio Público (€)</label>
             <input type="number" id="precio" placeholder="0.00" step="0.01" style="
               width: 100%;
               padding: 0.75rem;
@@ -168,6 +169,18 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
               font-size: 0.95rem;
               box-sizing: border-box;
             " required />
+          </div>
+
+          <div>
+            <label style="display: block; color: #0f172a; font-weight: 600; margin-bottom: 0.5rem;">Precio Empresa (€)</label>
+            <input type="number" id="precio_empresa" placeholder="0.00" step="0.01" style="
+              width: 100%;
+              padding: 0.75rem;
+              border: 1px solid #e2e8f0;
+              border-radius: 6px;
+              font-size: 0.95rem;
+              box-sizing: border-box;
+            " />
           </div>
         </div>
 
@@ -358,6 +371,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
             nombre: p.nombre,
             categoria: p.categorias?.slug || 'desconocida',
             precio: p.precio_centimos || p.precio,
+            precio_empresa: p.precio_empresa_centimos || 0,
             stock: p.stock,
             descripcion: p.descripcion || '',
             imagen: p.imagen_url || p.imagen,
@@ -413,6 +427,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           <td style="padding: 1.25rem; color: #0f172a; font-weight: 600;">${p.nombre}</td>
           <td style="padding: 1.25rem; color: #64748b; font-size: 0.9rem; text-transform: capitalize;">${p.categoria}</td>
           <td style="padding: 1.25rem; text-align: center; color: #667eea; font-weight: 700;">€${(p.precio / 100).toFixed(2)}</td>
+          <td style="padding: 1.25rem; text-align: center; color: #16a34a; font-weight: 700;">€${(p.precio_empresa || 0) / 100 > 0 ? ((p.precio_empresa || 0) / 100).toFixed(2) : '-'}</td>
           <td style="padding: 1.25rem; text-align: center; color: #64748b;">${p.stock}</td>
           <td style="padding: 1.25rem; text-align: center;">
             <span style="display: inline-block; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; ${p.estado === 'activo' ? 'background: #dcfce7; color: #166534;' : 'background: #fee2e2; color: #991b1b;'}">
@@ -482,6 +497,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       document.getElementById('nombre').value = producto.nombre;
       document.getElementById('categoria').value = producto.categoria;
       document.getElementById('precio').value = (producto.precio / 100).toFixed(2);
+      document.getElementById('precio_empresa').value = (producto.precio_empresa || 0) / 100;
       document.getElementById('stock').value = producto.stock;
       document.getElementById('descripcion').value = producto.descripcion || '';
       
@@ -533,6 +549,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         nombre: document.getElementById('nombre').value,
         categoria: document.getElementById('categoria').value,
         precio: Math.round(parseFloat(document.getElementById('precio').value) * 100),
+        precio_empresa: Math.round(parseFloat(document.getElementById('precio_empresa').value || 0) * 100),
         stock: parseInt(document.getElementById('stock').value),
         descripcion: document.getElementById('descripcion').value,
         imagen: imagenFinal

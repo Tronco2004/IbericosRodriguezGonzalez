@@ -120,6 +120,7 @@ export const POST: APIRoute = async ({ request }) => {
           nombre: producto.nombre,
           categoria_id: catData.id,
           precio_centimos: producto.precio,
+          precio_empresa_centimos: producto.precio_empresa || 0,
           stock: producto.stock,
           descripcion: producto.descripcion,
           imagen_url: producto.imagen,
@@ -183,6 +184,7 @@ export const POST: APIRoute = async ({ request }) => {
           nombre: producto.nombre,
           categoria_id: catData.id,
           precio_centimos: producto.precio,
+          precio_empresa_centimos: producto.precio_empresa || 0,
           stock: producto.stock,
           descripcion: producto.descripcion,
           imagen_url: producto.imagen
