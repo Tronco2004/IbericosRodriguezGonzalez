@@ -99,9 +99,9 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       try {
         const activo = nuevoEstado === 'true';
         
-        const response = await fetch('/api/admin/usuarios/actualizar-estado', {
-          method: 'POST',
-          body: JSON.stringify({ usuarioId, activo }),
+        const response = await fetch('/api/admin/usuarios', {
+          method: 'PUT',
+          body: JSON.stringify({ id: usuarioId, activo }),
           headers: {
             'Content-Type': 'application/json'
           }
@@ -128,12 +128,8 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       }
 
       try {
-        const response = await fetch('/api/admin/usuarios/eliminar', {
-          method: 'POST',
-          body: JSON.stringify({ usuarioId }),
-          headers: {
-            'Content-Type': 'application/json'
-          }
+        const response = await fetch(`/api/admin/usuarios/eliminar?id=${usuarioId}`, {
+          method: 'DELETE'
         });
 
         const data = await response.json();

@@ -236,7 +236,7 @@ const redirect = Astro.url.searchParams.get('redirect') || '/';
       } catch (error) {
         loadingMessage.style.display = 'none';
         errorMessage.style.display = 'block';
-        errorMessage.textContent = '❌ ' + (error instanceof Error ? error.message : 'Error desconocido');
+        errorMessage.textContent = '' + (error instanceof Error ? error.message : 'Error desconocido');
       }
     }
 

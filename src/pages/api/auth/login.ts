@@ -19,7 +19,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     });
 
     if (authError || !authData.user) {
-      console.log('❌ Error en autenticación:', authError?.message);
+      console.log('Error en autenticación:', authError?.message);
       return new Response(
         JSON.stringify({ success: false, message: 'Credenciales inválidas' }),
         { status: 401 }
@@ -45,7 +45,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     console.log('  Error:', dbError);
 
     if (dbError || !usuarioData) {
-      console.log('❌ Usuario no encontrado en tabla usuarios:', dbError?.message);
+      console.log('Usuario no encontrado en tabla usuarios:', dbError?.message);
       return new Response(
         JSON.stringify({ success: false, message: 'Usuario no registrado en el sistema. Error: ' + dbError?.message }),
         { status: 401 }
@@ -54,7 +54,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     // Validar que el usuario esté activo
     if (!usuarioData.activo) {
-      console.log('❌ Usuario inactivo:', email);
+      console.log('Usuario inactivo:', email);
       return new Response(
         JSON.stringify({ success: false, message: 'Usuario inactivo' }),
         { status: 403 }
@@ -62,7 +62,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     console.log('✅ Usuario encontrado:', usuarioData.nombre);
-    console.log('👤 Rol:', usuarioData.rol);
+    console.log('Rol:', usuarioData.rol);
 
     // 3. Guardar sesión en cookies
     cookies.set('auth_token', token || '', {
@@ -118,7 +118,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
     );
   } catch (error) {
-    console.log('❌ Error inesperado:', error);
+    console.log('Error inesperado:', error);
     return new Response(
       JSON.stringify({ success: false, message: 'Error interno del servidor' }),
       { status: 500 }

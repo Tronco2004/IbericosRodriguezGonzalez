@@ -50,9 +50,6 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
             transition: all 0.3s;
           " onmouseover="this.style.borderColor='#cbd5e1'" onmouseout="this.style.borderColor='#e2e8f0'">
             <option value="">Todas las categorías</option>
-            <option value="jamones">Jamones</option>
-            <option value="quesos">Quesos</option>
-            <option value="embutidos">Embutidos</option>
           </select>
         </div>
 
@@ -93,7 +90,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           </table>
         </div>
         <div id="emptyState" style="display: none; padding: 3rem; text-align: center;">
-          <div style="font-size: 3rem; margin-bottom: 1rem;">📦</div>
+          <div style="font-size: 3rem; margin-bottom: 1rem;"></div>
           <p style="color: #64748b; font-size: 1rem;">No hay productos que mostrar</p>
         </div>
       </div>
@@ -158,9 +155,6 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
               box-sizing: border-box;
             " required>
               <option value="">Selecciona categoría</option>
-              <option value="jamones">Jamones</option>
-              <option value="quesos">Quesos</option>
-              <option value="embutidos">Embutidos</option>
             </select>
           </div>
 
@@ -235,6 +229,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
   <script>
     const STORAGE_KEY = 'ibericosRG_productos';
     let productos = [];
+    let categorias = [];
     let editingId = null;
 
     // Manejador de imagen
@@ -314,6 +309,39 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         uploadMessage.textContent = '✗ Error al subir la imagen';
         console.error('Upload error:', error);
       }
+    }
+
+    // Cargar categorías
+    async function cargarCategorias() {
+      try {
+        const response = await fetch('/api/admin/categorias');
+        const data = await response.json();
+        
+        if (data.success && data.categorias && data.categorias.length > 0) {
+          categorias = data.categorias;
+        } else {
+          categorias = [];
+        }
+        
+        actualizarSelectsCategorias();
+      } catch (error) {
+        console.error('Error cargando categorías:', error);
+        categorias = [];
+      }
+    }
+
+    function actualizarSelectsCategorias() {
+      // Actualizar el select de filtro
+      const filterCategoria = document.getElementById('filterCategoria');
+      const opcionesHtml = '<option value="">Todas las categorías</option>' + 
+        categorias.map(c => `<option value="${c.slug}">${c.nombre}</option>`).join('');
+      filterCategoria.innerHTML = opcionesHtml;
+
+      // Actualizar el select del formulario de producto
+      const selectCategoria = document.getElementById('categoria');
+      const opcionesProductoHtml = '<option value="">Selecciona categoría</option>' + 
+        categorias.map(c => `<option value="${c.slug}">${c.nombre}</option>`).join('');
+      selectCategoria.innerHTML = opcionesProductoHtml;
     }
 
     // Cargar productos
@@ -597,6 +625,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     });
 
     // Cargar al iniciar
+    cargarCategorias();
     cargarProductos();
   </script>
 </ProtectedLayout>

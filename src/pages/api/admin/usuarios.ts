@@ -1,21 +1,11 @@
-import type { APIRoute } from 'astro';
 import { supabaseClient } from '../../../lib/supabase';
 
-export const GET: APIRoute = async ({ cookies }) => {
+export async function GET(context: any) {
   try {
-    const userRole = cookies.get('user_role')?.value;
-
-    if (userRole !== 'admin') {
-      return new Response(
-        JSON.stringify({ success: false, message: 'No autorizado' }),
-        { status: 403 }
-      );
-    }
-
     // Obtener todos los usuarios
     const { data: usuarios, error } = await supabaseClient
       .from('usuarios')
-      .select('id, nombre, email, rol, estado')
+      .select('id, nombre, email, rol, activo, fecha_registro')
       .order('nombre', { ascending: true });
 
     if (error) {
@@ -40,4 +30,74 @@ export const GET: APIRoute = async ({ cookies }) => {
       { status: 500 }
     );
   }
-};
+}
+
+export async function PUT(context: any) {
+  try {
+    const body = await context.request.json();
+    const { id, rol, activo } = body;
+
+    const { data, error } = await supabaseClient
+      .from('usuarios')
+      .update({ rol, activo })
+      .eq('id', id)
+      .select();
+
+    if (error) {
+      console.error('Error actualizando usuario:', error);
+      return new Response(
+        JSON.stringify({ success: false, message: error.message }),
+        { status: 400 }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, usuario: data?.[0] }),
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error('Error:', error);
+    return new Response(
+      JSON.stringify({ success: false, message: error.toString() }),
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(context: any) {
+  try {
+    const url = new URL(context.request.url);
+    const id = url.searchParams.get('id');
+
+    if (!id) {
+      return new Response(
+        JSON.stringify({ success: false, message: 'ID de usuario requerido' }),
+        { status: 400 }
+      );
+    }
+
+    const { error } = await supabaseClient
+      .from('usuarios')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error eliminando usuario:', error);
+      return new Response(
+        JSON.stringify({ success: false, message: error.message }),
+        { status: 400 }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ success: true }),
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error('Error:', error);
+    return new Response(
+      JSON.stringify({ success: false, message: error.toString() }),
+      { status: 500 }
+    );
+  }
+}

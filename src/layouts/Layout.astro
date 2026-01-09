@@ -69,11 +69,11 @@ const description = "Descubre nuestra colección de productos ibéricos de la m�
         ">Ibéricos RG</a>
         
         <nav style="display: flex; gap: 3rem; align-items: center;">
-          <a href="/" style="font-size: 0.95rem; font-weight: 500; color: #001a33;">Inicio</a>
-          <a href="/productos" style="font-size: 0.95rem; font-weight: 500; color: #001a33;">Catálogo</a>
-          <a href="/categoria/jamones" style="font-size: 0.95rem; font-weight: 500; color: #001a33;">Jamones</a>
-          <a href="/categoria/quesos" style="font-size: 0.95rem; font-weight: 500; color: #001a33;">Quesos</a>
-          <a href="/categoria/embutidos" style="font-size: 0.95rem; font-weight: 500; color: #001a33;">Embutidos</a>
+          <a href="/" style="font-size: 0.95rem; font-weight: 500; color: #001a33; padding-bottom: 0.5rem; border-bottom: 2px solid transparent; transition: border-color 0.3s ease;" onmouseover="this.style.borderColor='#000'" onmouseout="this.style.borderColor='transparent'">Inicio</a>
+          <a href="/productos" style="font-size: 0.95rem; font-weight: 500; color: #001a33; padding-bottom: 0.5rem; border-bottom: 2px solid transparent; transition: border-color 0.3s ease;" onmouseover="this.style.borderColor='#000'" onmouseout="this.style.borderColor='transparent'">Catálogo</a>
+          <a href="/categoria/jamones" style="font-size: 0.95rem; font-weight: 500; color: #001a33; padding-bottom: 0.5rem; border-bottom: 2px solid transparent; transition: border-color 0.3s ease;" onmouseover="this.style.borderColor='#000'" onmouseout="this.style.borderColor='transparent'">Jamones</a>
+          <a href="/categoria/quesos" style="font-size: 0.95rem; font-weight: 500; color: #001a33; padding-bottom: 0.5rem; border-bottom: 2px solid transparent; transition: border-color 0.3s ease;" onmouseover="this.style.borderColor='#000'" onmouseout="this.style.borderColor='transparent'">Quesos</a>
+          <a href="/categoria/embutidos" style="font-size: 0.95rem; font-weight: 500; color: #001a33; padding-bottom: 0.5rem; border-bottom: 2px solid transparent; transition: border-color 0.3s ease;" onmouseover="this.style.borderColor='#000'" onmouseout="this.style.borderColor='transparent'">Embutidos</a>
 
           <div id="authContainer"></div>
         </nav>
@@ -142,7 +142,7 @@ const description = "Descubre nuestra colección de productos ibéricos de la m�
               align-items: center;
               gap: 0.5rem;
             ">
-              👤 ${userName} ▼
+              ${userName} ▼
             </button>
 
             <div id="menu" style="
@@ -161,11 +161,11 @@ const description = "Descubre nuestra colección de productos ibéricos de la m�
                 <p style="font-weight: 600; margin: 0; color: #001a33; font-size: 0.9rem;">${userName}</p>
                 <span style="background: #a89968; color: white; padding: 0.2rem 0.6rem; border-radius: 3px; font-size: 0.7rem; text-transform: uppercase; display: inline-block; margin-top: 0.3rem;">${userRole}</span>
               </div>
-              ${userRole === 'admin' ? '<a href="/admin/dashboard" style="display: block; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee;">📊 Panel Admin</a>' : ''}
-              <a href="/carrito" style="display: block; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee;">🛒 Carrito</a>
-              <a href="/mi-cuenta" style="display: block; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee;">👤 Mi Cuenta</a>
-              <a href="/mis-pedidos" style="display: block; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee;">📋 Mis Pedidos</a>
-              <button id="logoutBtn" style="width: 100%; padding: 0.6rem 1rem; background: #fee; color: #c33; text-align: left; font-weight: 600;">🚪 Cerrar Sesión</button>
+              ${userRole === 'admin' ? '<a href="/admin/dashboard" style="display: block; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee;">Panel Admin</a>' : ''}
+              <a href="/carrito" style="display: block; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee;">Carrito</a>
+              <a href="/mi-cuenta" style="display: block; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee;">Mi Cuenta</a>
+              <a href="/mis-pedidos" style="display: block; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee;">Mis Pedidos</a>
+              <button id="logoutBtn" style="width: 100%; padding: 0.6rem 1rem; background: #fee; color: #c33; text-align: left; font-weight: 600;">Cerrar Sesión</button>
             </div>
           </div>
         `;
@@ -196,24 +196,34 @@ const description = "Descubre nuestra colección de productos ibéricos de la m�
         authContainer.innerHTML = `
           <a href="/login" style="
             background: linear-gradient(135deg, #a89968, #8b7a5f);
-            color: #001a33;
-            padding: 0.7rem 1.8rem;
-            border-radius: 4px;
-            font-size: 0.8rem;
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-          ">🔐 Iniciar Sesión</a>
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 12px rgba(168, 153, 104, 0.3);
+            transition: all 0.3s ease;
+          " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(168, 153, 104, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(168, 153, 104, 0.3)'">Iniciar Sesión</a>
           <a href="/carrito" style="
             background: linear-gradient(135deg, #a89968, #8b7a5f);
-            color: #001a33;
-            padding: 0.7rem 1.8rem;
-            border-radius: 4px;
-            font-size: 0.8rem;
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-          ">🛒 Carrito</a>
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 12px rgba(168, 153, 104, 0.3);
+            transition: all 0.3s ease;
+          " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(168, 153, 104, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(168, 153, 104, 0.3)'">Carrito</a>
         `;
       }
     </script>
