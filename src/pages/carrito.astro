@@ -1,103 +1,340 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { obtenerUsuarioDelToken } from '../lib/auth';
+import { supabaseClient } from '../lib/supabase';
 
-const token = Astro.cookies.get('auth_token')?.value;
-const usuario = token ? obtenerUsuarioDelToken(token) : null;
+// Verificar autenticación
+const token = Astro.cookies.get('sb-access-token')?.value;
+let usuario = null;
+let carrito = null;
+let items = [];
 
-// Datos simulados del carrito
-const carrito = {
-  items: [
-    { id: 1, nombre: 'Jamón Ibérico Reserva', cantidad: 1, precio: 9999 },
-    { id: 2, nombre: 'Queso Manchego Premium', cantidad: 1, precio: 2200 }
-  ]
-};
+if (token) {
+  const { data: { user } } = await supabaseClient.auth.getUser(token);
+  usuario = user;
 
-const total = carrito.items.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+  if (usuario) {
+    // Obtener carrito del usuario
+    const { data: carritoData } = await supabaseClient
+      .from('carritos')
+      .select('*')
+      .eq('usuario_id', usuario.id)
+      .single();
+
+    carrito = carritoData;
+
+    if (carrito) {
+      // Obtener items del carrito con detalles del producto
+      const { data: itemsData } = await supabaseClient
+        .from('carrito_items')
+        .select(`
+          *,
+          productos:producto_id(id, nombre, precio_centimos)
+        `)
+        .eq('carrito_id', carrito.id)
+        .order('fecha_agregado', { ascending: false });
+
+      items = itemsData || [];
+    }
+  }
+}
+
+// Calcular totales
+const subtotal = items.reduce((total, item) => {
+  return total + (item.precio_unitario * item.cantidad);
+}, 0);
+
+const totalItems = items.reduce((total, item) => total + item.cantidad, 0);
 ---
 
-<Layout>
-  <div style="max-width: 1000px; margin: 0 auto; padding: 2rem;">
-    <h1 style="color: #001a33; margin-bottom: 1rem;">Mi Carrito</h1>
-    {usuario && (
-      <p style="color: #666; margin-bottom: 2rem;">
-        Bienvenido, <strong>{usuario.nombre}</strong> 
-        <span style="margin-left: 1rem; background: #a89968; color: white; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.85rem; text-transform: uppercase;">
-          {usuario.rol}
-        </span>
-      </p>
-    )}
-
-    {carrito.items.length === 0 ? (
-      <div style="
-        background: #f5f5f5;
-        padding: 3rem;
-        border-radius: 8px;
-        text-align: center;
-      ">
-        <p style="color: #666; font-size: 1.1rem;">Tu carrito está vacío</p>
-        <a href="/productos" style="
-          display: inline-block;
-          background: linear-gradient(135deg, #001a33, #2d2d2d);
-          color: white;
-          padding: 0.75rem 1.5rem;
-          border-radius: 4px;
-          text-decoration: none;
-          margin-top: 1rem;
-        ">
-          Ver Productos
-        </a>
-      </div>
-    ) : (
-      <>
-        <table style="width: 100%; margin-bottom: 2rem; border-collapse: collapse;">
-          <thead>
-            <tr style="background: #f5f5f5;">
-              <th style="padding: 1rem; text-align: left; border-bottom: 2px solid #ddd;">Producto</th>
-              <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #ddd;">Cantidad</th>
-              <th style="padding: 1rem; text-align: right; border-bottom: 2px solid #ddd;">Precio</th>
-              <th style="padding: 1rem; text-align: right; border-bottom: 2px solid #ddd;">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {carrito.items.map((item) => (
-              <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 1rem;">{item.nombre}</td>
-                <td style="padding: 1rem; text-align: center;">{item.cantidad}</td>
-                <td style="padding: 1rem; text-align: right;">€{(item.precio / 100).toFixed(2)}</td>
-                <td style="padding: 1rem; text-align: right;">€{((item.precio * item.cantidad) / 100).toFixed(2)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <div style="
-          display: flex;
-          justify-content: flex-end;
-          align-items: center;
-          gap: 2rem;
-          margin-bottom: 3rem;
-          padding-top: 1rem;
-          border-top: 2px solid #ddd;
-        ">
-          <div style="text-align: right;">
-            <p style="color: #666; margin: 0;">Total</p>
-            <p style="font-size: 2rem; color: #001a33; font-weight: 700; margin: 0;">
-              €{(total / 100).toFixed(2)}
-            </p>
-          </div>
-          <a href="/checkout" style="
-            background: linear-gradient(135deg, #a89968, #d4af37);
-            color: #001a33;
+<Layout title="Mi Carrito">
+  <div style="min-height: 100vh; background: #f8f4f0; padding: 2rem 0;">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 0 1rem;">
+      {!usuario ? (
+        <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; border-left: 4px solid #a89968;">
+          <h2 style="color: #001a33; margin: 0 0 1rem 0;">Debes iniciar sesión</h2>
+          <p style="color: #5c4a3d; margin: 0 0 1.5rem 0;">Por favor, inicia sesión para ver y gestionar tu carrito.</p>
+          <a href="/login" style="
+            display: inline-block;
+            background: #a89968;
+            color: white;
             padding: 0.75rem 2rem;
             border-radius: 4px;
             text-decoration: none;
-            font-weight: 700;
+            font-weight: 600;
+            transition: background 0.3s;
           ">
-            Proceder al Pago
+            Ir a Login
           </a>
         </div>
-      </>
-    )}
+      ) : items.length === 0 ? (
+        <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; border-left: 4px solid #a89968;">
+          <h2 style="color: #001a33; margin: 0 0 1rem 0;">Tu carrito está vacío</h2>
+          <p style="color: #5c4a3d; margin: 0 0 1.5rem 0;">Empieza a agregar productos para tu compra.</p>
+          <a href="/productos" style="
+            display: inline-block;
+            background: #a89968;
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background 0.3s;
+          ">
+            Ver Productos
+          </a>
+        </div>
+      ) : (
+        <div style="display: grid; grid-template-columns: 1fr 350px; gap: 2rem; align-items: start;">
+          {/* Lista de productos */}
+          <div style="background: white; border-radius: 8px; overflow: hidden; border: 1px solid #e0d5c7;">
+            <div style="padding: 1.5rem; background: #f8f4f0; border-bottom: 1px solid #e0d5c7;">
+              <h2 style="color: #001a33; margin: 0;">Carrito ({totalItems} {totalItems === 1 ? 'producto' : 'productos'})</h2>
+            </div>
+            <div>
+              {items.map((item: any) => (
+                <div key={item.id} style="
+                  padding: 1.5rem;
+                  border-bottom: 1px solid #e0d5c7;
+                  display: grid;
+                  grid-template-columns: 1fr auto auto auto;
+                  gap: 1rem;
+                  align-items: center;
+                ">
+                  {/* Producto */}
+                  <div>
+                    <h3 style="color: #001a33; margin: 0 0 0.5rem 0; font-size: 1rem;">
+                      {item.productos?.nombre || 'Producto'}
+                    </h3>
+                    <p style="color: #a89968; margin: 0; font-weight: 600; font-size: 0.95rem;">
+                      ${(item.precio_unitario / 100).toFixed(2)}
+                    </p>
+                  </div>
+
+                  {/* Cantidad */}
+                  <div style="display: flex; align-items: center; gap: 0.5rem; border: 1px solid #e0d5c7; border-radius: 4px;">
+                    <button 
+                      class="btn-cantidad"
+                      data-item-id={item.id} 
+                      data-action="decrease"
+                      style="
+                        background: none;
+                        border: none;
+                        color: #5c4a3d;
+                        padding: 0.25rem 0.5rem;
+                        cursor: pointer;
+                        font-size: 1.2rem;
+                        transition: color 0.2s;
+                      "
+                    >
+                      −
+                    </button>
+                    <span style="
+                      width: 40px;
+                      text-align: center;
+                      color: #001a33;
+                      font-weight: 600;
+                      font-size: 0.9rem;
+                    ">
+                      {item.cantidad}
+                    </span>
+                    <button 
+                      class="btn-cantidad"
+                      data-item-id={item.id} 
+                      data-action="increase"
+                      style="
+                        background: none;
+                        border: none;
+                        color: #5c4a3d;
+                        padding: 0.25rem 0.5rem;
+                        cursor: pointer;
+                        font-size: 1.2rem;
+                        transition: color 0.2s;
+                      "
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  {/* Subtotal */}
+                  <div style="text-align: right;">
+                    <p style="color: #001a33; font-weight: 600; margin: 0;">
+                      ${((item.precio_unitario * item.cantidad) / 100).toFixed(2)}
+                    </p>
+                  </div>
+
+                  {/* Eliminar */}
+                  <button
+                    class="btn-eliminar"
+                    data-item-id={item.id}
+                    style="
+                      background: #f5576c;
+                      color: white;
+                      border: none;
+                      padding: 0.5rem 0.75rem;
+                      border-radius: 4px;
+                      cursor: pointer;
+                      font-size: 0.85rem;
+                      transition: background 0.2s;
+                    "
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Resumen del carrito */}
+          <div style="background: white; border-radius: 8px; padding: 1.5rem; border: 1px solid #e0d5c7; position: sticky; top: 1rem;">
+            <h3 style="color: #001a33; margin: 0 0 1.5rem 0; font-size: 1.2rem;">Resumen</h3>
+
+            <div style="margin-bottom: 1rem;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; color: #5c4a3d;">
+                <span>Subtotal ({totalItems} {totalItems === 1 ? 'producto' : 'productos'})</span>
+                <span>${(subtotal / 100).toFixed(2)}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; color: #5c4a3d;">
+                <span>Envío</span>
+                <span style="color: #a89968; font-weight: 600;">A calcular</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; color: #5c4a3d;">
+                <span>Impuestos</span>
+                <span style="color: #a89968; font-weight: 600;">A calcular</span>
+              </div>
+            </div>
+
+            <div style="
+              padding: 1rem 0;
+              border-top: 2px solid #e0d5c7;
+              border-bottom: 2px solid #e0d5c7;
+              margin-bottom: 1.5rem;
+            ">
+              <div style="display: flex; justify-content: space-between;">
+                <span style="color: #001a33; font-weight: 700;">Total</span>
+                <span style="color: #a89968; font-weight: 700; font-size: 1.3rem;">
+                  ${(subtotal / 100).toFixed(2)}
+                </span>
+              </div>
+            </div>
+
+            <a href="/checkout" style="
+              display: block;
+              background: #a89968;
+              color: white;
+              padding: 1rem;
+              border-radius: 4px;
+              text-align: center;
+              text-decoration: none;
+              font-weight: 600;
+              transition: background 0.3s;
+              margin-bottom: 0.75rem;
+            ">
+              Proceder al Checkout
+            </a>
+
+            <a href="/productos" style="
+              display: block;
+              background: transparent;
+              color: #a89968;
+              padding: 0.75rem 1rem;
+              border: 2px solid #a89968;
+              border-radius: 4px;
+              text-align: center;
+              text-decoration: none;
+              font-weight: 600;
+              transition: all 0.3s;
+            ">
+              Seguir Comprando
+            </a>
+          </div>
+        </div>
+      )}
+    </div>
   </div>
+
+  <script>
+    // Manejar cambios de cantidad
+    document.querySelectorAll('.btn-cantidad').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const itemId = btn.getAttribute('data-item-id');
+        const action = btn.getAttribute('data-action');
+        const cantidadSpan = btn.parentElement.querySelector('span');
+        let cantidad = parseInt(cantidadSpan.textContent);
+
+        if (action === 'increase') {
+          cantidad++;
+        } else if (action === 'decrease' && cantidad > 1) {
+          cantidad--;
+        } else if (action === 'decrease' && cantidad === 1) {
+          // Si es 1, eliminar
+          await eliminarItem(itemId);
+          btn.closest('div[style*="grid"]').remove();
+          location.reload();
+          return;
+        }
+
+        try {
+          const response = await fetch(`/api/carrito/${itemId}`, {
+            method: 'PUT',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              item_id: itemId, 
+              cantidad,
+              user_id: localStorage.getItem('user_id')
+            })
+          });
+
+          if (response.ok) {
+            location.reload();
+          }
+        } catch (error) {
+          console.error('Error actualizando cantidad:', error);
+          alert('Error al actualizar la cantidad');
+        }
+      });
+    });
+
+    // Manejar eliminación de items
+    document.querySelectorAll('.btn-eliminar').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const itemId = btn.getAttribute('data-item-id');
+        if (confirm('¿Estás seguro de que deseas eliminar este producto?')) {
+          await eliminarItem(itemId);
+          btn.closest('div[style*="grid"]').remove();
+          location.reload();
+        }
+      });
+    });
+
+    async function eliminarItem(itemId: string) {
+      try {
+        await fetch(`/api/carrito/${itemId}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+      } catch (error) {
+        console.error('Error eliminando item:', error);
+      }
+    }
+
+    // Hover effects
+    document.querySelectorAll('.btn-cantidad').forEach(btn => {
+      btn.addEventListener('mouseover', () => {
+        btn.style.color = '#a89968';
+      });
+      btn.addEventListener('mouseout', () => {
+        btn.style.color = '#5c4a3d';
+      });
+    });
+
+    document.querySelectorAll('.btn-eliminar').forEach(btn => {
+      btn.addEventListener('mouseover', () => {
+        btn.style.background = '#d63e56';
+      });
+      btn.addEventListener('mouseout', () => {
+        btn.style.background = '#f5576c';
+      });
+    });
+  </script>
 </Layout>

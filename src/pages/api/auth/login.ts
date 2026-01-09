@@ -72,6 +72,13 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       maxAge: 60 * 60 * 24 * 7
     });
 
+    cookies.set('user_id', usuarioData.id, {
+      httpOnly: false,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7
+    });
+
     cookies.set('user_role', usuarioData.rol, {
       httpOnly: false,
       secure: false,
@@ -86,14 +93,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       maxAge: 60 * 60 * 24 * 7
     });
 
-    cookies.set('user_id', usuarioData.id, {
-      httpOnly: false,
-      secure: false,
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7
+    console.log('🍪 Cookies establecidas:', {
+      user_id: usuarioData.id,
+      user_name: usuarioData.nombre,
+      user_role: usuarioData.rol
     });
-
-    console.log('🍪 Cookies establecidas');
 
     // 4. Determinar redirección según rol
     const redirect_url = usuarioData.rol === 'admin' ? '/admin/dashboard' : '/productos';
