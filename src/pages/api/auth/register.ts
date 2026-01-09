@@ -19,7 +19,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     });
 
     if (authError) {
-      console.log('❌ Error registrando usuario:', authError.message);
+      console.log('Error registrando usuario:', authError.message);
       return new Response(
         JSON.stringify({ success: false, message: authError.message }),
         { status: 400 }
@@ -27,7 +27,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     if (!authData.user) {
-      console.log('❌ No se pudo obtener el usuario registrado');
+      console.log('No se pudo obtener el usuario registrado');
       return new Response(
         JSON.stringify({ success: false, message: 'Error al registrar usuario' }),
         { status: 400 }
@@ -53,7 +53,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       .select();
 
     if (dbError) {
-      console.log('❌ Error creando usuario en tabla usuarios:', dbError.message);
+      console.log('Error creando usuario en tabla usuarios:', dbError.message);
       // Nota: No podemos eliminar de auth sin service role key
       return new Response(
         JSON.stringify({ success: false, message: 'Error al crear perfil de usuario' }),
@@ -72,7 +72,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       { status: 201 }
     );
   } catch (error) {
-    console.log('❌ Error inesperado:', error);
+    console.log('Error inesperado:', error);
     return new Response(
       JSON.stringify({ success: false, message: 'Error interno del servidor' }),
       { status: 500 }

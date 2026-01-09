@@ -37,13 +37,13 @@ export function autenticar(email: string, password: string): { token: string; us
   const usuario = usuariosDB[email];
   
   if (!usuario) {
-    console.log('❌ Usuario no encontrado:', email);
+    console.log('Usuario no encontrado:', email);
     return null;
   }
 
   // Validar contraseña
   if (usuario.password !== password) {
-    console.log('❌ Contraseña incorrecta para:', email);
+    console.log('Contraseña incorrecta para:', email);
     return null;
   }
 
@@ -64,8 +64,8 @@ export function autenticar(email: string, password: string): { token: string; us
   });
 
   console.log('✅ Autenticación exitosa para:', email);
-  console.log('🔐 Token generado:', token);
-  console.log('👤 Rol:', usuarioSinPassword.rol);
+  console.log('Token generado:', token);
+  console.log('Rol:', usuarioSinPassword.rol);
 
   return {
     token,
@@ -75,14 +75,14 @@ export function autenticar(email: string, password: string): { token: string; us
 
 export function obtenerUsuarioDelToken(token: string): User | null {
   if (!token) {
-    console.log('❌ No hay token');
+    console.log('No hay token');
     return null;
   }
 
   const sesion = sesiones.get(token);
 
   if (!sesion) {
-    console.log('❌ Sesión no encontrada para token:', token);
+    console.log('Sesión no encontrada para token:', token);
     return null;
   }
 
@@ -94,7 +94,7 @@ export function obtenerUsuarioDelToken(token: string): User | null {
   }
 
   console.log('✅ Usuario recuperado:', sesion.usuario.email);
-  console.log('👤 Rol:', sesion.usuario.rol);
+  console.log('Rol:', sesion.usuario.rol);
 
   return sesion.usuario;
 }
@@ -107,5 +107,5 @@ export function tieneRol(userRol: UserRole, rolesRequeridos: UserRole[]): boolea
 
 export function cerrarSesion(token: string): void {
   sesiones.delete(token);
-  console.log('🚪 Sesión cerrada');
+  console.log('Sesión cerrada');
 }

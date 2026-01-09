@@ -6,15 +6,15 @@ export const onRequest = defineMiddleware((context, next) => {
   const userName = context.cookies.get('user_name')?.value;
   const path = context.url.pathname;
 
-  console.log(`\n📍 Middleware: ${path}`);
-  console.log(`🔑 Token: ${token ? '✅ Sí' : '❌ No'}`);
-  console.log(`👤 Rol: ${userRole || '❌ No'}`);
+  console.log(`\nMiddleware: ${path}`);
+  console.log(`Token: ${token ? 'Sí' : 'No'}`);
+  console.log(`Rol: ${userRole || 'No'}`);
 
   // Rutas que requieren autenticación
   const rutasProtegidas = ['/carrito', '/checkout', '/mi-cuenta', '/mis-pedidos'];
   
   if (rutasProtegidas.some(ruta => path.startsWith(ruta))) {
-    console.log('🔒 Ruta protegida detectada');
+    console.log('Ruta protegida detectada');
     
     if (!token) {
       console.log('⛔ No hay token, redirigiendo a login');

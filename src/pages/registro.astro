@@ -194,7 +194,7 @@ import Layout from '../layouts/Layout.astro';
 
       <div style="margin-top: 2rem; padding: 1.5rem; background: #fffaf0; border-radius: 8px; border-left: 4px solid #a89968;">
         <p style="color: #666; font-size: 0.85rem; margin: 0;">
-          <strong>🔒 Seguridad:</strong> Tu información está protegida con encriptación de nivel empresarial. Puedes usar cualquiera de nuestros métodos de registro.
+          <strong>Seguridad:</strong> Tu información está protegida con encriptación de nivel empresarial. Puedes usar cualquiera de nuestros métodos de registro.
         </p>
       </div>
     </div>
@@ -213,7 +213,7 @@ import Layout from '../layouts/Layout.astro';
       const password = (document.getElementById('password') as HTMLInputElement).value;
 
       if (password.length < 6) {
-        messageContainer.innerHTML = '<div style="padding: 1rem; background: #fee; border: 1px solid #fcc; color: #c33; border-radius: 4px; font-size: 0.9rem;">❌ La contraseña debe tener al menos 6 caracteres</div>';
+        messageContainer.innerHTML = '<div style="padding: 1rem; background: #fee; border: 1px solid #fcc; color: #c33; border-radius: 4px; font-size: 0.9rem;">La contraseña debe tener al menos 6 caracteres</div>';
         return;
       }
 
@@ -230,16 +230,16 @@ import Layout from '../layouts/Layout.astro';
         const data = await response.json();
 
         if (data.success) {
-          messageContainer.innerHTML = '<div style="padding: 1rem; background: #efe; border: 1px solid #cfc; color: #3c3; border-radius: 4px; font-size: 0.9rem;">✅ ¡Registro exitoso! Redirigiendo al login...</div>';
+          messageContainer.innerHTML = '<div style="padding: 1rem; background: #efe; border: 1px solid #cfc; color: #3c3; border-radius: 4px; font-size: 0.9rem;">Registro exitoso! Redirigiendo al login...</div>';
           console.log('✅ Registro exitoso:', data.userId);
           setTimeout(() => {
             window.location.href = '/login';
           }, 2000);
         } else {
-          messageContainer.innerHTML = `<div style="padding: 1rem; background: #fee; border: 1px solid #fcc; color: #c33; border-radius: 4px; font-size: 0.9rem;">❌ ${data.message}</div>`;
+          messageContainer.innerHTML = `<div style="padding: 1rem; background: #fee; border: 1px solid #fcc; color: #c33; border-radius: 4px; font-size: 0.9rem;">${data.message}</div>`;
         }
       } catch (error) {
-        messageContainer.innerHTML = '<div style="padding: 1rem; background: #fee; border: 1px solid #fcc; color: #c33; border-radius: 4px; font-size: 0.9rem;">❌ Error al registrarse. Intenta de nuevo.</div>';
+        messageContainer.innerHTML = '<div style="padding: 1rem; background: #fee; border: 1px solid #fcc; color: #c33; border-radius: 4px; font-size: 0.9rem;">Error al registrarse. Intenta de nuevo.</div>';
         console.log('❌ Error:', error);
       } finally {
         submitBtn.disabled = false;

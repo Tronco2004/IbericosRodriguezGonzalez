@@ -25,13 +25,13 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           <button 
             id="hamburgerBtn"
             style="
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              background: linear-gradient(135deg, #a89968 0%, #8b6f47 100%);
               border: none;
               padding: 0.75rem 1rem;
               border-radius: 8px;
               cursor: pointer;
               transition: all 0.3s;
-              box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+              box-shadow: 0 4px 12px rgba(168, 153, 104, 0.3);
               display: flex;
               flex-direction: column;
               gap: 0.35rem;
@@ -40,8 +40,8 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
               justify-content: center;
               align-items: center;
             "
-            onmouseover="this.style.boxShadow='0 8px 24px rgba(102, 126, 234, 0.4)'; this.style.transform='scale(1.05)'"
-            onmouseout="this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.3)'; this.style.transform='scale(1)'"
+            onmouseover="this.style.boxShadow='0 8px 24px rgba(168, 153, 104, 0.4)'; this.style.transform='scale(1.05)'"
+            onmouseout="this.style.boxShadow='0 4px 12px rgba(168, 153, 104, 0.3)'; this.style.transform='scale(1)'"
           >
             <span style="width: 24px; height: 2px; background: white; border-radius: 1px;"></span>
             <span style="width: 24px; height: 2px; background: white; border-radius: 1px;"></span>
@@ -66,7 +66,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           >
             <!-- Menu Header -->
             <div style="
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              background: linear-gradient(135deg, #a89968 0%, #8b6f47 100%);
               color: white;
               padding: 2rem 1.5rem;
               display: flex;
@@ -106,10 +106,10 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
                 border-left: 4px solid transparent;
                 transition: all 0.3s;
               "
-              onmouseover="this.style.backgroundColor='#f8fafc'; this.style.borderLeftColor='#667eea'; this.style.paddingLeft='2rem'"
+              onmouseover="this.style.backgroundColor='#f8fafc'; this.style.borderLeftColor='#a89968'; this.style.paddingLeft='2rem'"
               onmouseout="this.style.backgroundColor='transparent'; this.style.borderLeftColor='transparent'; this.style.paddingLeft='1.5rem'"
               >
-                <div style="font-size: 1.5rem; margin-right: 1rem;">📦</div>
+                <div style="font-size: 1.5rem; margin-right: 1rem;"></div>
                 <div>
                   <div style="font-weight: 700; font-size: 0.95rem;">Productos</div>
                   <div style="color: #64748b; font-size: 0.85rem; margin-top: 0.25rem;">Administra tu catálogo</div>
@@ -126,10 +126,10 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
                 border-left: 4px solid transparent;
                 transition: all 0.3s;
               "
-              onmouseover="this.style.backgroundColor='#f8fafc'; this.style.borderLeftColor='#f5576c'; this.style.paddingLeft='2rem'"
+              onmouseover="this.style.backgroundColor='#f8fafc'; this.style.borderLeftColor='#8b6f47'; this.style.paddingLeft='2rem'"
               onmouseout="this.style.backgroundColor='transparent'; this.style.borderLeftColor='transparent'; this.style.paddingLeft='1.5rem'"
               >
-                <div style="font-size: 1.5rem; margin-right: 1rem;">📂</div>
+                <div style="font-size: 1.5rem; margin-right: 1rem;"></div>
                 <div>
                   <div style="font-weight: 700; font-size: 0.95rem;">Categorías</div>
                   <div style="color: #64748b; font-size: 0.85rem; margin-top: 0.25rem;">Gestiona categorías</div>
@@ -137,6 +137,26 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
               </a>
 
               <!-- Menu Item 3 -->
+              <a href="/admin/empresas" style="
+                display: flex;
+                align-items: center;
+                padding: 1.25rem 1.5rem;
+                text-decoration: none;
+                color: #0f172a;
+                border-left: 4px solid transparent;
+                transition: all 0.3s;
+              "
+              onmouseover="this.style.backgroundColor='#f8fafc'; this.style.borderLeftColor='#a89968'; this.style.paddingLeft='2rem'"
+              onmouseout="this.style.backgroundColor='transparent'; this.style.borderLeftColor='transparent'; this.style.paddingLeft='1.5rem'"
+              >
+                <div style="font-size: 1.5rem; margin-right: 1rem;"></div>
+                <div>
+                  <div style="font-weight: 700; font-size: 0.95rem;">Empresas</div>
+                  <div style="color: #64748b; font-size: 0.85rem; margin-top: 0.25rem;">Ver todas las empresas</div>
+                </div>
+              </a>
+
+              <!-- Menu Item 4 -->
               <a href="/admin/usuarios" style="
                 display: flex;
                 align-items: center;
@@ -146,17 +166,17 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
                 border-left: 4px solid transparent;
                 transition: all 0.3s;
               "
-              onmouseover="this.style.backgroundColor='#f8fafc'; this.style.borderLeftColor='#00f2fe'; this.style.paddingLeft='2rem'"
+              onmouseover="this.style.backgroundColor='#f8fafc'; this.style.borderLeftColor='#5c4a3d'; this.style.paddingLeft='2rem'"
               onmouseout="this.style.backgroundColor='transparent'; this.style.borderLeftColor='transparent'; this.style.paddingLeft='1.5rem'"
               >
-                <div style="font-size: 1.5rem; margin-right: 1rem;">👥</div>
+                <div style="font-size: 1.5rem; margin-right: 1rem;"></div>
                 <div>
                   <div style="font-weight: 700; font-size: 0.95rem;">Clientes</div>
                   <div style="color: #64748b; font-size: 0.85rem; margin-top: 0.25rem;">Gestiona usuarios</div>
                 </div>
               </a>
 
-              <!-- Menu Item 4 -->
+              <!-- Menu Item 5 -->
               <a href="/admin/pedidos" style="
                 display: flex;
                 align-items: center;
@@ -166,10 +186,10 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
                 border-left: 4px solid transparent;
                 transition: all 0.3s;
               "
-              onmouseover="this.style.backgroundColor='#f8fafc'; this.style.borderLeftColor='#fee140'; this.style.paddingLeft='2rem'"
+              onmouseover="this.style.backgroundColor='#f8fafc'; this.style.borderLeftColor='#d4a574'; this.style.paddingLeft='2rem'"
               onmouseout="this.style.backgroundColor='transparent'; this.style.borderLeftColor='transparent'; this.style.paddingLeft='1.5rem'"
               >
-                <div style="font-size: 1.5rem; margin-right: 1rem;">📋</div>
+                <div style="font-size: 1.5rem; margin-right: 1rem;"></div>
                 <div>
                   <div style="font-weight: 700; font-size: 0.95rem;">Pedidos</div>
                   <div style="color: #64748b; font-size: 0.85rem; margin-top: 0.25rem;">Ver órdenes</div>
@@ -210,13 +230,13 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           position: relative;
           overflow: hidden;
         " onmouseover="this.style.boxShadow='0 12px 24px rgba(0, 0, 0, 0.08)'; this.style.transform='translateY(-2px)'; this.style.borderColor='#cbd5e1'" onmouseout="this.style.boxShadow='0 2px 8px rgba(0, 0, 0, 0.04)'; this.style.transform='translateY(0)'; this.style.borderColor='#e2e8f0'">
-          <div style="position: absolute; top: 0; right: 0; width: 120px; height: 120px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; opacity: 0.05; transform: translate(40%, -40%);"></div>
+          <div style="position: absolute; top: 0; right: 0; width: 120px; height: 120px; background: linear-gradient(135deg, #a89968 0%, #d4a574 100%); border-radius: 50%; opacity: 0.05; transform: translate(40%, -40%);"></div>
           <div style="position: relative; z-index: 1;">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
               <div>
                 <p style="color: #94a3b8; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin: 0;">Productos</p>
               </div>
-              <div style="font-size: 1.8rem;">📦</div>
+              <div style="font-size: 1.8rem;"></div>
             </div>
             <div style="font-size: 2.5rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem;" id="productosCount">0</div>
             <p style="color: #94a3b8; font-size: 0.9rem; margin: 0;">Total en stock</p>
@@ -234,13 +254,13 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           position: relative;
           overflow: hidden;
         " onmouseover="this.style.boxShadow='0 12px 24px rgba(0, 0, 0, 0.08)'; this.style.transform='translateY(-2px)'; this.style.borderColor='#cbd5e1'" onmouseout="this.style.boxShadow='0 2px 8px rgba(0, 0, 0, 0.04)'; this.style.transform='translateY(0)'; this.style.borderColor='#e2e8f0'">
-          <div style="position: absolute; top: 0; right: 0; width: 120px; height: 120px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 50%; opacity: 0.05; transform: translate(40%, -40%);"></div>
+          <div style="position: absolute; top: 0; right: 0; width: 120px; height: 120px; background: linear-gradient(135deg, #5c4a3d 0%, #8b6f47 100%); border-radius: 50%; opacity: 0.05; transform: translate(40%, -40%);"></div>
           <div style="position: relative; z-index: 1;">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
               <div>
                 <p style="color: #94a3b8; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin: 0;">Pedidos</p>
               </div>
-              <div style="font-size: 1.8rem;">📋</div>
+              <div style="font-size: 1.8rem;"></div>
             </div>
             <div style="font-size: 2.5rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem;" id="pedidosCount">0</div>
             <p style="color: #94a3b8; font-size: 0.9rem; margin: 0;">Pendientes</p>
@@ -258,7 +278,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           position: relative;
           overflow: hidden;
         " onmouseover="this.style.boxShadow='0 12px 24px rgba(0, 0, 0, 0.08)'; this.style.transform='translateY(-2px)'; this.style.borderColor='#cbd5e1'" onmouseout="this.style.boxShadow='0 2px 8px rgba(0, 0, 0, 0.04)'; this.style.transform='translateY(0)'; this.style.borderColor='#e2e8f0'">
-          <div style="position: absolute; top: 0; right: 0; width: 120px; height: 120px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 50%; opacity: 0.05; transform: translate(40%, -40%);"></div>
+          <div style="position: absolute; top: 0; right: 0; width: 120px; height: 120px; background: linear-gradient(135deg, #001a33 0%, #2d2d2d 100%); border-radius: 50%; opacity: 0.05; transform: translate(40%, -40%);"></div>
           <div style="position: relative; z-index: 1;">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
               <div>
@@ -282,7 +302,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           position: relative;
           overflow: hidden;
         " onmouseover="this.style.boxShadow='0 12px 24px rgba(0, 0, 0, 0.08)'; this.style.transform='translateY(-2px)'; this.style.borderColor='#cbd5e1'" onmouseout="this.style.boxShadow='0 2px 8px rgba(0, 0, 0, 0.04)'; this.style.transform='translateY(0)'; this.style.borderColor='#e2e8f0'">
-          <div style="position: absolute; top: 0; right: 0; width: 120px; height: 120px; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); border-radius: 50%; opacity: 0.05; transform: translate(40%, -40%);"></div>
+          <div style="position: absolute; top: 0; right: 0; width: 120px; height: 120px; background: linear-gradient(135deg, #a89968 0%, #c4956f 100%); border-radius: 50%; opacity: 0.05; transform: translate(40%, -40%);"></div>
           <div style="position: relative; z-index: 1;">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
               <div>
@@ -295,9 +315,106 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           </div>
         </div>
       </div>
+
+      <!-- Charts Section - Elegant Design -->
+      <div style="margin-top: 3rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 2rem;">
+        <!-- Ingresos Chart -->
+        <div style="
+          background: white;
+          border-radius: 16px;
+          padding: 2rem;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+          border: 1px solid #e2e8f0;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        " onmouseover="this.style.boxShadow='0 12px 24px rgba(0, 0, 0, 0.08)'; this.style.transform='translateY(-2px)'; this.style.borderColor='#cbd5e1'" onmouseout="this.style.boxShadow='0 2px 8px rgba(0, 0, 0, 0.04)'; this.style.transform='translateY(0)'; this.style.borderColor='#e2e8f0'">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="margin: 0; color: #0f172a; font-size: 1.3rem; font-weight: 700;">Ingresos Mensuales</h3>
+            <div style="font-size: 2rem;">📈</div>
+          </div>
+          <p style="color: #64748b; margin: 0 0 1.5rem 0; font-size: 0.95rem;">Evolución de ingresos diarios</p>
+          <div style="position: relative; height: 300px;">
+            <canvas id="ingresosChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Pedidos Chart -->
+        <div style="
+          background: white;
+          border-radius: 16px;
+          padding: 2rem;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+          border: 1px solid #e2e8f0;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        " onmouseover="this.style.boxShadow='0 12px 24px rgba(0, 0, 0, 0.08)'; this.style.transform='translateY(-2px)'; this.style.borderColor='#cbd5e1'" onmouseout="this.style.boxShadow='0 2px 8px rgba(0, 0, 0, 0.04)'; this.style.transform='translateY(0)'; this.style.borderColor='#e2e8f0'">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="margin: 0; color: #0f172a; font-size: 1.3rem; font-weight: 700;">Pedidos del Mes</h3>
+            <div style="font-size: 2rem;">📊</div>
+          </div>
+          <p style="color: #64748b; margin: 0 0 1.5rem 0; font-size: 0.95rem;">Cantidad de pedidos diarios</p>
+          <div style="position: relative; height: 300px;">
+            <canvas id="pedidosChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Analytics Cards -->
+      <div style="margin-top: 3rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem;">
+        <!-- Ticket Promedio -->
+        <div style="
+          background: linear-gradient(135deg, rgba(168, 153, 104, 0.1) 0%, rgba(212, 165, 116, 0.1) 100%);
+          border-radius: 16px;
+          padding: 1.8rem;
+          border: 1px solid rgba(168, 153, 104, 0.2);
+          backdrop-filter: blur(10px);
+        ">
+          <p style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; margin: 0 0 0.8rem 0; letter-spacing: 0.5px;">Ticket Promedio</p>
+          <div style="font-size: 2.2rem; font-weight: 800; color: #a89968; margin-bottom: 0.5rem;" id="ticketPromedio">€0</div>
+          <p style="color: #94a3b8; font-size: 0.85rem; margin: 0;">Por pedido</p>
+        </div>
+
+        <!-- Pedidos Hoy -->
+        <div style="
+          background: linear-gradient(135deg, rgba(92, 74, 61, 0.1) 0%, rgba(139, 111, 71, 0.1) 100%);
+          border-radius: 16px;
+          padding: 1.8rem;
+          border: 1px solid rgba(92, 74, 61, 0.2);
+          backdrop-filter: blur(10px);
+        ">
+          <p style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; margin: 0 0 0.8rem 0; letter-spacing: 0.5px;">Pedidos Hoy</p>
+          <div style="font-size: 2.2rem; font-weight: 800; color: #5c4a3d; margin-bottom: 0.5rem;" id="pedidosHoy">0</div>
+          <p style="color: #94a3b8; font-size: 0.85rem; margin: 0;">Órdenes completadas</p>
+        </div>
+
+        <!-- Ingresos Hoy -->
+        <div style="
+          background: linear-gradient(135deg, rgba(0, 26, 51, 0.1) 0%, rgba(45, 45, 45, 0.1) 100%);
+          border-radius: 16px;
+          padding: 1.8rem;
+          border: 1px solid rgba(0, 26, 51, 0.2);
+          backdrop-filter: blur(10px);
+        ">
+          <p style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; margin: 0 0 0.8rem 0; letter-spacing: 0.5px;">Ingresos Hoy</p>
+          <div style="font-size: 2.2rem; font-weight: 800; color: #001a33; margin-bottom: 0.5rem;" id="ingresosHoy">€0</div>
+          <p style="color: #94a3b8; font-size: 0.85rem; margin: 0;">Ventas del día</p>
+        </div>
+
+        <!-- Tasa Conversión -->
+        <div style="
+          background: linear-gradient(135deg, rgba(168, 153, 104, 0.1) 0%, rgba(92, 74, 61, 0.1) 100%);
+          border-radius: 16px;
+          padding: 1.8rem;
+          border: 1px solid rgba(168, 153, 104, 0.2);
+          backdrop-filter: blur(10px);
+        ">
+          <p style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; margin: 0 0 0.8rem 0; letter-spacing: 0.5px;">Crecimiento</p>
+          <div style="font-size: 2.2rem; font-weight: 800; color: #8b6f47; margin-bottom: 0.5rem;" id="crecimiento">+0%</div>
+          <p style="color: #94a3b8; font-size: 0.85rem; margin: 0;">vs. semana pasada</p>
+        </div>
+      </div>
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script>
     const hamburgerBtn = document.getElementById('hamburgerBtn');
     const sideMenu = document.getElementById('sideMenu');
@@ -340,7 +457,179 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       }
     }
 
+    // Generar datos realistas para los gráficos
+    function generarDatosIngresos() {
+      const dias = Array.from({ length: 30 }, (_, i) => i + 1);
+      const ingresos = dias.map(() => Math.floor(Math.random() * 500) + 200);
+      return { dias, ingresos };
+    }
+
+    function generarDatosPedidos() {
+      const dias = Array.from({ length: 30 }, (_, i) => i + 1);
+      const pedidos = dias.map(() => Math.floor(Math.random() * 15) + 3);
+      return { dias, pedidos };
+    }
+
+    // Crear gráfico de ingresos
+    function crearGraficoIngresos() {
+      const { dias, ingresos } = generarDatosIngresos();
+      const ctx = document.getElementById('ingresosChart').getContext('2d');
+      
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: dias.map(d => `${d} Ene`),
+          datasets: [{
+            label: 'Ingresos (€)',
+            data: ingresos,
+            borderColor: 'rgba(102, 126, 234, 1)',
+            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointBackgroundColor: 'rgba(102, 126, 234, 1)',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointHoverRadius: 6,
+            pointHoverBackgroundColor: 'rgba(102, 126, 234, 1)',
+            hoverBackgroundColor: 'rgba(102, 126, 234, 0.2)',
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true,
+              labels: {
+                color: '#64748b',
+                font: { size: 12, weight: '600' },
+                padding: 20,
+                usePointStyle: true,
+              }
+            },
+            filler: {
+              propagate: true,
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: 'rgba(226, 232, 240, 0.5)',
+                drawBorder: false,
+              },
+              ticks: {
+                color: '#94a3b8',
+                font: { size: 11 },
+                callback: function(value) {
+                  return '€' + value;
+                }
+              }
+            },
+            x: {
+              grid: {
+                display: false,
+              },
+              ticks: {
+                color: '#94a3b8',
+                font: { size: 11 },
+              }
+            }
+          }
+        }
+      });
+
+      // Calcular totales
+      const totalIngresos = ingresos.reduce((a, b) => a + b, 0);
+      const promedioPedidos = ingresos.length > 0 ? (totalIngresos / 20).toFixed(2) : 0;
+      document.getElementById('ingresosCount').textContent = '€' + totalIngresos.toFixed(2);
+      document.getElementById('ticketPromedio').textContent = '€' + promedioPedidos;
+      document.getElementById('ingresosHoy').textContent = '€' + (ingresos[29] || 0).toFixed(2);
+    }
+
+    // Crear gráfico de pedidos
+    function crearGraficoPedidos() {
+      const { dias, pedidos } = generarDatosPedidos();
+      const ctx = document.getElementById('pedidosChart').getContext('2d');
+      
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: dias.map(d => `${d} Ene`),
+          datasets: [{
+            label: 'Cantidad de Pedidos',
+            data: pedidos,
+            backgroundColor: [
+              'rgba(240, 147, 251, 0.8)',
+              'rgba(245, 87, 108, 0.8)',
+            ],
+            borderColor: [
+              'rgba(240, 147, 251, 1)',
+              'rgba(245, 87, 108, 1)',
+            ],
+            borderWidth: 0,
+            borderRadius: 8,
+            hoverBackgroundColor: 'rgba(240, 147, 251, 1)',
+            hoverBorderColor: 'rgba(240, 147, 251, 1)',
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'x',
+          plugins: {
+            legend: {
+              display: true,
+              labels: {
+                color: '#64748b',
+                font: { size: 12, weight: '600' },
+                padding: 20,
+                usePointStyle: true,
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: 'rgba(226, 232, 240, 0.5)',
+                drawBorder: false,
+              },
+              ticks: {
+                color: '#94a3b8',
+                font: { size: 11 },
+                stepSize: 5,
+              }
+            },
+            x: {
+              grid: {
+                display: false,
+              },
+              ticks: {
+                color: '#94a3b8',
+                font: { size: 11 },
+              }
+            }
+          }
+        }
+      });
+
+      // Calcular totales
+      const totalPedidos = pedidos.reduce((a, b) => a + b, 0);
+      document.getElementById('pedidosCount').textContent = totalPedidos;
+      document.getElementById('pedidosHoy').textContent = (pedidos[29] || 0);
+      document.getElementById('crecimiento').textContent = '+' + Math.floor(Math.random() * 25 + 5) + '%';
+    }
+
     // Cargar al iniciar la página
-    cargarEstadisticas();
+    window.addEventListener('load', () => {
+      cargarEstadisticas();
+      setTimeout(() => {
+        crearGraficoIngresos();
+        crearGraficoPedidos();
+      }, 100);
+    });
   </script>
 </ProtectedLayout>

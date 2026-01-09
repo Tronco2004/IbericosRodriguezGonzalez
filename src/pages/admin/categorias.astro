@@ -139,8 +139,8 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
             font-size: 0.95rem;
             box-sizing: border-box;
           ">
-            <option value="activo">Activo</option>
-            <option value="inactivo">Inactivo</option>
+            <option value="true">Activo</option>
+            <option value="false">Inactivo</option>
           </select>
         </div>
 
@@ -181,33 +181,97 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     
     // Categorías por defecto
     const categoriasDefault = [
-      { id: 1, nombre: 'Jamones', slug: 'jamones', descripcion: 'Jamones ibéricos de bellota y otros tipos', estado: 'activo' },
-      { id: 2, nombre: 'Quesos', slug: 'quesos', descripcion: 'Quesos artesanales y premium', estado: 'activo' },
-      { id: 3, nombre: 'Embutidos', slug: 'embutidos', descripcion: 'Chorizos, salchichones y embutidos ibéricos', estado: 'activo' }
+      { id: 1, nombre: 'Jamones', slug: 'jamones', descripcion: 'Jamones ibéricos de bellota curados tradicionalmente', activa: true },
+      { id: 2, nombre: 'Quesos', slug: 'quesos', descripcion: 'Quesos artesanales de la región ibérica', activa: true },
+      { id: 3, nombre: 'Embutidos', slug: 'embutidos', descripcion: 'Chorizos, morcillas y embutidos de bellota', activa: true }
     ];
 
     let categorias = [];
     let editandoId = null;
 
-    // Cargar categorías
-    function cargarCategorias() {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        try {
-          categorias = JSON.parse(stored);
-        } catch {
+    // Cargar categorías desde Supabase
+    async function cargarCategorias() {
+      try {
+        const response = await fetch('/api/admin/categorias');
+        const data = await response.json();
+        
+        if (data.success && data.categorias.length > 0) {
+          categorias = data.categorias;
+        } else {
+          // Si no hay categorías en BD, crear las por defecto
           categorias = [...categoriasDefault];
-          guardarCategoriasLocales();
+          for (const cat of categoriasDefault) {
+            await guardarCategoria(cat);
+          }
         }
-      } else {
+      } catch (error) {
+        console.error('Error cargando categorías:', error);
         categorias = [...categoriasDefault];
-        guardarCategoriasLocales();
       }
       renderizarTabla();
     }
 
-    function guardarCategoriasLocales() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(categorias));
+    async function guardarCategoria(categoria) {
+      try {
+        const response = await fetch('/api/admin/categorias', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nombre: categoria.nombre,
+            slug: categoria.slug,
+            descripcion: categoria.descripcion,
+            imagen_url: categoria.imagen_url || 'https://via.placeholder.com/500'
+          })
+        });
+        const data = await response.json();
+        
+        if (!data.success) {
+          console.error('Error del servidor:', data.message, data.details);
+          alert('Error: ' + (data.message || 'Error al guardar la categoría'));
+          return false;
+        }
+        
+        return data.success;
+      } catch (error) {
+        console.error('Error guardando categoría:', error);
+        alert('Error de conexión: ' + error.message);
+        return false;
+      }
+    }
+
+    async function actualizarCategoria(id, categoria) {
+      try {
+        const response = await fetch('/api/admin/categorias', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id,
+            nombre: categoria.nombre,
+            slug: categoria.slug,
+            descripcion: categoria.descripcion,
+            imagen_url: categoria.imagen_url || 'https://via.placeholder.com/500',
+            activa: categoria.activa
+          })
+        });
+        const data = await response.json();
+        return data.success;
+      } catch (error) {
+        console.error('Error actualizando categoría:', error);
+        return false;
+      }
+    }
+
+    async function eliminarCategoriaAPI(id) {
+      try {
+        const response = await fetch(`/api/admin/categorias?id=${id}`, {
+          method: 'DELETE'
+        });
+        const data = await response.json();
+        return data.success;
+      } catch (error) {
+        console.error('Error eliminando categoría:', error);
+        return false;
+      }
     }
 
     function renderizarTabla() {
@@ -245,8 +309,8 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
               border-radius: 20px;
               font-size: 0.8rem;
               font-weight: 600;
-              ${cat.estado === 'activo' ? 'background: #dcfce7; color: #166534;' : 'background: #fee2e2; color: #991b1b;'}
-            ">${cat.estado === 'activo' ? '✓ Activo' : '✗ Inactivo'}</span>
+              ${cat.activa ? 'background: #dcfce7; color: #166534;' : 'background: #fee2e2; color: #991b1b;'}
+            ">${cat.activa ? '✓ Activo' : '✗ Inactivo'}</span>
           </td>
           <td style="padding: 1.25rem; text-align: center;">
             <div style="display: flex; gap: 0.5rem; justify-content: center;">
@@ -261,7 +325,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
                 font-size: 0.85rem;
                 transition: all 0.3s;
               " onmouseover="this.style.background='#c7d2fe'" onmouseout="this.style.background='#e0e7ff'">
-                ✏️ Editar
+                Editar
               </button>
               <button onclick="eliminarCategoria(${cat.id})" style="
                 padding: 0.5rem 1rem;
@@ -274,7 +338,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
                 font-size: 0.85rem;
                 transition: all 0.3s;
               " onmouseover="this.style.background='#fecaca'" onmouseout="this.style.background='#fee2e2'">
-                🗑️ Eliminar
+                Eliminar
               </button>
             </div>
           </td>
@@ -305,16 +369,20 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         document.getElementById('nombre').value = cat.nombre;
         document.getElementById('slug').value = cat.slug;
         document.getElementById('descripcion').value = cat.descripcion;
-        document.getElementById('estado').value = cat.estado;
+        document.getElementById('estado').value = cat.activa ? 'true' : 'false';
         document.getElementById('categoriaModal').style.display = 'flex';
       }
     }
 
-    function eliminarCategoria(id) {
+    async function eliminarCategoria(id) {
       if (confirm('¿Está seguro de que desea eliminar esta categoría?')) {
-        categorias = categorias.filter(c => c.id !== id);
-        guardarCategoriasLocales();
-        renderizarTabla();
+        const success = await eliminarCategoriaAPI(id);
+        if (success) {
+          categorias = categorias.filter(c => c.id !== id);
+          renderizarTabla();
+        } else {
+          alert('Error al eliminar la categoría');
+        }
       }
     }
 
@@ -336,30 +404,41 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       }
     });
 
-    document.getElementById('categoriaForm').addEventListener('submit', (e) => {
+    document.getElementById('categoriaForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       
       const nombre = document.getElementById('nombre').value;
       const slug = document.getElementById('slug').value;
       const descripcion = document.getElementById('descripcion').value;
-      const estado = document.getElementById('estado').value;
+      const activa = document.getElementById('estado').value === 'true';
+
+      let success = false;
 
       if (editandoId) {
-        const cat = categorias.find(c => c.id === editandoId);
-        if (cat) {
-          cat.nombre = nombre;
-          cat.slug = slug;
-          cat.descripcion = descripcion;
-          cat.estado = estado;
+        success = await actualizarCategoria(editandoId, { nombre, slug, descripcion, activa });
+        if (success) {
+          const cat = categorias.find(c => c.id === editandoId);
+          if (cat) {
+            cat.nombre = nombre;
+            cat.slug = slug;
+            cat.descripcion = descripcion;
+            cat.activa = activa;
+          }
         }
       } else {
-        const newId = Math.max(...categorias.map(c => c.id), 0) + 1;
-        categorias.push({ id: newId, nombre, slug, descripcion, estado });
+        success = await guardarCategoria({ nombre, slug, descripcion, activa });
+        if (success) {
+          // Recargar categorías para obtener el ID de la BD
+          await cargarCategorias();
+        }
       }
 
-      guardarCategoriasLocales();
-      document.getElementById('categoriaModal').style.display = 'none';
-      renderizarTabla();
+      if (success) {
+        document.getElementById('categoriaModal').style.display = 'none';
+        renderizarTabla();
+      } else {
+        alert('Error al guardar la categoría');
+      }
     });
 
     document.getElementById('searchInput').addEventListener('input', renderizarTabla);

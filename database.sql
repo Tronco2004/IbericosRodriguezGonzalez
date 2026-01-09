@@ -35,6 +35,23 @@ CREATE TABLE IF NOT EXISTS categorias (
   fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Tabla de Clientes Empresariales (Bares, Casas, Particulares, etc.)
+CREATE TABLE IF NOT EXISTS clientes_empresariales (
+  id SERIAL PRIMARY KEY,
+  nombre_empresa VARCHAR(200) NOT NULL,
+  numero_identificacion VARCHAR(50) NOT NULL UNIQUE,
+  tipo_identificacion VARCHAR(10) NOT NULL CHECK (tipo_identificacion IN ('NIF', 'RUT', 'RFC', 'CUIT', 'OTRO')),
+  direccion_fiscal VARCHAR(300) NOT NULL,
+  nombre_representante VARCHAR(150) NOT NULL,
+  email_contacto VARCHAR(100) NOT NULL,
+  telefono_contacto VARCHAR(20),
+  tipo_cliente VARCHAR(50) NOT NULL CHECK (tipo_cliente IN ('Bar', 'Restaurante', 'Tienda', 'Particular', 'Mayorista', 'Otro')),
+  estado BOOLEAN DEFAULT TRUE,
+  notas TEXT,
+  fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Tabla de Productos
 CREATE TABLE IF NOT EXISTS productos (
   id SERIAL PRIMARY KEY,
@@ -193,6 +210,8 @@ CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios(email);
 CREATE INDEX IF NOT EXISTS idx_usuarios_rol ON usuarios(rol);
 CREATE INDEX IF NOT EXISTS idx_sesiones_token ON sesiones(token);
 CREATE INDEX IF NOT EXISTS idx_sesiones_usuario ON sesiones(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_clientes_numero_id ON clientes_empresariales(numero_identificacion);
+CREATE INDEX IF NOT EXISTS idx_clientes_email ON clientes_empresariales(email_contacto);
 CREATE INDEX IF NOT EXISTS idx_productos_categoria ON productos(categoria_id);
 CREATE INDEX IF NOT EXISTS idx_productos_sku ON productos(sku);
 CREATE INDEX IF NOT EXISTS idx_carritos_usuario ON carritos(usuario_id);
@@ -278,6 +297,7 @@ DROP TABLE IF EXISTS carritos CASCADE;
 DROP TABLE IF EXISTS direcciones CASCADE;
 DROP TABLE IF EXISTS producto_detalles CASCADE;
 DROP TABLE IF EXISTS productos CASCADE;
+DROP TABLE IF EXISTS clientes_empresariales CASCADE;
 DROP TABLE IF EXISTS categorias CASCADE;
 DROP TABLE IF EXISTS sesiones CASCADE;
 DROP TABLE IF EXISTS usuarios CASCADE;

@@ -14,7 +14,7 @@ const { requireAuth = false, requireAdmin = false } = Astro.props;
     const userRole = localStorage.getItem('user_role');
     const currentPath = window.location.pathname;
 
-    console.log('🔐 Validando acceso:');
+    console.log('Validando acceso:');
     console.log('  Path:', currentPath);
     console.log('  Rol desde localStorage:', userRole);
 
