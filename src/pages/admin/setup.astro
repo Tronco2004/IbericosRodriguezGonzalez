@@ -1,0 +1,75 @@
+---
+import ProtectedLayout from '@/layouts/ProtectedLayout.astro';
+---
+
+<ProtectedLayout requireAdmin={true}>
+  <div style="min-height: 100vh; background: linear-gradient(135deg, #fafbfc 0%, #f3f4f6 100%); padding: 3rem 2rem;">
+    <div style="max-width: 600px; margin: 0 auto;">
+      <div style="background: white; border-radius: 12px; padding: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+        <h1 style="color: #0f172a; font-size: 1.8rem; margin-bottom: 1rem;">Configuración Inicial</h1>
+        <p style="color: #64748b; margin-bottom: 2rem;">Haz clic en el botón para crear las categorías y productos de ejemplo en la base de datos.</p>
+        
+        <button id="btnSetup" style="
+          width: 100%;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 1rem;
+          border: none;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 1rem;
+          cursor: pointer;
+          transition: all 0.3s;
+        " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(102,126,234,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+          Ejecutar Setup Inicial
+        </button>
+
+        <div id="resultado" style="margin-top: 2rem; padding: 1rem; border-radius: 8px; display: none;">
+          <p id="mensajeResultado"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('btnSetup').addEventListener('click', async () => {
+      const btn = document.getElementById('btnSetup');
+      const resultado = document.getElementById('resultado');
+      
+      btn.disabled = true;
+      btn.textContent = 'Procesando...';
+
+      try {
+        const response = await fetch('/api/admin/init-data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'setup_inicial' })
+        });
+
+        const data = await response.json();
+
+        resultado.style.display = 'block';
+        if (data.success) {
+          resultado.style.background = '#dcfce7';
+          resultado.style.color = '#15803d';
+          document.getElementById('mensajeResultado').textContent = 
+            `✓ ${data.message}\n- Categorías: ${data.categorias.length}\n- Productos: ${data.productos.length}`;
+          btn.textContent = '✓ Setup Completado';
+        } else {
+          resultado.style.background = '#fee2e2';
+          resultado.style.color = '#b91c1c';
+          document.getElementById('mensajeResultado').textContent = `✗ Error: ${data.error}`;
+          btn.textContent = 'Ejecutar Setup Inicial';
+          btn.disabled = false;
+        }
+      } catch (error) {
+        resultado.style.display = 'block';
+        resultado.style.background = '#fee2e2';
+        resultado.style.color = '#b91c1c';
+        document.getElementById('mensajeResultado').textContent = `✗ Error: ${error.message}`;
+        btn.textContent = 'Ejecutar Setup Inicial';
+        btn.disabled = false;
+      }
+    });
+  </script>
+</ProtectedLayout>

@@ -127,6 +127,9 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
               <p style="margin: 0; color: #0f172a; font-weight: 600;">Arrastra una imagen aquí</p>
               <p style="margin: 0.5rem 0 0 0; color: #64748b; font-size: 0.9rem;">o click para seleccionar</p>
             </div>
+            <div id="uploadStatus" style="display: none; margin-top: 1rem; padding: 0.75rem; border-radius: 6px; font-size: 0.9rem;">
+              <span id="uploadMessage"></span>
+            </div>
           </div>
         </div>
 
@@ -233,7 +236,6 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     const STORAGE_KEY = 'ibericosRG_productos';
     let productos = [];
     let editingId = null;
-    let imagenBase64 = null;
 
     // Manejador de imagen
     const imageDrop = document.getElementById('imageDrop');
@@ -241,13 +243,16 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     const imagePreview = document.getElementById('imagePreview');
     const imagePlaceholder = document.getElementById('imagePlaceholder');
     const previewImg = document.getElementById('previewImg');
+    const uploadStatus = document.getElementById('uploadStatus');
+    const uploadMessage = document.getElementById('uploadMessage');
+    let uploadedImageUrl = null;
 
     imageDrop.addEventListener('click', () => imagenInput.click());
 
     imagenInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (file) {
-        leerImagen(file);
+        subirImagen(file);
       }
     });
 
@@ -268,19 +273,47 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       imageDrop.style.background = '#f8fafc';
       const file = e.dataTransfer.files[0];
       if (file && file.type.startsWith('image/')) {
-        leerImagen(file);
+        subirImagen(file);
       }
     });
 
-    function leerImagen(file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        imagenBase64 = e.target.result;
-        previewImg.src = imagenBase64;
-        imagePreview.style.display = 'block';
-        imagePlaceholder.style.display = 'none';
-      };
-      reader.readAsDataURL(file);
+    async function subirImagen(file) {
+      uploadStatus.style.display = 'block';
+      uploadStatus.style.background = '#f0f9ff';
+      uploadStatus.style.color = '#0369a1';
+      uploadMessage.textContent = '⏳ Subiendo imagen...';
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const response = await fetch('/api/admin/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          uploadedImageUrl = data.url;
+          previewImg.src = uploadedImageUrl;
+          imagePreview.style.display = 'block';
+          imagePlaceholder.style.display = 'none';
+          
+          uploadStatus.style.background = '#dcfce7';
+          uploadStatus.style.color = '#15803d';
+          uploadMessage.textContent = '✓ Imagen subida correctamente';
+        } else {
+          uploadStatus.style.background = '#fee2e2';
+          uploadStatus.style.color = '#b91c1c';
+          uploadMessage.textContent = `✗ Error: ${data.error}`;
+        }
+      } catch (error) {
+        uploadStatus.style.background = '#fee2e2';
+        uploadStatus.style.color = '#b91c1c';
+        uploadMessage.textContent = '✗ Error al subir la imagen';
+        console.error('Upload error:', error);
+      }
     }
 
     // Cargar productos
@@ -402,9 +435,10 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 
     function abrirNuevo() {
       editingId = null;
-      imagenBase64 = null;
+      uploadedImageUrl = null;
       document.getElementById('modalTitle').textContent = 'Nuevo Producto';
       document.getElementById('productForm').reset();
+      uploadStatus.style.display = 'none';
       imagePreview.style.display = 'none';
       imagePlaceholder.style.display = 'block';
       document.getElementById('productModal').style.display = 'flex';
@@ -415,13 +449,15 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       if (!producto) return;
 
       editingId = id;
-      imagenBase64 = producto.imagen || null;
+      uploadedImageUrl = null;
       document.getElementById('modalTitle').textContent = 'Editar Producto';
       document.getElementById('nombre').value = producto.nombre;
       document.getElementById('categoria').value = producto.categoria;
       document.getElementById('precio').value = (producto.precio / 100).toFixed(2);
       document.getElementById('stock').value = producto.stock;
       document.getElementById('descripcion').value = producto.descripcion || '';
+      
+      uploadStatus.style.display = 'none';
       
       if (producto.imagen) {
         previewImg.src = producto.imagen;
@@ -438,7 +474,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     function cerrarModal() {
       document.getElementById('productModal').style.display = 'none';
       editingId = null;
-      imagenBase64 = null;
+      uploadedImageUrl = null;
     }
 
     async function guardarProducto(e) {
@@ -451,16 +487,27 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         return;
       }
 
+      // Obtener la imagen - usar la URL subida o fallback
+      let imagenFinal = 'https://images.unsplash.com/photo-1557803104268-0ef0f060e15f?w=500&h=500&fit=crop';
+      
+      if (uploadedImageUrl) {
+        // Usar la imagen que se acaba de subir
+        imagenFinal = uploadedImageUrl;
+      } else if (editingId) {
+        // Al editar sin nueva imagen, mantener la actual
+        const productoActual = productos.find(p => p.id === editingId);
+        if (productoActual && productoActual.imagen) {
+          imagenFinal = productoActual.imagen;
+        }
+      }
+
       const nuevoProducto = {
         nombre: document.getElementById('nombre').value,
         categoria: document.getElementById('categoria').value,
         precio: Math.round(parseFloat(document.getElementById('precio').value) * 100),
         stock: parseInt(document.getElementById('stock').value),
         descripcion: document.getElementById('descripcion').value,
-        // Si hay imagen Base64 muy larga, no la guardamos (usar URL por defecto)
-        imagen: imagenBase64 && imagenBase64.length < 400 
-          ? imagenBase64 
-          : 'https://images.unsplash.com/photo-1557803104268-0ef0f060e15f?w=500&h=500&fit=crop'
+        imagen: imagenFinal
       };
 
       try {
