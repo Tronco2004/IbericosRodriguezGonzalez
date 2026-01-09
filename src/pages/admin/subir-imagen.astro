@@ -1,0 +1,78 @@
+---
+import ProtectedLayout from '@/layouts/ProtectedLayout.astro';
+---
+
+<ProtectedLayout>
+  <div class="container mx-auto p-4">
+    <h1 class="text-3xl font-bold mb-6">Subir Imagen</h1>
+    
+    <form id="uploadForm" class="max-w-md">
+      <div class="mb-4">
+        <label for="image" class="block text-sm font-medium mb-2">Selecciona una imagen:</label>
+        <input 
+          type="file" 
+          id="image" 
+          name="file" 
+          accept="image/*" 
+          required 
+          class="block w-full border border-gray-300 rounded p-2"
+        />
+      </div>
+      
+      <button 
+        type="submit" 
+        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+      >
+        Subir Imagen
+      </button>
+    </form>
+
+    <div id="result" class="mt-4"></div>
+    <div id="preview" class="mt-4"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('uploadForm') as HTMLFormElement;
+    const resultDiv = document.getElementById('result') as HTMLDivElement;
+    const previewDiv = document.getElementById('preview') as HTMLDivElement;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const fileInput = document.getElementById('image') as HTMLInputElement;
+      const file = fileInput.files?.[0];
+
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const response = await fetch('/api/admin/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          resultDiv.innerHTML = `
+            <p class="text-green-600">✓ Imagen subida exitosamente!</p>
+            <p class="text-sm text-gray-600 mt-2">URL: <code class="bg-gray-100 p-1 rounded">${data.url}</code></p>
+          `;
+          
+          previewDiv.innerHTML = `
+            <h3 class="font-semibold mb-2">Vista previa:</h3>
+            <img src="${data.url}" alt="Preview" class="max-w-xs rounded" />
+          `;
+          
+          fileInput.value = '';
+        } else {
+          resultDiv.innerHTML = `<p class="text-red-600">✗ Error: ${data.error}</p>`;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `<p class="text-red-600">✗ Error al subir la imagen</p>`;
+      }
+    });
+  </script>
+</ProtectedLayout>

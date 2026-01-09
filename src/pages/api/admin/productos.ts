@@ -17,29 +17,19 @@ function generarSKU(categoria: string): string {
 
 export const GET: APIRoute = async ({ request }) => {
   try {
-    // Obtener todos los productos con sus categorías
-    const { data, error } = await supabaseClient
+    // Obtener todos los productos
+    const { data: productos, error: prodError } = await supabaseClient
       .from('productos')
-      .select(`
-        id,
-        nombre,
-        descripcion,
-        precio_centimos,
-        stock,
-        imagen_url,
-        rating,
-        activo,
-        categoria_id,
-        categorias:categoria_id(nombre, slug)
-      `)
+      .select('*')
+      .eq('activo', true)
       .order('id', { ascending: true });
 
-    if (error) {
-      console.error('Error Supabase:', error);
+    if (prodError) {
+      console.error('Error Supabase:', prodError);
       return new Response(
         JSON.stringify({
           success: false,
-          error: error.message,
+          error: prodError.message,
           productos: []
         }),
         { 
@@ -49,10 +39,31 @@ export const GET: APIRoute = async ({ request }) => {
       );
     }
 
+    // Obtener todas las categorías
+    const { data: categorias, error: catError } = await supabaseClient
+      .from('categorias')
+      .select('id, nombre, slug');
+
+    if (catError) {
+      console.error('Error Supabase categorías:', catError);
+    }
+
+    // Mapear categorías
+    const categoriaMap = {};
+    categorias?.forEach((cat) => {
+      categoriaMap[cat.id] = { nombre: cat.nombre, slug: cat.slug };
+    });
+
+    // Enriquecer productos con datos de categoría
+    const productosEnriquecidos = productos?.map((p) => ({
+      ...p,
+      categorias: categoriaMap[p.categoria_id] || { nombre: 'Sin categoría', slug: 'sin-categoria' }
+    })) || [];
+
     return new Response(
       JSON.stringify({
         success: true,
-        productos: data || [],
+        productos: productosEnriquecidos,
         source: 'supabase'
       }),
       { 
