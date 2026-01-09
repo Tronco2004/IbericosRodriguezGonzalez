@@ -162,7 +162,7 @@ import Layout from '../../layouts/Layout.astro';
         }
 
         grid.innerHTML = productos.map((p) => `
-          <article>
+          <article data-id="${p.id}">
             <div class="product-image-wrapper">
               <img src="${p.imagen}" alt="${p.nombre}" loading="lazy" />
             </div>
@@ -172,14 +172,94 @@ import Layout from '../../layouts/Layout.astro';
                 <span class="product-price">€${p.precio}</span>
               </div>
               <h3 class="product-name">${p.nombre}</h3>
+              <button class="btn-agregar-carrito" data-id="${p.id}" style="
+                width: 100%;
+                margin-top: 0.75rem;
+                background: #a89968;
+                color: white;
+                border: none;
+                padding: 0.6rem;
+                border-radius: 4px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: background 0.3s;
+                font-size: 0.85rem;
+              ">
+                Agregar al Carrito
+              </button>
             </div>
           </article>
         `).join('');
+
+        // Agregar event listeners a los botones
+        document.querySelectorAll('.btn-agregar-carrito').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const productoId = btn.getAttribute('data-id');
+            await agregarAlCarrito(productoId, 1);
+          });
+
+          btn.addEventListener('mouseover', () => {
+            btn.style.background = '#9a8560';
+          });
+
+          btn.addEventListener('mouseout', () => {
+            btn.style.background = '#a89968';
+          });
+        });
       } catch (error) {
         console.error('Error cargando productos:', error);
         const grid = document.getElementById('productosGrid');
         grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 4rem 2rem;"><p style="color: #999;">Error al cargar los productos</p></div>';
       }
+    }
+
+    async function agregarAlCarrito(productoId: string, cantidad: number = 1) {
+      try {
+        // Obtener user_id del localStorage
+        const userId = localStorage.getItem('user_id');
+        if (!userId) {
+          alert('Por favor, inicia sesión para agregar productos al carrito');
+          window.location.href = '/login';
+          return;
+        }
+
+        const response = await fetch('/api/carrito', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            producto_id: parseInt(productoId), 
+            cantidad,
+            user_id: userId
+          })
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            alert('Por favor, inicia sesión para agregar productos al carrito');
+            window.location.href = '/login';
+            return;
+          }
+          throw new Error('Error agregando al carrito');
+        }
+
+        const result = await response.json();
+        if (result.success) {
+          alert('Producto agregado al carrito');
+          // Actualizar contador del carrito si existe
+          actualizarContadorCarrito();
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error al agregar el producto al carrito');
+      }
+    }
+
+    function actualizarContadorCarrito() {
+      // Esta función se puede llamar cuando el contador del navbar esté implementado
+      const evento = new CustomEvent('carritoActualizado');
+      document.dispatchEvent(evento);
     }
 
     // Cargar al iniciar
