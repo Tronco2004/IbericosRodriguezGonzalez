@@ -159,7 +159,10 @@ const description = "Descubre nuestra colección de productos ibéricos de la m�
           }
 
           const response = await fetch('/api/carrito', {
-            credentials: 'include'
+            credentials: 'include',
+            headers: {
+              'x-user-id': userId
+            }
           });
           
           if (response.status === 401 || !response.ok) {

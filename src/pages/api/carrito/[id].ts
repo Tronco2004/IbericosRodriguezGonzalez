@@ -1,17 +1,19 @@
 import type { APIRoute } from 'astro';
 import { supabaseClient } from '../../../lib/supabase';
 
+export const prerender = false;
+
 export const PUT: APIRoute = async ({ request, cookies }) => {
   try {
-    const userId = cookies.get('user_id')?.value;
+    const { item_id, cantidad, user_id } = await request.json();
+    
+    let userId = user_id || cookies.get('user_id')?.value;
     if (!userId) {
       return new Response(
         JSON.stringify({ error: 'No autenticado' }),
         { status: 401 }
       );
     }
-
-    const { item_id, cantidad } = await request.json();
 
     if (!item_id || cantidad === undefined) {
       return new Response(
@@ -70,7 +72,9 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
 
 export const DELETE: APIRoute = async ({ request, cookies, params }) => {
   try {
-    const userId = cookies.get('user_id')?.value;
+    const body = await request.json().catch(() => ({}));
+    let userId = body.user_id || cookies.get('user_id')?.value;
+    
     if (!userId) {
       return new Response(
         JSON.stringify({ error: 'No autenticado' }),

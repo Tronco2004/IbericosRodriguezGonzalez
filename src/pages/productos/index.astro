@@ -168,8 +168,8 @@ import Layout from '../../layouts/Layout.astro';
             </div>
             <div class="product-info">
               <div class="product-footer">
-                <span class="product-price-original">Antes €${(p.precio * 1.2).toFixed(2)}</span>
-                <span class="product-price">€${p.precio}</span>
+                <span class="product-price-original">Antes ${(p.precio * 1.2).toFixed(2)}€</span>
+                <span class="product-price">${p.precio}€</span>
               </div>
               <h3 class="product-name">${p.nombre}</h3>
               <button class="btn-agregar-carrito" data-id="${p.id}" style="
@@ -214,13 +214,102 @@ import Layout from '../../layouts/Layout.astro';
       }
     }
 
+    // Sistema de notificaciones toast
+    function mostrarNotificacion(mensaje, tipo = 'exito') {
+      const container = document.getElementById('notificacionesContainer') || crearContainerNotificaciones();
+      
+      const notif = document.createElement('div');
+      notif.style.cssText = `
+        background: ${tipo === 'exito' ? '#a89968' : tipo === 'error' ? '#f5576c' : '#001a33'};
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        animation: slideIn 0.3s ease-out;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        font-weight: 500;
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      `;
+
+      // Icono según tipo
+      let icono = '';
+      if (tipo === 'exito') {
+        icono = '✓';
+      } else if (tipo === 'error') {
+        icono = '✕';
+      }
+
+      notif.innerHTML = `
+        <span style="font-size: 1.2rem; font-weight: bold;">${icono}</span>
+        <span>${mensaje}</span>
+      `;
+
+      container.appendChild(notif);
+
+      // Auto-eliminar después de 3 segundos
+      setTimeout(() => {
+        notif.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => notif.remove(), 300);
+      }, 3000);
+    }
+
+    function crearContainerNotificaciones() {
+      const container = document.createElement('div');
+      container.id = 'notificacionesContainer';
+      container.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 2rem;
+        z-index: 1000;
+        max-width: 400px;
+        pointer-events: none;
+      `;
+      document.body.appendChild(container);
+
+      // Agregar estilos de animación
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateX(400px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        @keyframes slideOut {
+          from {
+            opacity: 1;
+            transform: translateX(0);
+          }
+          to {
+            opacity: 0;
+            transform: translateX(400px);
+          }
+        }
+        #notificacionesContainer > div {
+          pointer-events: auto;
+        }
+      `;
+      document.head.appendChild(style);
+
+      return container;
+    }
+
     async function agregarAlCarrito(productoId: string, cantidad: number = 1) {
       try {
         // Obtener user_id del localStorage
         const userId = localStorage.getItem('user_id');
         if (!userId) {
-          alert('Por favor, inicia sesión para agregar productos al carrito');
-          window.location.href = '/login';
+          mostrarNotificacion('Por favor, inicia sesión para agregar productos al carrito', 'info');
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 1500);
           return;
         }
 
@@ -237,8 +326,10 @@ import Layout from '../../layouts/Layout.astro';
 
         if (!response.ok) {
           if (response.status === 401) {
-            alert('Por favor, inicia sesión para agregar productos al carrito');
-            window.location.href = '/login';
+            mostrarNotificacion('Por favor, inicia sesión para agregar productos al carrito', 'info');
+            setTimeout(() => {
+              window.location.href = '/login';
+            }, 1500);
             return;
           }
           throw new Error('Error agregando al carrito');
@@ -246,13 +337,13 @@ import Layout from '../../layouts/Layout.astro';
 
         const result = await response.json();
         if (result.success) {
-          alert('Producto agregado al carrito');
+          mostrarNotificacion('Producto agregado al carrito', 'exito');
           // Actualizar contador del carrito si existe
           actualizarContadorCarrito();
         }
       } catch (error) {
         console.error('Error:', error);
-        alert('Error al agregar el producto al carrito');
+        mostrarNotificacion('Error al agregar el producto al carrito', 'error');
       }
     }
 

@@ -1,14 +1,14 @@
 import type { APIRoute } from 'astro';
 import { supabaseClient } from '../../../lib/supabase';
 
-export const GET: APIRoute = async ({ cookies }) => {
+export const GET: APIRoute = async ({ cookies, request }) => {
   try {
-    // Obtener user_id de localStorage (enviado en header o desde el cliente)
-    // Por ahora, como GET no puede recibir body, usaremos cookies
-    const userId = cookies.get('user_id')?.value || (
-      // Fallback: intenta obtener del token de Supabase
-      cookies.get('sb-access-token')?.value
-    );
+    // Obtener user_id del header o cookie
+    let userId = request.headers.get('x-user-id');
+    
+    if (!userId) {
+      userId = cookies.get('user_id')?.value;
+    }
 
     if (!userId) {
       return new Response(

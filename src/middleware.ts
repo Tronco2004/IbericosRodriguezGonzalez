@@ -11,7 +11,7 @@ export const onRequest = defineMiddleware((context, next) => {
   console.log(`Rol: ${userRole || 'No'}`);
 
   // Rutas que requieren autenticación
-  const rutasProtegidas = ['/carrito', '/checkout', '/mi-cuenta', '/mis-pedidos'];
+  const rutasProtegidas = ['/checkout', '/mi-cuenta', '/mis-pedidos'];
   
   if (rutasProtegidas.some(ruta => path.startsWith(ruta))) {
     console.log('Ruta protegida detectada');
