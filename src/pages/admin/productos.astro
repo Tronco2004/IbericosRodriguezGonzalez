@@ -184,7 +184,17 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           </div>
         </div>
 
-        <div>
+        <!-- Opción: Peso Variable -->
+        <div style="background: #f8fafc; padding: 1.25rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
+            <input type="checkbox" id="esVariable" style="width: 18px; height: 18px; cursor: pointer;" />
+            <span style="color: #0f172a; font-weight: 600;">Este producto tiene pesos/tamaños variables</span>
+          </label>
+          <p style="margin: 0.5rem 0 0 0; color: #64748b; font-size: 0.9rem;">Ej: Jamones de diferentes pesos, quesos de distintos tamaños</p>
+        </div>
+
+        <!-- Stock (solo para productos NO variables) -->
+        <div id="stockSection">
           <label style="display: block; color: #0f172a; font-weight: 600; margin-bottom: 0.5rem;">Stock</label>
           <input type="number" id="stock" placeholder="0" min="0" style="
             width: 100%;
@@ -194,6 +204,77 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
             font-size: 0.95rem;
             box-sizing: border-box;
           " required />
+        </div>
+
+        <!-- Sección de Variantes (solo para productos variables) -->
+        <div id="variantesSection" style="display: none;">
+          <!-- Precio por Kg -->
+          <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; color: #0f172a; font-weight: 600; margin-bottom: 0.5rem;">Precio por Kg (€)</label>
+            <input type="number" id="precioKg" placeholder="35.00" step="0.01" style="
+              width: 100%;
+              padding: 0.75rem;
+              border: 1px solid #e2e8f0;
+              border-radius: 6px;
+              font-size: 0.95rem;
+              box-sizing: border-box;
+            " />
+            <p style="margin: 0.5rem 0 0 0; color: #64748b; font-size: 0.9rem;">Se usará para calcular el precio total de cada peso</p>
+          </div>
+
+          <!-- Agregar Variantes -->
+          <div style="background: #f8fafc; padding: 1.25rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <h4 style="margin: 0 0 1rem 0; color: #0f172a; font-weight: 600;">Pesos disponibles</h4>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+              <div>
+                <label style="display: block; color: #0f172a; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Peso (kg)</label>
+                <input type="number" id="nuevoVariantePeso" placeholder="4.650" step="0.001" min="0.001" style="
+                  width: 100%;
+                  padding: 0.75rem;
+                  border: 1px solid #e2e8f0;
+                  border-radius: 6px;
+                  font-size: 0.95rem;
+                  box-sizing: border-box;
+                " />
+              </div>
+              <div>
+                <label style="display: block; color: #0f172a; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">Precio Total (€)</label>
+                <input type="number" id="nuevoVariantePrecio" placeholder="162.75" step="0.01" style="
+                  width: 100%;
+                  padding: 0.75rem;
+                  border: 1px solid #e2e8f0;
+                  border-radius: 6px;
+                  font-size: 0.95rem;
+                  box-sizing: border-box;
+                  background: #f0f0f0;
+                " readonly />
+                <p style="margin: 0.25rem 0 0 0; color: #64748b; font-size: 0.8rem;">Se calcula automáticamente</p>
+              </div>
+            </div>
+
+            <button type="button" id="btnAgregarVariante" onclick="window.agregarVariante()" style="
+              width: 100%;
+              padding: 0.75rem;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              border: none;
+              border-radius: 6px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.3s;
+            " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+              + Agregar Peso
+            </button>
+          </div>
+
+          <!-- Lista de Variantes Agregadas -->
+          <div style="margin-top: 1.5rem;">
+            <h4 style="margin: 0 0 1rem 0; color: #0f172a; font-weight: 600;">Variantes agregadas:</h4>
+            <div id="variantesList" style="display: flex; flex-direction: column; gap: 0.75rem;">
+              <p style="color: #64748b; font-size: 0.9rem; margin: 0;">Aquí aparecerán los pesos que agregues</p>
+            </div>
+          </div>
         </div>
 
         <div>
@@ -244,6 +325,54 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     let productos = [];
     let categorias = [];
     let editingId = null;
+    let variantesActuales = []; // Array para almacenar variantes del producto actual
+
+    // Funciones globales para variantes (exponidas al window para usar en onclick)
+    window.agregarVariante = function() {
+      console.log('agregarVariante() ejecutada');
+      console.log('variantesActuales:', variantesActuales);
+      
+      const pesoInput = document.getElementById('nuevoVariantePeso').value.replace(',', '.');
+      const precioInput = document.getElementById('nuevoVariantePrecio').value.replace(',', '.');
+      
+      console.log('pesoInput:', pesoInput, 'precioInput:', precioInput);
+      
+      const peso = parseFloat(pesoInput);
+      const precioTotal = parseFloat(precioInput);
+      
+      console.log('peso:', peso, 'precioTotal:', precioTotal);
+      
+      if (!peso || !precioTotal) {
+        alert('Por favor completa todos los campos - peso: ' + peso + ', precio: ' + precioTotal);
+        return;
+      }
+
+      // Verificar que no exista peso duplicado
+      if (variantesActuales.some(v => v.peso === peso)) {
+        alert('Ya existe una variante con este peso');
+        return;
+      }
+
+      // Agregar a array
+      variantesActuales.push({
+        peso: peso,
+        precio_total: precioTotal
+      });
+
+      console.log('Variante agregada. variantesActuales ahora:', variantesActuales);
+
+      // Limpiar campos
+      document.getElementById('nuevoVariantePeso').value = '';
+      document.getElementById('nuevoVariantePrecio').value = '';
+
+      // Actualizar lista
+      mostrarVariantes();
+    };
+
+    window.eliminarVariante = function(index) {
+      variantesActuales.splice(index, 1);
+      mostrarVariantes();
+    };
 
     // Manejador de imagen
     const imageDrop = document.getElementById('imageDrop');
@@ -376,7 +505,9 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
             descripcion: p.descripcion || '',
             imagen: p.imagen_url || p.imagen,
             estado: p.activo ? 'activo' : 'inactivo',
-            rating: p.rating || 0
+            rating: p.rating || 0,
+            es_variable: p.es_variable || false,
+            precio_por_kg: p.precio_por_kg || null
           }));
         } else {
           // Si no hay productos en Supabase, mostrar vacío
@@ -481,6 +612,14 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       uploadedImageUrl = null;
       document.getElementById('modalTitle').textContent = 'Nuevo Producto';
       document.getElementById('productForm').reset();
+      
+      // Resetear checkbox y campos
+      document.getElementById('esVariable').checked = false;
+      document.getElementById('stockSection').style.display = 'block';
+      document.getElementById('variantesSection').style.display = 'none';
+      variantesActuales = [];
+      document.getElementById('variantesList').innerHTML = '<p style="color: #64748b; font-size: 0.9rem; margin: 0;">Aquí aparecerán los pesos que agregues</p>';
+      
       uploadStatus.style.display = 'none';
       imagePreview.style.display = 'none';
       imagePlaceholder.style.display = 'block';
@@ -501,6 +640,33 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       document.getElementById('stock').value = producto.stock;
       document.getElementById('descripcion').value = producto.descripcion || '';
       
+      // Cargar es_variable y precio_por_kg
+      const esVariableCheckbox = document.getElementById('esVariable');
+      esVariableCheckbox.checked = producto.es_variable || false;
+      
+      // Mostrar/ocultar campos según es_variable
+      const stockSection = document.getElementById('stockSection');
+      const variantesSection = document.getElementById('variantesSection');
+      
+      variantesActuales = []; // Resetear variantes
+      
+      if (producto.es_variable) {
+        stockSection.style.display = 'none';
+        variantesSection.style.display = 'block';
+        document.getElementById('precioKg').value = (producto.precio_por_kg || 0).toFixed(2);
+        
+        // Limpiar inputs de nuevo peso
+        document.getElementById('nuevoVariantePeso').value = '';
+        document.getElementById('nuevoVariantePrecio').value = '';
+        
+        // Cargar variantes existentes del API
+        cargarVariantesProducto(id);
+      } else {
+        stockSection.style.display = 'block';
+        variantesSection.style.display = 'none';
+        document.getElementById('variantesList').innerHTML = '<p style="color: #64748b; font-size: 0.9rem; margin: 0;">Aquí aparecerán los pesos que agregues</p>';
+      }
+      
       uploadStatus.style.display = 'none';
       
       if (producto.imagen) {
@@ -513,6 +679,24 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       }
       
       document.getElementById('productModal').style.display = 'flex';
+    }
+
+    async function cargarVariantesProducto(productoId) {
+      try {
+        const response = await fetch(`/api/admin/variantes?producto_id=${productoId}`);
+        const data = await response.json();
+        
+        if (data.success && data.variantes && data.variantes.length > 0) {
+          variantesActuales = data.variantes.map(v => ({
+            peso: v.peso_kg,
+            precio_total: v.precio_total,
+            id: v.id // Guardar ID para poder actualizarlas después
+          }));
+          mostrarVariantes();
+        }
+      } catch (error) {
+        console.error('Error cargando variantes:', error);
+      }
     }
 
     function cerrarModal() {
@@ -529,6 +713,28 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       if (!categoriaValue) {
         alert('Por favor selecciona una categoría');
         return;
+      }
+
+      // Validar según tipo de producto
+      const esVariable = document.getElementById('esVariable').checked;
+      if (esVariable) {
+        const precioKg = parseFloat(document.getElementById('precioKg').value);
+        if (!precioKg || precioKg <= 0) {
+          alert('Por favor ingresa el precio por kg para productos variables');
+          return;
+        }
+        
+        // Validar que haya al menos una variante agregada (solo en CREATE)
+        if (!editingId && variantesActuales.length === 0) {
+          alert('Por favor agrega al menos una variante (peso) para el producto variable');
+          return;
+        }
+      } else {
+        const stock = parseInt(document.getElementById('stock').value);
+        if (isNaN(stock) || stock < 0) {
+          alert('Por favor ingresa un stock válido');
+          return;
+        }
       }
 
       // Obtener la imagen - usar la URL subida o fallback
@@ -550,9 +756,11 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         categoria: document.getElementById('categoria').value,
         precio: Math.round(parseFloat(document.getElementById('precio').value) * 100),
         precio_empresa: Math.round(parseFloat(document.getElementById('precio_empresa').value || 0) * 100),
-        stock: parseInt(document.getElementById('stock').value),
+        stock: esVariable ? 0 : parseInt(document.getElementById('stock').value),
         descripcion: document.getElementById('descripcion').value,
-        imagen: imagenFinal
+        imagen: imagenFinal,
+        es_variable: esVariable,
+        precio_por_kg: esVariable ? parseFloat(document.getElementById('precioKg').value) : null
       };
 
       try {
@@ -586,6 +794,51 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           const result = await response.json();
           if (!result.success) {
             throw new Error(result.error || 'Error al crear');
+          }
+
+          // DEBUG: Mostrar qué se va a guardar
+          console.log('Producto creado:', result.producto);
+          console.log('esVariable:', esVariable);
+          console.log('variantesActuales:', variantesActuales);
+          console.log('variantesActuales.length:', variantesActuales.length);
+
+          // Si es variable, crear las variantes
+          if (esVariable && variantesActuales.length > 0) {
+            console.log('CREANDO VARIANTES...');
+            const productoId = result.producto.id;
+            let variantesCreadas = 0;
+            
+            for (const variante of variantesActuales) {
+              try {
+                console.log('Creando variante:', variante);
+                const resVariante = await fetch('/api/admin/variantes', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    producto_id: productoId,
+                    peso_kg: variante.peso,
+                    precio_total: variante.precio_total,
+                    disponible: true
+                  })
+                });
+
+                console.log('Respuesta del API:', resVariante.status);
+                if (resVariante.ok) {
+                  variantesCreadas++;
+                  const varianteData = await resVariante.json();
+                  console.log('Variante creada exitosamente:', varianteData);
+                } else {
+                  const errorData = await resVariante.json();
+                  console.error('Error creando variante:', variante, 'Error:', errorData);
+                }
+              } catch (error) {
+                console.error('Error en fetch de variante:', error);
+              }
+            }
+            
+            console.log(`RESUMEN: Variantes creadas: ${variantesCreadas} de ${variantesActuales.length}`);
+          } else {
+            console.log('NO SE CREAN VARIANTES - esVariable:', esVariable, 'variantesActuales.length:', variantesActuales.length);
           }
         }
         
@@ -625,6 +878,86 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     // Event listeners
     document.getElementById('btnNuevoProducto').addEventListener('click', abrirNuevo);
     document.getElementById('cancelBtn').addEventListener('click', cerrarModal);
+    
+    // Toggle para peso variable
+    const esVariableCheckbox = document.getElementById('esVariable');
+    if (esVariableCheckbox) {
+      esVariableCheckbox.addEventListener('change', (e) => {
+        const isVariable = e.target.checked;
+        document.getElementById('stockSection').style.display = isVariable ? 'none' : 'block';
+        document.getElementById('variantesSection').style.display = isVariable ? 'block' : 'none';
+        
+        // Limpiar campos
+        if (isVariable) {
+          document.getElementById('stock').value = '0';
+          document.getElementById('stock').removeAttribute('required');
+          variantesActuales = [];
+          document.getElementById('variantesList').innerHTML = '<p style="color: #64748b; font-size: 0.9rem; margin: 0;">Aquí aparecerán los pesos que agregues</p>';
+        } else {
+          document.getElementById('precioKg').value = '';
+          document.getElementById('stock').setAttribute('required', 'required');
+          variantesActuales = [];
+        }
+      });
+    }
+
+    // Funciones para manejar variantes
+    function calcularPrecioVariante() {
+      const pesoInput = document.getElementById('nuevoVariantePeso').value.replace(',', '.');
+      const precioKgInput = document.getElementById('precioKg').value.replace(',', '.');
+      
+      const peso = parseFloat(pesoInput);
+      const precioKg = parseFloat(precioKgInput);
+      
+      if (peso && precioKg) {
+        const precioTotal = peso * precioKg;
+        document.getElementById('nuevoVariantePrecio').value = precioTotal.toFixed(2);
+      } else {
+        document.getElementById('nuevoVariantePrecio').value = '';
+      }
+    }
+
+    function mostrarVariantes() {
+      const listDiv = document.getElementById('variantesList');
+      
+      if (variantesActuales.length === 0) {
+        listDiv.innerHTML = '<p style="color: #64748b; font-size: 0.9rem; margin: 0;">Aquí aparecerán los pesos que agregues</p>';
+        return;
+      }
+
+      listDiv.innerHTML = variantesActuales.map((variante, index) => `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: white; border: 1px solid #e2e8f0; border-radius: 6px;">
+          <div>
+            <span style="font-weight: 600; color: #0f172a;">${variante.peso.toFixed(3)} kg</span>
+            <span style="color: #64748b; margin-left: 1rem;">${variante.precio_total.toFixed(2)}€</span>
+          </div>
+          <button type="button" onclick="window.eliminarVariante(${index})" style="
+            padding: 0.5rem 1rem;
+            background: #fee2e2;
+            color: #b91c1c;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+          " onmouseover="this.style.background='#fecaca'" onmouseout="this.style.background='#fee2e2'">
+            Eliminar
+          </button>
+        </div>
+      `).join('');
+    }
+
+    // Event listeners para variantes
+    const nuevoVariantePeso = document.getElementById('nuevoVariantePeso');
+    const precioKgInput = document.getElementById('precioKg');
+
+    if (nuevoVariantePeso) {
+      nuevoVariantePeso.addEventListener('input', calcularPrecioVariante);
+    }
+
+    if (precioKgInput) {
+      precioKgInput.addEventListener('input', calcularPrecioVariante);
+    }
     
     const productForm = document.getElementById('productForm');
     if (productForm) {

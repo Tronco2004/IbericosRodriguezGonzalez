@@ -16,6 +16,17 @@ import Layout from '../../layouts/Layout.astro';
     <!-- Cargará con JavaScript -->
   </div>
 
+  <!-- Modal para seleccionar variante -->
+  <div id="varianteModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; padding: 2rem; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);">
+      <h2 id="varianteModalTitle" style="margin: 0 0 1.5rem 0; color: #001a33; font-size: 1.5rem; font-weight: 700;">Selecciona el Peso</h2>
+      <div id="variantesList" style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 2rem;"></div>
+      <button id="varianteModalClose" style="width: 100%; padding: 0.75rem; background: #e2e8f0; color: #001a33; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.background='#cbd5e1'" onmouseout="this.style.background='#e2e8f0'">
+        Cancelar
+      </button>
+    </div>
+  </div>
+
   <style>
     article {
       background: white;
@@ -134,6 +145,9 @@ import Layout from '../../layouts/Layout.astro';
   </style>
 
   <script>
+    let variantesMap = {}; // Mapeo de producto_id -> variantes
+    let productoEnModal = null; // Producto seleccionado para el modal
+
     // Cargar productos desde Supabase
     async function cargarProductos() {
       try {
@@ -151,8 +165,17 @@ import Layout from '../../layouts/Layout.astro';
             categoria: p.categorias?.slug || 'desconocida',
             imagen: p.imagen_url || 'https://images.unsplash.com/photo-1557803104268-0ef0f060e15f?w=500&h=500&fit=crop',
             descripcion: p.descripcion || 'Sin descripción',
-            rating: p.rating || 4.8
+            rating: p.rating || 4.8,
+            es_variable: p.es_variable || false,
+            precio_por_kg: p.precio_por_kg || null
           }));
+
+          // Cargar variantes para productos variables
+          for (const producto of productos) {
+            if (producto.es_variable) {
+              await cargarVariantesProducto(producto.id);
+            }
+          }
         }
 
         const grid = document.getElementById('productosGrid');
@@ -161,7 +184,11 @@ import Layout from '../../layouts/Layout.astro';
           return;
         }
 
-        grid.innerHTML = productos.map((p) => `
+        grid.innerHTML = productos.map((p) => {
+          const botonText = p.es_variable ? 'Seleccionar Peso' : 'Agregar al Carrito';
+          const botonClass = p.es_variable ? 'btn-seleccionar-variante' : 'btn-agregar-carrito';
+          
+          return `
           <article data-id="${p.id}">
             <div class="product-image-wrapper">
               <img src="${p.imagen}" alt="${p.nombre}" loading="lazy" />
@@ -172,7 +199,7 @@ import Layout from '../../layouts/Layout.astro';
                 <span class="product-price">${p.precio}€</span>
               </div>
               <h3 class="product-name">${p.nombre}</h3>
-              <button class="btn-agregar-carrito" data-id="${p.id}" style="
+              <button class="${botonClass}" data-id="${p.id}" style="
                 width: 100%;
                 margin-top: 0.75rem;
                 background: #a89968;
@@ -185,13 +212,14 @@ import Layout from '../../layouts/Layout.astro';
                 transition: background 0.3s;
                 font-size: 0.85rem;
               ">
-                Agregar al Carrito
+                ${botonText}
               </button>
             </div>
           </article>
-        `).join('');
+        `;
+        }).join('');
 
-        // Agregar event listeners a los botones
+        // Event listeners para productos normales
         document.querySelectorAll('.btn-agregar-carrito').forEach(btn => {
           btn.addEventListener('click', async (e) => {
             e.stopPropagation();
@@ -207,10 +235,138 @@ import Layout from '../../layouts/Layout.astro';
             btn.style.background = '#a89968';
           });
         });
+
+        // Event listeners para productos variables
+        document.querySelectorAll('.btn-seleccionar-variante').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const productoId = btn.getAttribute('data-id');
+            abrirModalVariantes(productoId);
+          });
+
+          btn.addEventListener('mouseover', () => {
+            btn.style.background = '#9a8560';
+          });
+
+          btn.addEventListener('mouseout', () => {
+            btn.style.background = '#a89968';
+          });
+        });
       } catch (error) {
         console.error('Error cargando productos:', error);
         const grid = document.getElementById('productosGrid');
         grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 4rem 2rem;"><p style="color: #999;">Error al cargar los productos</p></div>';
+      }
+    }
+
+    async function cargarVariantesProducto(productoId) {
+      try {
+        const response = await fetch(`/api/admin/variantes?producto_id=${productoId}`);
+        const data = await response.json();
+        
+        if (data.success && data.variantes) {
+          variantesMap[productoId] = data.variantes.filter(v => v.disponible);
+        }
+      } catch (error) {
+        console.error(`Error cargando variantes del producto ${productoId}:`, error);
+        variantesMap[productoId] = [];
+      }
+    }
+
+    function abrirModalVariantes(productoId) {
+      const producto = document.querySelector(`article[data-id="${productoId}"] .product-name`)?.textContent || 'Producto';
+      const variantes = variantesMap[productoId] || [];
+      const modal = document.getElementById('varianteModal');
+      const title = document.getElementById('varianteModalTitle');
+      const variantesList = document.getElementById('variantesList');
+
+      title.textContent = `${producto} - Selecciona el Peso`;
+
+      if (variantes.length === 0) {
+        variantesList.innerHTML = '<p style="color: #999; text-align: center;">No hay variantes disponibles en este momento</p>';
+      } else {
+        variantesList.innerHTML = variantes.map((v, index) => `
+          <button type="button" data-variante-id="${v.id}" data-producto-id="${productoId}" data-peso="${v.peso_kg}" data-precio="${v.precio_total}" style="
+            padding: 1rem;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #001a33;
+            text-align: left;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          " onmouseover="this.style.borderColor='#a89968'; this.style.background='#f1f5f9'" onmouseout="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc'">
+            <span>${v.peso_kg.toFixed(3)} kg</span>
+            <span style="color: #a89968; font-weight: 700;">${v.precio_total.toFixed(2)}€</span>
+          </button>
+        `).join('');
+
+        // Event listeners para las variantes
+        variantesList.querySelectorAll('button').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const varianteId = btn.getAttribute('data-variante-id');
+            const productoIdBtn = btn.getAttribute('data-producto-id');
+            const peso = parseFloat(btn.getAttribute('data-peso'));
+            await agregarAlCarritoConVariante(productoIdBtn, varianteId, peso);
+            cerrarModalVariantes();
+          });
+        });
+      }
+
+      modal.style.display = 'flex';
+    }
+
+    function cerrarModalVariantes() {
+      document.getElementById('varianteModal').style.display = 'none';
+    }
+
+    async function agregarAlCarritoConVariante(productoId, varianteId, peso) {
+      try {
+        const userId = localStorage.getItem('user_id');
+        if (!userId) {
+          mostrarNotificacion('Por favor, inicia sesión para agregar productos al carrito', 'info');
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 1500);
+          return;
+        }
+
+        const response = await fetch('/api/carrito', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            producto_id: parseInt(productoId), 
+            cantidad: 1,
+            user_id: userId,
+            producto_variante_id: parseInt(varianteId),
+            peso_kg: peso
+          })
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            mostrarNotificacion('Por favor, inicia sesión para agregar productos al carrito', 'info');
+            setTimeout(() => {
+              window.location.href = '/login';
+            }, 1500);
+            return;
+          }
+          throw new Error('Error agregando al carrito');
+        }
+
+        const result = await response.json();
+        if (result.success) {
+          mostrarNotificacion(`Jamón de ${peso.toFixed(3)} kg agregado al carrito`, 'exito');
+          actualizarContadorCarrito();
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        mostrarNotificacion('Error al agregar el producto al carrito', 'error');
       }
     }
 
@@ -352,6 +508,14 @@ import Layout from '../../layouts/Layout.astro';
       const evento = new CustomEvent('carritoActualizado');
       document.dispatchEvent(evento);
     }
+
+    // Event listeners del modal de variantes
+    document.getElementById('varianteModalClose').addEventListener('click', cerrarModalVariantes);
+    document.getElementById('varianteModal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('varianteModal')) {
+        cerrarModalVariantes();
+      }
+    });
 
     // Cargar al iniciar
     cargarProductos();

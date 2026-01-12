@@ -1,0 +1,364 @@
+---
+import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
+---
+
+<ProtectedLayout title="Gestionar Variantes">
+  <div style="min-height: 100vh; background: #f8f4f0; padding: 2rem 0;">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 0 2rem;">
+      <h1 style="color: #001a33; margin-bottom: 2rem;">Gestionar Variantes de Productos</h1>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+        <!-- Selector de Producto -->
+        <div style="background: white; padding: 1.5rem; border-radius: 8px; border: 1px solid #e0d5c7;">
+          <h2 style="color: #001a33; margin-top: 0;">Seleccionar Producto</h2>
+          <select id="productoSelect" style="
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e0d5c7;
+            border-radius: 4px;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+          ">
+            <option value="">-- Selecciona un producto --</option>
+          </select>
+          
+          <div id="productoInfo" style="display: none; padding: 1rem; background: #f8f4f0; border-radius: 4px;">
+            <p><strong>Precio por kg:</strong> <span id="precioKg">-</span>€</p>
+            <p><strong>Es variable:</strong> <span id="esVariable">-</span></p>
+          </div>
+        </div>
+
+        <!-- Agregar Nueva Variante -->
+        <div style="background: white; padding: 1.5rem; border-radius: 8px; border: 1px solid #e0d5c7;">
+          <h2 style="color: #001a33; margin-top: 0;">Agregar Variante</h2>
+          <form id="formVariante" style="display: none;">
+            <div style="margin-bottom: 1rem;">
+              <label style="display: block; margin-bottom: 0.5rem; color: #001a33; font-weight: 600;">Peso (kg)</label>
+              <input type="number" id="pesoInput" step="0.001" placeholder="4.650" style="
+                width: 100%;
+                padding: 0.75rem;
+                border: 1px solid #e0d5c7;
+                border-radius: 4px;
+                font-size: 1rem;
+              " required />
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+              <label style="display: block; margin-bottom: 0.5rem; color: #001a33; font-weight: 600;">Precio Total (€)</label>
+              <input type="number" id="precioInput" step="0.01" placeholder="162.75" style="
+                width: 100%;
+                padding: 0.75rem;
+                border: 1px solid #e0d5c7;
+                border-radius: 4px;
+                font-size: 1rem;
+              " required />
+              <small style="color: #999; display: block; margin-top: 0.25rem;">Se calcula automáticamente si dejas vacío</small>
+            </div>
+
+            <button type="submit" style="
+              width: 100%;
+              padding: 0.75rem;
+              background: #a89968;
+              color: white;
+              border: none;
+              border-radius: 4px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: background 0.3s;
+            " onmouseover="this.style.background='#92824f'" onmouseout="this.style.background='#a89968'">
+              Agregar Variante
+            </button>
+          </form>
+
+          <div id="sinProducto" style="color: #999; text-align: center; padding: 2rem;">
+            Selecciona un producto primero
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista de Variantes -->
+      <div style="background: white; padding: 1.5rem; border-radius: 8px; border: 1px solid #e0d5c7; margin-top: 2rem;">
+        <h2 style="color: #001a33; margin-top: 0;">Variantes del Producto</h2>
+        
+        <div id="listVariantes" style="display: none;">
+          <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="border-bottom: 2px solid #e0d5c7;">
+                  <th style="padding: 1rem; text-align: left; color: #001a33; font-weight: 600;">Peso</th>
+                  <th style="padding: 1rem; text-align: left; color: #001a33; font-weight: 600;">Precio</th>
+                  <th style="padding: 1rem; text-align: left; color: #001a33; font-weight: 600;">Disponible</th>
+                  <th style="padding: 1rem; text-align: left; color: #001a33; font-weight: 600;">Stock</th>
+                  <th style="padding: 1rem; text-align: center; color: #001a33; font-weight: 600;">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="variantesTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="sinVariantes" style="text-align: center; color: #999; padding: 2rem;">
+          No hay variantes para este producto
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let productoActual = null;
+    let variantes = [];
+
+    // Cargar productos
+    async function cargarProductos() {
+      try {
+        const response = await fetch('/api/admin/productos-list');
+        const data = await response.json();
+        const productos = data.productos || [];
+
+        const select = document.getElementById('productoSelect');
+        select.innerHTML = '<option value="">-- Selecciona un producto --</option>';
+        
+        productos.forEach(p => {
+          const option = document.createElement('option');
+          option.value = p.id;
+          option.textContent = `${p.nombre} (${p.categoria})`;
+          select.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Error cargando productos:', error);
+      }
+    }
+
+    // Seleccionar producto
+    document.getElementById('productoSelect').addEventListener('change', async (e) => {
+      const productoId = e.target.value;
+      if (!productoId) {
+        productoActual = null;
+        document.getElementById('formVariante').style.display = 'none';
+        document.getElementById('sinProducto').style.display = 'block';
+        document.getElementById('productoInfo').style.display = 'none';
+        document.getElementById('listVariantes').style.display = 'none';
+        document.getElementById('sinVariantes').style.display = 'block';
+        return;
+      }
+
+      // Obtener datos del producto
+      try {
+        const response = await fetch('/api/admin/productos-list');
+        const data = await response.json();
+        const producto = data.productos.find(p => p.id == productoId);
+        
+        if (producto) {
+          productoActual = producto;
+          document.getElementById('precioKg').textContent = producto.precio_por_kg || '0';
+          document.getElementById('esVariable').textContent = producto.es_variable ? 'Sí' : 'No';
+          document.getElementById('productoInfo').style.display = 'block';
+          document.getElementById('formVariante').style.display = 'block';
+          document.getElementById('sinProducto').style.display = 'none';
+          
+          // Cargar variantes
+          await cargarVariantes(productoId);
+        }
+      } catch (error) {
+        console.error('Error cargando producto:', error);
+      }
+    });
+
+    // Cargar variantes del producto seleccionado
+    async function cargarVariantes(productoId) {
+      try {
+        const response = await fetch(`/api/admin/variantes?producto_id=${productoId}`);
+        const data = await response.json();
+        variantes = data.variantes || [];
+
+        const tbody = document.getElementById('variantesTableBody');
+        tbody.innerHTML = '';
+
+        if (variantes.length === 0) {
+          document.getElementById('listVariantes').style.display = 'none';
+          document.getElementById('sinVariantes').style.display = 'block';
+          return;
+        }
+
+        document.getElementById('listVariantes').style.display = 'block';
+        document.getElementById('sinVariantes').style.display = 'none';
+
+        variantes.forEach(v => {
+          const row = document.createElement('tr');
+          row.style.borderBottom = '1px solid #e0d5c7';
+          row.innerHTML = `
+            <td style="padding: 1rem;">${v.peso_kg.toFixed(3)}kg</td>
+            <td style="padding: 1rem;">${v.precio_total}€</td>
+            <td style="padding: 1rem;">
+              <span style="
+                padding: 0.25rem 0.75rem;
+                border-radius: 4px;
+                font-size: 0.85rem;
+                background: ${v.disponible ? '#e8f5e9' : '#ffebee'};
+                color: ${v.disponible ? '#2e7d32' : '#c62828'};
+              ">
+                ${v.disponible ? '✓ Disponible' : '✗ No disponible'}
+              </span>
+            </td>
+            <td style="padding: 1rem;">${v.cantidad_disponible}</td>
+            <td style="padding: 1rem; text-align: center;">
+              <button class="btn-eliminar" data-id="${v.id}" style="
+                padding: 0.5rem 1rem;
+                background: #f5576c;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 0.85rem;
+              ">
+                Eliminar
+              </button>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+
+        // Agregar event listeners a botones eliminar
+        document.querySelectorAll('.btn-eliminar').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-id');
+            if (confirm('¿Estás seguro de que deseas eliminar esta variante?')) {
+              await eliminarVariante(id);
+            }
+          });
+        });
+      } catch (error) {
+        console.error('Error cargando variantes:', error);
+      }
+    }
+
+    // Agregar variante
+    document.getElementById('formVariante').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      if (!productoActual) {
+        alert('Selecciona un producto primero');
+        return;
+      }
+
+      const pesoInput = parseFloat(document.getElementById('pesoInput').value);
+      let precioInput = document.getElementById('precioInput').value;
+
+      if (!pesoInput) {
+        alert('Ingresa el peso');
+        return;
+      }
+
+      // Calcular precio si está vacío
+      if (!precioInput && productoActual.precio_por_kg) {
+        precioInput = (pesoInput * productoActual.precio_por_kg).toFixed(2);
+      } else if (!precioInput) {
+        alert('Ingresa el precio o establece el precio/kg del producto');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/admin/variantes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            producto_id: productoActual.id,
+            peso_kg: pesoInput,
+            precio_total: parseFloat(precioInput)
+          }),
+          credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          mostrarNotificacion('Variante agregada correctamente', 'exito');
+          document.getElementById('pesoInput').value = '';
+          document.getElementById('precioInput').value = '';
+          await cargarVariantes(productoActual.id);
+        } else {
+          mostrarNotificacion(data.error || 'Error al agregar variante', 'error');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        mostrarNotificacion('Error al agregar variante', 'error');
+      }
+    });
+
+    // Eliminar variante
+    async function eliminarVariante(varianteId) {
+      try {
+        const response = await fetch(`/api/admin/variantes?id=${varianteId}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          mostrarNotificacion('Variante eliminada correctamente', 'exito');
+          await cargarVariantes(productoActual.id);
+        } else {
+          mostrarNotificacion('Error al eliminar variante', 'error');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        mostrarNotificacion('Error al eliminar variante', 'error');
+      }
+    }
+
+    // Sistema de notificaciones
+    function mostrarNotificacion(mensaje, tipo = 'exito') {
+      const container = document.getElementById('notificacionesContainer') || crearContainerNotificaciones();
+      
+      const notif = document.createElement('div');
+      notif.style.cssText = `
+        background: ${tipo === 'exito' ? '#a89968' : '#f5576c'};
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        animation: slideIn 0.3s ease-out;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        font-weight: 500;
+      `;
+
+      notif.textContent = mensaje;
+      container.appendChild(notif);
+
+      setTimeout(() => {
+        notif.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => notif.remove(), 300);
+      }, 3000);
+    }
+
+    function crearContainerNotificaciones() {
+      const container = document.createElement('div');
+      container.id = 'notificacionesContainer';
+      container.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 2rem;
+        z-index: 1000;
+        max-width: 400px;
+      `;
+      document.body.appendChild(container);
+
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateX(400px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes slideOut {
+          from { opacity: 1; transform: translateX(0); }
+          to { opacity: 0; transform: translateX(400px); }
+        }
+      `;
+      document.head.appendChild(style);
+
+      return container;
+    }
+
+    // Cargar productos al iniciar
+    cargarProductos();
+  </script>
+</ProtectedLayout>
