@@ -125,7 +125,9 @@ export const POST: APIRoute = async ({ request }) => {
           descripcion: producto.descripcion,
           imagen_url: producto.imagen,
           activo: true,
-          sku: generarSKU(producto.categoria)
+          sku: generarSKU(producto.categoria),
+          es_variable: producto.es_variable || false,
+          precio_por_kg: producto.precio_por_kg || null
         }])
         .select();
 
@@ -187,7 +189,9 @@ export const POST: APIRoute = async ({ request }) => {
           precio_empresa_centimos: producto.precio_empresa || 0,
           stock: producto.stock,
           descripcion: producto.descripcion,
-          imagen_url: producto.imagen
+          imagen_url: producto.imagen,
+          es_variable: producto.es_variable || false,
+          precio_por_kg: producto.precio_por_kg || null
         })
         .eq('id', id)
         .select();

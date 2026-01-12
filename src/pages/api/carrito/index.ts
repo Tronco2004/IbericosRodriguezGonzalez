@@ -79,7 +79,7 @@ export const GET: APIRoute = async ({ cookies, request }) => {
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
-    const { producto_id, cantidad, user_id } = await request.json();
+    const { producto_id, cantidad, user_id, producto_variante_id, peso_kg } = await request.json();
 
     // Validar user_id
     if (!user_id) {
@@ -123,27 +123,53 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       carrito = nuevoCarrito;
     }
 
-    // Obtener precio del producto
-    const { data: producto, error: productoError } = await supabaseClient
-      .from('productos')
-      .select('precio_centimos')
-      .eq('id', producto_id)
-      .single();
+    // Si es un producto variable, obtener el precio de la variante
+    let precioUnitario = null;
+    if (producto_variante_id) {
+      const { data: variante, error: varianteError } = await supabaseClient
+        .from('producto_variantes')
+        .select('precio_total')
+        .eq('id', producto_variante_id)
+        .single();
 
-    if (productoError || !producto) {
-      return new Response(
-        JSON.stringify({ error: 'Producto no encontrado' }),
-        { status: 404 }
-      );
+      if (varianteError || !variante) {
+        return new Response(
+          JSON.stringify({ error: 'Variante no encontrada' }),
+          { status: 404 }
+        );
+      }
+      precioUnitario = variante.precio_total * 100; // Convertir a centimos
+    } else {
+      // Obtener precio del producto normal
+      const { data: producto, error: productoError } = await supabaseClient
+        .from('productos')
+        .select('precio_centimos')
+        .eq('id', producto_id)
+        .single();
+
+      if (productoError || !producto) {
+        return new Response(
+          JSON.stringify({ error: 'Producto no encontrado' }),
+          { status: 404 }
+        );
+      }
+      precioUnitario = producto.precio_centimos;
     }
 
-    // Verificar si el producto ya está en el carrito
-    const { data: existente } = await supabaseClient
+    // Verificar si el producto ya está en el carrito (con misma variante si aplica)
+    let queryExistente = supabaseClient
       .from('carrito_items')
       .select('*')
       .eq('carrito_id', carrito.id)
-      .eq('producto_id', producto_id)
-      .single();
+      .eq('producto_id', producto_id);
+
+    if (producto_variante_id) {
+      queryExistente = queryExistente.eq('producto_variante_id', producto_variante_id);
+    } else {
+      queryExistente = queryExistente.is('producto_variante_id', null);
+    }
+
+    const { data: existente } = await queryExistente.single();
 
     if (existente) {
       // Actualizar cantidad
@@ -176,7 +202,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           carrito_id: carrito.id,
           producto_id,
           cantidad,
-          precio_unitario: producto.precio_centimos,
+          precio_unitario: precioUnitario,
+          producto_variante_id: producto_variante_id || null,
+          peso_kg: peso_kg || null,
           fecha_agregado: new Date().toISOString()
         })
         .select()

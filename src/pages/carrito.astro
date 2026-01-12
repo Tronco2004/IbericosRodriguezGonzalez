@@ -119,6 +119,7 @@ import Layout from '../layouts/Layout.astro';
               <div>
                 <h3 style="color: #001a33; margin: 0 0 0.5rem 0; font-size: 1rem;">
                   ${item.productos?.nombre || 'Producto'}
+                  ${item.peso_kg ? ` <span style="color: #a89968; font-weight: 500; font-size: 0.85rem;">(${item.peso_kg.toFixed(3)} kg)</span>` : ''}
                 </h3>
                 <p style="color: #a89968; margin: 0; font-weight: 600; font-size: 0.95rem;">
                   ${(item.precio_unitario / 100).toFixed(2)}€
