@@ -1,0 +1,209 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Mis Pedidos">
+  <div style="min-height: 100vh; background: #f8f4f0; padding: 2rem 0;">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 0 1rem;">
+      <h1 style="color: #001a33; margin-bottom: 2rem;">Mis Pedidos</h1>
+      <p id="loadingMessage" style="color: #5c4a3d; font-size: 1.1rem; text-align: center;">Cargando tus pedidos...</p>
+      <div id="pedidosContent"></div>
+    </div>
+  </div>
+
+  <script>
+    async function cargarPedidos() {
+      try {
+        // Pequeño delay para asegurar que localStorage está disponible
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        const userId = localStorage.getItem('user_id');
+        console.log('userId desde localStorage:', userId);
+
+        if (!userId) {
+          document.getElementById('loadingMessage').style.display = 'none';
+          document.getElementById('pedidosContent').innerHTML = `
+            <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; border-left: 4px solid #a89968;">
+              <h2 style="color: #001a33; margin: 0 0 1rem 0;">Debes iniciar sesión</h2>
+              <p style="color: #5c4a3d; margin: 0 0 1.5rem 0;">Por favor, inicia sesión para ver tus pedidos.</p>
+              <a href="/login" style="
+                display: inline-block;
+                background: #a89968;
+                color: white;
+                padding: 0.75rem 2rem;
+                border-radius: 4px;
+                text-decoration: none;
+                font-weight: 600;
+                transition: background 0.3s;
+              ">
+                Ir a Login
+              </a>
+            </div>
+          `;
+          return;
+        }
+
+        const response = await fetch('/api/pedidos', {
+          credentials: 'include',
+          headers: {
+            'x-user-id': userId
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Error cargando pedidos');
+        }
+
+        const data = await response.json();
+        const pedidos = data.pedidos || [];
+
+        if (!pedidos || pedidos.length === 0) {
+          document.getElementById('loadingMessage').style.display = 'none';
+          document.getElementById('pedidosContent').innerHTML = `
+            <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; border-left: 4px solid #a89968;">
+              <h2 style="color: #001a33; margin: 0 0 1rem 0;">Sin pedidos aún</h2>
+              <p style="color: #5c4a3d; margin: 0 0 1.5rem 0;">No tienes ningún pedido realizado. ¡Comienza a comprar ahora!</p>
+              <a href="/productos" style="
+                display: inline-block;
+                background: #a89968;
+                color: white;
+                padding: 0.75rem 2rem;
+                border-radius: 4px;
+                text-decoration: none;
+                font-weight: 600;
+                transition: background 0.3s;
+              ">
+                Ver Productos
+              </a>
+            </div>
+          `;
+          return;
+        }
+
+        let html = '<div style="display: grid; gap: 1.5rem;">';
+
+        pedidos.forEach(pedido => {
+          const estadoColor = {
+            'pagado': '#28a745',
+            'preparando': '#ffc107',
+            'enviado': '#17a2b8',
+            'entregado': '#6c757d',
+            'cancelado': '#dc3545'
+          };
+
+          html += `
+            <div style="background: white; border-radius: 8px; overflow: hidden; border: 1px solid #e0d5c7;">
+              <div style="padding: 1.5rem; background: #f8f4f0; border-bottom: 1px solid #e0d5c7; display: grid; grid-template-columns: 1fr auto auto; gap: 2rem; align-items: center;">
+                <div>
+                  <h3 style="color: #001a33; margin: 0 0 0.5rem 0;">Pedido #${pedido.numero_pedido}</h3>
+                  <p style="color: #5c4a3d; margin: 0; font-size: 0.9rem;">
+                    ${new Date(pedido.fecha_creacion).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </p>
+                </div>
+                <div style="text-align: right;">
+                  <span style="
+                    display: inline-block;
+                    background: ${estadoColor[pedido.estado] || '#6c757d'};
+                    color: white;
+                    padding: 0.5rem 1rem;
+                    border-radius: 20px;
+                    font-weight: 600;
+                    font-size: 0.85rem;
+                  ">
+                    ${pedido.estado.charAt(0).toUpperCase() + pedido.estado.slice(1)}
+                  </span>
+                </div>
+                <div style="text-align: right;">
+                  <p style="color: #a89968; font-weight: 700; font-size: 1.2rem; margin: 0;">
+                    ${(pedido.total / 100).toFixed(2)}€
+                  </p>
+                </div>
+              </div>
+
+              <div style="padding: 1.5rem;">
+                <h4 style="color: #001a33; margin: 0 0 1rem 0;">Productos</h4>
+                ${pedido.pedido_items.map((item, index) => {
+                  const precioUnitario = (parseFloat(item.precio_unitario) / 100) || (parseFloat(item.subtotal) / item.cantidad / 100);
+                  const subtotal = parseFloat(item.subtotal) / 100 || (precioUnitario * item.cantidad);
+                  return `
+                  <div style="
+                    padding: 1rem;
+                    border-bottom: 1px solid #e0d5c7;
+                    display: grid;
+                    grid-template-columns: 1fr auto;
+                    gap: 1rem;
+                    align-items: center;
+                  ">
+                    <div>
+                      <p style="color: #001a33; font-weight: 600; margin: 0 0 0.25rem 0;">
+                        ${item.nombre_producto}
+                        ${item.peso_kg ? `<span style="color: #a89968; font-weight: 400; font-size: 0.9rem;">(${item.peso_kg.toFixed(3)} kg)</span>` : ''}
+                      </p>
+                      <p style="color: #5c4a3d; margin: 0; font-size: 0.9rem;">Cantidad: ${item.cantidad} x ${precioUnitario.toFixed(2)}€</p>
+                    </div>
+                    <div style="text-align: right;">
+                      <p style="color: #001a33; font-weight: 600; margin: 0;">
+                        ${subtotal.toFixed(2)}€
+                      </p>
+                    </div>
+                  </div>
+                `;}).join('')}
+
+                <div style="padding: 1rem 0; border-top: 2px solid #e0d5c7; margin-top: 1rem;">
+                  <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; margin-bottom: 0.5rem;">
+                    <span style="color: #5c4a3d;">Subtotal</span>
+                    <span style="color: #001a33; font-weight: 600;">${(pedido.subtotal / 100).toFixed(2)}€</span>
+                  </div>
+                  ${pedido.envio > 0 ? `
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; margin-bottom: 0.5rem;">
+                      <span style="color: #5c4a3d;">Envío</span>
+                      <span style="color: #001a33; font-weight: 600;">${(pedido.envio / 100).toFixed(2)}€</span>
+                    </div>
+                  ` : ''}
+                  ${pedido.impuestos > 0 ? `
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; margin-bottom: 0.5rem;">
+                      <span style="color: #5c4a3d;">Impuestos</span>
+                      <span style="color: #001a33; font-weight: 600;">${(pedido.impuestos / 100).toFixed(2)}€</span>
+                    </div>
+                  ` : ''}
+                  <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; border-top: 1px solid #e0d5c7; padding-top: 0.75rem; margin-top: 0.75rem;">
+                    <span style="color: #001a33; font-weight: 700;">Total</span>
+                    <span style="color: #a89968; font-weight: 700; font-size: 1.1rem;">${(pedido.total / 100).toFixed(2)}€</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+
+        html += '</div>';
+
+        document.getElementById('loadingMessage').style.display = 'none';
+        document.getElementById('pedidosContent').innerHTML = html;
+
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('loadingMessage').style.display = 'none';
+        document.getElementById('pedidosContent').innerHTML = `
+          <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; border-left: 4px solid #f5576c;">
+            <h2 style="color: #001a33; margin: 0 0 1rem 0;">Error</h2>
+            <p style="color: #5c4a3d; margin: 0 0 1.5rem 0;">No se pudieron cargar tus pedidos. Por favor, intenta de nuevo.</p>
+            <a href="/productos" style="
+              display: inline-block;
+              background: #a89968;
+              color: white;
+              padding: 0.75rem 2rem;
+              border-radius: 4px;
+              text-decoration: none;
+              font-weight: 600;
+            ">
+              Volver a Catálogo
+            </a>
+          </div>
+        `;
+      }
+    }
+
+    cargarPedidos();
+  </script>
+</Layout>
