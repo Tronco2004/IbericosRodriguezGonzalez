@@ -1,12 +1,18 @@
 import type { APIRoute } from 'astro';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
+import { v2 as cloudinary } from 'cloudinary';
+
+// Configurar Cloudinary
+cloudinary.config({
+  cloud_name: import.meta.env.PUBLIC_CLOUDINARY_CLOUD_NAME,
+  api_key: import.meta.env.CLOUDINARY_API_KEY,
+  api_secret: import.meta.env.CLOUDINARY_API_SECRET,
+});
 
 export const POST: APIRoute = async ({ request }) => {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const folder = formData.get('folder') as string || 'productos';
 
     if (!file) {
       return new Response(
@@ -31,31 +37,35 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Crear carpeta de uploads si no existe
-    const uploadsDir = join(process.cwd(), 'public', 'uploads');
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
-    }
-
-    // Generar nombre único
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(7);
-    const ext = file.name.split('.').pop() || 'jpg';
-    const filename = `${timestamp}-${random}.${ext}`;
-
-    // Guardar archivo
-    const filepath = join(uploadsDir, filename);
+    // Convertir archivo a buffer
     const buffer = await file.arrayBuffer();
-    await writeFile(filepath, Buffer.from(buffer));
+    const uint8Array = new Uint8Array(buffer);
 
-    // Retornar URL pública
-    const imageUrl = `/uploads/${filename}`;
+    // Subir a Cloudinary usando stream
+    const result = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: folder,
+          resource_type: 'auto',
+          overwrite: false,
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+
+      uploadStream.end(Buffer.from(uint8Array));
+    });
+
+    const uploadResult = result as any;
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        url: imageUrl,
-        filename: filename
+        url: uploadResult.secure_url,
+        publicId: uploadResult.public_id,
+        filename: file.name
       }),
       { headers: { 'Content-Type': 'application/json' } }
     );
