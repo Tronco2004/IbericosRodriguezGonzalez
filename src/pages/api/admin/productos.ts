@@ -120,7 +120,9 @@ export const POST: APIRoute = async ({ request }) => {
           nombre: producto.nombre,
           categoria_id: catData.id,
           precio_centimos: producto.precio,
+          iva: producto.iva ?? 21,
           precio_empresa_centimos: producto.precio_empresa || 0,
+          iva_empresa: producto.iva_empresa ?? 21,
           stock: producto.stock,
           descripcion: producto.descripcion,
           imagen_url: producto.imagen,
@@ -160,6 +162,15 @@ export const POST: APIRoute = async ({ request }) => {
 
     if (action === 'update') {
       // Actualizar producto existente
+      console.log('=== UPDATE PRODUCTO ===');
+      console.log('ID:', id);
+      console.log('Datos recibidos:', {
+        iva: producto.iva,
+        iva_empresa: producto.iva_empresa,
+        precio: producto.precio,
+        nombre: producto.nombre
+      });
+
       // Primero obtener el categoria_id basado en el slug
       const { data: catData, error: catError } = await supabaseClient
         .from('categorias')
@@ -180,21 +191,30 @@ export const POST: APIRoute = async ({ request }) => {
         );
       }
 
+      const updateData = {
+        nombre: producto.nombre,
+        categoria_id: catData.id,
+        precio_centimos: producto.precio,
+        iva: parseFloat(String(producto.iva)) ?? 21,
+        precio_empresa_centimos: producto.precio_empresa || 0,
+        iva_empresa: parseFloat(String(producto.iva_empresa)) ?? 21,
+        stock: producto.stock,
+        descripcion: producto.descripcion,
+        imagen_url: producto.imagen,
+        es_variable: producto.es_variable || false,
+        precio_por_kg: producto.precio_por_kg || null
+      };
+
+      console.log('Update data a enviar:', updateData);
+
       const { data, error } = await supabaseClient
         .from('productos')
-        .update({
-          nombre: producto.nombre,
-          categoria_id: catData.id,
-          precio_centimos: producto.precio,
-          precio_empresa_centimos: producto.precio_empresa || 0,
-          stock: producto.stock,
-          descripcion: producto.descripcion,
-          imagen_url: producto.imagen,
-          es_variable: producto.es_variable || false,
-          precio_por_kg: producto.precio_por_kg || null
-        })
+        .update(updateData)
         .eq('id', id)
         .select();
+
+      console.log('Respuesta Supabase error:', error);
+      console.log('Respuesta Supabase data:', data);
 
       if (error) {
         console.error('Error actualizando producto:', error);

@@ -94,10 +94,17 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 };
 
 // DELETE - Eliminar variante
-export const DELETE: APIRoute = async ({ request, cookies, params }) => {
+export const DELETE: APIRoute = async ({ request, cookies }) => {
   try {
     const url = new URL(request.url);
-    const varianteId = url.searchParams.get('id');
+    // Intentar obtener el ID de la URL path o de los parámetros
+    const pathParts = url.pathname.split('/');
+    let varianteId = pathParts[pathParts.length - 1];
+    
+    // Si no está en la URL, buscar en query params
+    if (!varianteId || varianteId === 'variantes') {
+      varianteId = url.searchParams.get('id');
+    }
 
     if (!varianteId) {
       return new Response(
@@ -112,8 +119,9 @@ export const DELETE: APIRoute = async ({ request, cookies, params }) => {
       .eq('id', parseInt(varianteId));
 
     if (error) {
+      console.error('Error eliminando variante:', error);
       return new Response(
-        JSON.stringify({ error: 'Error eliminando variante' }),
+        JSON.stringify({ error: 'Error eliminando variante: ' + error.message }),
         { status: 500 }
       );
     }
@@ -131,31 +139,42 @@ export const DELETE: APIRoute = async ({ request, cookies, params }) => {
   }
 };
 
-// PUT - Actualizar cantidad disponible (cuando se vende)
+// PUT - Actualizar variante (precio, peso, etc.)
 export const PUT: APIRoute = async ({ request, cookies }) => {
   try {
-    const { variante_id, cantidad_disponible } = await request.json();
+    const url = new URL(request.url);
+    const varianteId = url.pathname.split('/').pop(); // Obtener ID de la URL
+    
+    const body = await request.json();
+    const { peso_kg, precio_total, cantidad_disponible } = body;
 
-    if (!variante_id || cantidad_disponible === undefined) {
+    if (!varianteId) {
       return new Response(
-        JSON.stringify({ error: 'Datos incompletos' }),
+        JSON.stringify({ error: 'id requerido' }),
         { status: 400 }
       );
     }
 
+    // Construir objeto de actualización solo con campos que vienen
+    const updateData: any = {};
+    if (peso_kg !== undefined) updateData.peso_kg = parseFloat(peso_kg);
+    if (precio_total !== undefined) updateData.precio_total = parseFloat(precio_total);
+    if (cantidad_disponible !== undefined) {
+      updateData.cantidad_disponible = parseInt(cantidad_disponible);
+      updateData.disponible = cantidad_disponible > 0;
+    }
+
     const { data: variante, error } = await supabaseClient
       .from('producto_variantes')
-      .update({
-        cantidad_disponible: parseInt(cantidad_disponible),
-        disponible: cantidad_disponible > 0
-      })
-      .eq('id', parseInt(variante_id))
+      .update(updateData)
+      .eq('id', parseInt(varianteId))
       .select()
       .single();
 
     if (error) {
+      console.error('Error actualizando variante:', error);
       return new Response(
-        JSON.stringify({ error: 'Error actualizando variante' }),
+        JSON.stringify({ error: 'Error actualizando variante: ' + error.message }),
         { status: 500 }
       );
     }

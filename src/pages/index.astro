@@ -83,6 +83,50 @@ const productos = [
     </div>
   </section>
 
+  <!-- Panel de Ofertas -->
+  <div style="padding: 4rem 2rem; margin-bottom: 4rem;">
+    <div style="max-width: 1400px; margin: 0 auto;">
+      <a href="/ofertas" style="
+        display: block;
+        background: linear-gradient(135deg, #a89968 0%, #8b7355 100%);
+        border-radius: 16px;
+        padding: 3rem;
+        text-decoration: none;
+        box-shadow: 0 15px 40px rgba(168, 153, 104, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+        cursor: pointer;
+      " onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 20px 50px rgba(168, 153, 104, 0.35)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 15px 40px rgba(168, 153, 104, 0.25)'">
+        <div style="text-align: center;">
+          <h2 style="color: white; font-size: 2rem; margin: 0 0 1rem 0; font-weight: 900;">Descubre Nuestras Ofertas</h2>
+          <p style="color: rgba(255, 255, 255, 0.9); font-size: 1.1rem; margin: 0;" id="ofertasText">Cargando información...</p>
+          <div style="margin-top: 2rem; display: inline-block; background: rgba(255, 255, 255, 0.2); padding: 1rem 2rem; border-radius: 10px; color: white; font-weight: 600;">
+            Haz clic para ver todos los productos en descuento
+          </div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <script>
+    async function cargarOfertasInfo() {
+      try {
+        const response = await fetch('/api/ofertas?limit=100');
+        const { data: ofertas } = await response.json();
+        
+        if (ofertas && ofertas.length > 0) {
+          document.getElementById('ofertasText').textContent = `Actualmente tenemos ${ofertas.length} producto${ofertas.length !== 1 ? 's' : ''} en descuento`;
+        } else {
+          document.getElementById('ofertasText').textContent = 'No hay ofertas disponibles en este momento';
+        }
+      } catch (error) {
+        console.error('Error cargando ofertas:', error);
+      }
+    }
+    
+    cargarOfertasInfo();
+  </script>
+
   <!-- Destacados Section -->
   <section style="margin-bottom: 5rem;">
     <div style="text-align: center; margin-bottom: 3rem;">
