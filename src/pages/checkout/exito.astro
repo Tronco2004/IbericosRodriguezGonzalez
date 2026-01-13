@@ -1,0 +1,152 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+const params = Astro.url.searchParams;
+const sessionId = params.get('session_id');
+const success = params.get('status') === 'success';
+---
+
+<Layout>
+  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div class="bg-white rounded-lg shadow-xl p-8 max-w-md w-full mx-4">
+      {success || sessionId ? (
+        <>
+          <div class="text-center">
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+              <svg class="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">¡Pago realizado!</h1>
+            <p class="text-gray-600 mb-6">Tu pedido ha sido procesado exitosamente.</p>
+            
+            <p id="mensajeRedireccion" class="text-gray-600 text-sm mb-6">
+              Redireccionando a tus pedidos en unos segundos...
+            </p>
+
+            <a 
+              href="/mis-pedidos" 
+              class="inline-block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition"
+            >
+              Ver Mis Pedidos
+            </a>
+          </div>
+        </>
+      ) : (
+        <>
+          <div class="text-center">
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+              <svg class="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Pago cancelado</h1>
+            <p class="text-gray-600 mb-6">Tu pago no se completó. Puedes volver al carrito e intentar nuevamente.</p>
+
+            <a 
+              href="/carrito" 
+              class="inline-block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition"
+            >
+              Volver al carrito
+            </a>
+          </div>
+        </>
+      )}
+    </div>
+  </div>
+
+  <script>
+    async function crearPedidoDesdeStripe() {
+      try {
+        const sessionId = new URLSearchParams(window.location.search).get('session_id');
+        const userId = localStorage.getItem('user_id');
+
+        console.log('=== Creando pedido ===');
+        console.log('sessionId:', sessionId);
+        console.log('userId:', userId);
+
+        if (!sessionId || !userId) {
+          console.error('Faltan datos para crear el pedido');
+          return;
+        }
+
+        // Obtener datos del carrito
+        const carritoResponse = await fetch('/api/carrito', {
+          credentials: 'include',
+          headers: { 'x-user-id': userId }
+        });
+
+        const carritoData = await carritoResponse.json();
+        const items = carritoData.items || [];
+
+        if (!items.length) {
+          console.error('Carrito vacío');
+          return;
+        }
+
+        // Formatear items para crear el pedido
+        const cartItems = items.map(item => ({
+          producto_id: item.producto_id,
+          producto_variante_id: item.producto_variante_id,
+          nombre: item.productos?.nombre,
+          precio: item.precio_unitario,
+          cantidad: item.cantidad,
+          peso_kg: item.peso_kg
+        }));
+
+        // Calcular totales
+        const subtotal = items.reduce((sum, item) => sum + (item.precio_unitario * item.cantidad), 0);
+        const total = subtotal; // Por ahora sin envío ni impuestos
+
+        // Obtener email del usuario
+        const userDataResponse = await fetch('/api/auth/me', {
+          credentials: 'include',
+          headers: { 'x-user-id': userId }
+        });
+
+        const userData = await userDataResponse.json();
+
+        // Crear el pedido
+        const pedidoResponse = await fetch('/api/pedidos', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': userId
+          },
+          body: JSON.stringify({
+            stripe_session_id: sessionId,
+            cartItems,
+            subtotal,
+            total,
+            email: userData.email,
+            telefono: userData.telefono || ''
+          })
+        });
+
+        const pedidoData = await pedidoResponse.json();
+
+        console.log('Respuesta del API:', pedidoData);
+        console.log('Status de respuesta:', pedidoResponse.status);
+
+        if (pedidoData.success) {
+          console.log('Pedido creado exitosamente:', pedidoData.numero_pedido);
+          // Redirigir a mis-pedidos después de 3 segundos
+          setTimeout(() => {
+            window.location.href = '/mis-pedidos';
+          }, 3000);
+        } else {
+          console.error('Error del API:', pedidoData.error);
+        }
+      } catch (error) {
+        console.error('Error creando pedido:', error);
+      }
+    }
+
+    // Crear el pedido solo si hay sessionId
+    const sessionId = new URLSearchParams(window.location.search).get('session_id');
+    if (sessionId) {
+      crearPedidoDesdeStripe();
+    }
+  </script>
+</Layout>

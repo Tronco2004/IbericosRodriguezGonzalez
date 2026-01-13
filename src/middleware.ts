@@ -10,10 +10,15 @@ export const onRequest = defineMiddleware((context, next) => {
   console.log(`Token: ${token ? 'Sí' : 'No'}`);
   console.log(`Rol: ${userRole || 'No'}`);
 
-  // Rutas que requieren autenticación
-  const rutasProtegidas = ['/checkout', '/mi-cuenta', '/mis-pedidos'];
+  // Rutas que requieren autenticación (solo checkout por ahora)
+  const rutasProtegidas = ['/checkout'];
   
-  if (rutasProtegidas.some(ruta => path.startsWith(ruta))) {
+  // Rutas que NO requieren autenticación (exentas)
+  const rutasExentas = ['/checkout/exito'];
+  
+  const esRutaExenta = rutasExentas.some(ruta => path === ruta);
+  
+  if (!esRutaExenta && rutasProtegidas.some(ruta => path.startsWith(ruta))) {
     console.log('Ruta protegida detectada');
     
     if (!token) {

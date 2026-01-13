@@ -205,8 +205,9 @@ import Layout from '../layouts/Layout.astro';
                   </span>
                 </div>
               </div>
-              <a href="/checkout" style="
+              <button id="btnCheckout" style="
                 display: block;
+                width: 100%;
                 background: #a89968;
                 color: white;
                 padding: 1rem;
@@ -216,9 +217,12 @@ import Layout from '../layouts/Layout.astro';
                 font-weight: 600;
                 transition: background 0.3s;
                 margin-bottom: 0.75rem;
+                border: none;
+                cursor: pointer;
+                font-size: 1rem;
               ">
                 Proceder al Checkout
-              </a>
+              </button>
               <a href="/productos" style="
                 display: block;
                 background: transparent;
@@ -313,6 +317,18 @@ import Layout from '../layouts/Layout.astro';
           });
         });
 
+        // Evento para el botón de checkout
+        const btnCheckout = document.getElementById('btnCheckout');
+        if (btnCheckout) {
+          btnCheckout.addEventListener('click', irAStripe);
+          btnCheckout.addEventListener('mouseover', () => {
+            btnCheckout.style.background = '#8a7658';
+          });
+          btnCheckout.addEventListener('mouseout', () => {
+            btnCheckout.style.background = '#a89968';
+          });
+        }
+
       } catch (error) {
         console.error('Error:', error);
         document.getElementById('loadingMessage').style.display = 'none';
@@ -349,6 +365,73 @@ import Layout from '../layouts/Layout.astro';
       } catch (error) {
         console.error('Error eliminando item:', error);
       }
+    }
+
+    async function irAStripe() {
+      try {
+        const userId = localStorage.getItem('user_id');
+        if (!userId) {
+          alert('Por favor inicia sesión primero');
+          window.location.href = '/login';
+          return;
+        }
+
+        // Obtener los items del carrito
+        const response = await fetch('/api/carrito', {
+          credentials: 'include',
+          headers: { 'x-user-id': userId }
+        });
+
+        const data = await response.json();
+        const items = data.items || [];
+
+        if (!items || items.length === 0) {
+          alert('Tu carrito está vacío');
+          return;
+        }
+
+        // Formatear items para Stripe
+        const cartItems = items.map(item => ({
+          nombre: item.productos?.nombre,
+          imagen: item.productos?.imagen,
+          precio: item.precio_unitario,
+          cantidad: item.cantidad,
+          peso_kg: item.peso_kg
+        }));
+
+        // Crear sesión de pago
+        const checkoutResponse = await fetch('/api/checkout/create-session', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': userId
+          },
+          body: JSON.stringify({ cartItems })
+        });
+
+        const checkoutData = await checkoutResponse.json();
+
+        if (checkoutData.error) {
+          alert('Error: ' + checkoutData.error);
+          return;
+        }
+
+        // Redirigir a Stripe
+        if (checkoutData.url) {
+          window.location.href = checkoutData.url;
+        }
+
+      } catch (error) {
+        console.error('Error en Stripe:', error);
+        alert('Error al procesar el pago. Por favor intenta de nuevo.');
+      }
+    }
+
+    // Asignar evento al botón de checkout
+    const btnCheckoutGlobal = document.getElementById('btnCheckout');
+    if (btnCheckoutGlobal) {
+      btnCheckoutGlobal.addEventListener('click', irAStripe);
     }
 
     cargarCarrito();
