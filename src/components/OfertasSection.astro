@@ -1,0 +1,231 @@
+---
+// Componente para mostrar ofertas destacadas
+interface Props {
+  limit?: number;
+}
+
+const { limit = 6 } = Astro.props;
+
+// Obtener ofertas activas
+const baseUrl = `http://localhost:4321`;
+const response = await fetch(`${baseUrl}/api/ofertas?limit=${limit}`);
+const { data: ofertas } = await response.json();
+---
+
+{ofertas && ofertas.length > 0 && (
+  <section style="padding: 4rem 2rem; background: linear-gradient(135deg, #fafbfc 0%, #f3f4f6 100%);">
+    <div style="max-width: 1400px; margin: 0 auto;">
+      <!-- Header -->
+      <div style="text-align: center; margin-bottom: 3rem;">
+        <span style="color: #a89968; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700;">
+          🎉 Ofertas Especiales
+        </span>
+        <h2 style="
+          color: #0f172a;
+          font-size: 2.5rem;
+          margin: 0.5rem 0 0 0;
+          font-weight: 900;
+        ">
+          Productos en Descuento
+        </h2>
+        <p style="color: #64748b; margin: 0.5rem 0 0 0;">
+          Aprovecha nuestras mejores ofertas por tiempo limitado
+        </p>
+      </div>
+
+      <!-- Grid de ofertas -->
+      <div style="
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+      ">
+        {ofertas.map((oferta: any) => {
+          const precioOriginal = (oferta.precio_original_centimos / 100).toFixed(2);
+          const precioDescuento = (oferta.precio_descuento_centimos / 100).toFixed(2);
+          const descuento = oferta.porcentaje_descuento || 0;
+          const imagenUrl = oferta.imagen_url || oferta.producto?.imagen_url || '';
+
+          return (
+            <div style="
+              background: white;
+              border-radius: 12px;
+              overflow: hidden;
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+              transition: all 0.3s;
+              position: relative;
+            " onmouseover="this.style.boxShadow='0 12px 24px rgba(0, 0, 0, 0.15)'; this.style.transform='translateY(-4px)'" onmouseout="this.style.boxShadow='0 4px 12px rgba(0, 0, 0, 0.08)'; this.style.transform='translateY(0)'">
+              
+              <!-- Badge de descuento -->
+              <div style="
+                position: absolute;
+                top: 1rem;
+                right: 1rem;
+                background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+                color: white;
+                padding: 0.5rem 1rem;
+                border-radius: 8px;
+                font-weight: 700;
+                z-index: 10;
+                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+              ">
+                -{descuento}%
+              </div>
+
+              <!-- Imagen -->
+              <div style="
+                width: 100%;
+                height: 250px;
+                overflow: hidden;
+                background: #f3f4f6;
+              ">
+                {imagenUrl ? (
+                  <img
+                    src={imagenUrl}
+                    alt={oferta.nombre_oferta}
+                    style="
+                      width: 100%;
+                      height: 100%;
+                      object-fit: cover;
+                      transition: transform 0.3s;
+                    "
+                    onmouseover="this.style.transform='scale(1.05)'"
+                    onmouseout="this.style.transform='scale(1)'"
+                  />
+                ) : (
+                  <div style="
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #9ca3af;
+                  ">
+                    Sin imagen
+                  </div>
+                )}
+              </div>
+
+              <!-- Contenido -->
+              <div style="padding: 1.5rem;">
+                <h3 style="
+                  color: #0f172a;
+                  font-size: 1.25rem;
+                  margin: 0 0 0.5rem 0;
+                  font-weight: 700;
+                ">
+                  {oferta.nombre_oferta}
+                </h3>
+
+                {oferta.producto && (
+                  <p style="
+                    color: #64748b;
+                    font-size: 0.9rem;
+                    margin: 0 0 1rem 0;
+                  ">
+                    {oferta.producto.nombre}
+                  </p>
+                )}
+
+                {oferta.descripcion && (
+                  <p style="
+                    color: #64748b;
+                    font-size: 0.9rem;
+                    margin: 0 0 1rem 0;
+                    line-height: 1.5;
+                  ">
+                    {oferta.descripcion}
+                  </p>
+                )}
+
+                <!-- Precios -->
+                <div style="
+                  display: flex;
+                  align-items: center;
+                  gap: 1rem;
+                  margin-bottom: 1.5rem;
+                ">
+                  <span style="
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    color: #0f172a;
+                  ">
+                    {precioDescuento}€
+                  </span>
+                  <span style="
+                    font-size: 1rem;
+                    color: #9ca3af;
+                    text-decoration: line-through;
+                  ">
+                    {precioOriginal}€
+                  </span>
+                </div>
+
+                <!-- Rating -->
+                {oferta.producto?.rating && (
+                  <div style="
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    margin-bottom: 1.5rem;
+                  ">
+                    <span style="color: #a89968;">★</span>
+                    <span style="color: #64748b; font-size: 0.9rem;">
+                      {oferta.producto.rating}/5
+                    </span>
+                  </div>
+                )}
+
+                <!-- Botón -->
+                <a
+                  href={`/productos/${oferta.producto?.id || '#'}`}
+                  style="
+                    display: block;
+                    background: linear-gradient(135deg, #a89968 0%, #8b7355 100%);
+                    color: white;
+                    text-align: center;
+                    padding: 0.75rem 1.5rem;
+                    border-radius: 8px;
+                    text-decoration: none;
+                    font-weight: 600;
+                    transition: all 0.3s;
+                  "
+                  onmouseover="this.style.boxShadow='0 8px 16px rgba(168, 153, 104, 0.3)'"
+                  onmouseout="this.style.boxShadow='none'"
+                >
+                  Ver Oferta
+                </a>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <!-- Link a todas las ofertas -->
+      <div style="text-align: center; margin-top: 3rem;">
+        <a
+          href="/ofertas"
+          style="
+            display: inline-block;
+            color: #a89968;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+          "
+          onmouseover="this.style.color='#8b7355'"
+          onmouseout="this.style.color='#a89968'"
+        >
+          Ver todas las ofertas →
+        </a>
+      </div>
+    </div>
+  </section>
+)}
+
+<style is:global>
+  @media (max-width: 768px) {
+    [style*="grid-template-columns: repeat(auto-fit"]  {
+      grid-template-columns: 1fr !important;
+    }
+  }
+</style>

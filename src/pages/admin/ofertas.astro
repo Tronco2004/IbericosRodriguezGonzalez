@@ -1,0 +1,486 @@
+---
+import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
+---
+
+<ProtectedLayout requireAdmin={true}>
+  <div style="min-height: 100vh; background: linear-gradient(135deg, #fafbfc 0%, #f3f4f6 100%); padding: 3rem 2rem;">
+    <div style="max-width: 1400px; margin: 0 auto;">
+      <!-- Header -->
+      <div style="margin-bottom: 3rem;">
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+          <a href="/admin/dashboard" style="
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            color: #0f172a;
+            text-decoration: none;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+          " onmouseover="this.style.background='#f1f5f9'; this.style.borderColor='#cbd5e1'" onmouseout="this.style.background='white'; this.style.borderColor='#e2e8f0'">←</a>
+        </div>
+        <h1 style="color: #0f172a; font-size: 2.5rem; margin: 0; font-weight: 900;">Gestión de Ofertas</h1>
+        <p style="color: #64748b; margin: 0.5rem 0 0 0; font-size: 1rem;">Crea y administra ofertas especiales para tus productos</p>
+      </div>
+
+      <!-- Panel de Bienvenida -->
+      <div style="
+        background: linear-gradient(135deg, #a89968 0%, #8b7355 100%);
+        border-radius: 16px;
+        padding: 3rem;
+        margin-bottom: 3rem;
+        box-shadow: 0 15px 40px rgba(168, 153, 104, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 3rem;
+        align-items: center;
+      ">
+        <div>
+          <h2 style="color: white; font-size: 2rem; margin: 0 0 1rem 0; font-weight: 900;">Impulsa tus Ventas</h2>
+          <p style="color: rgba(255, 255, 255, 0.9); font-size: 1.1rem; margin: 0 0 1.5rem 0; line-height: 1.6;">Crea ofertas exclusivas y promociones especiales para atraer a más clientes. Gestiona descuentos, fechas y visibilidad desde un único panel intuitivo.</p>
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <div style="background: rgba(255, 255, 255, 0.15); padding: 1rem; border-radius: 10px; flex: 1; min-width: 150px; text-align: center;">
+              <p style="color: rgba(255, 255, 255, 0.8); font-size: 0.9rem; margin: 0;">Ofertas Activas</p>
+              <p style="color: white; font-size: 1.8rem; margin: 0.5rem 0 0 0; font-weight: 900;" id="ofertasActivas">--</p>
+            </div>
+            <div style="background: rgba(255, 255, 255, 0.15); padding: 1rem; border-radius: 10px; flex: 1; min-width: 150px; text-align: center;">
+              <p style="color: rgba(255, 255, 255, 0.8); font-size: 0.9rem; margin: 0;">Total de Ofertas</p>
+              <p style="color: white; font-size: 1.8rem; margin: 0.5rem 0 0 0; font-weight: 900;" id="totalOfertas">--</p>
+            </div>
+          </div>
+        </div>
+        <div style="text-align: center;">
+          <button id="btnNuevaOferta" style="
+            background: white;
+            color: #8b7355;
+            padding: 1.5rem 2.5rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            white-space: nowrap;
+          " onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 30px rgba(0, 0, 0, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 20px rgba(0, 0, 0, 0.2)'">
+            <span style="font-size: 1.5rem;">+</span> Nueva Oferta
+          </button>
+          <p style="color: rgba(255, 255, 255, 0.7); font-size: 0.9rem; margin-top: 1rem;">Crea una promoción en segundos</p>
+        </div>
+      </div>
+
+      <!-- Tabla de Ofertas -->
+      <div style="
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+      ">
+        <div id="ofertasContainer" style="padding: 2rem;">
+          <p style="color: #64748b; text-align: center;">Cargando ofertas...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para crear/editar oferta -->
+  <div id="modalOferta" style="
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease-in-out;
+  ">
+    <div style="
+      background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+      border-radius: 16px;
+      padding: 2.5rem;
+      max-width: 700px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+      border: 1px solid rgba(168, 153, 104, 0.1);
+    ">
+      <div style="margin-bottom: 2rem; border-bottom: 2px solid rgba(168, 153, 104, 0.2); padding-bottom: 1.5rem;">
+        <h2 style="margin: 0; color: #0f172a; font-size: 1.8rem; font-weight: 900;">Nueva Oferta</h2>
+        <p style="margin: 0.5rem 0 0 0; color: #64748b; font-size: 0.9rem;">Crea una promoción especial para tus productos premium</p>
+      </div>
+      
+      <form id="formOferta" style="display: flex; flex-direction: column; gap: 1.5rem;">
+        
+        <!-- Producto -->
+        <div>
+          <label style="display: block; margin-bottom: 0.75rem; font-weight: 700; color: #0f172a; font-size: 0.95rem;">Selecciona Producto</label>
+          <select id="productoSelect" required style="
+            width: 100%;
+            padding: 0.9rem 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 1rem;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #0f172a;
+            font-weight: 500;
+          " onmouseover="this.style.borderColor='#a89968'; this.style.boxShadow='0 4px 12px rgba(168, 153, 104, 0.15)'" onmouseout="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'"></select>
+        </div>
+
+        <!-- Nombre Oferta -->
+        <div>
+          <label style="display: block; margin-bottom: 0.75rem; font-weight: 700; color: #0f172a; font-size: 0.95rem;">Nombre de la Oferta</label>
+          <input type="text" id="nombreOferta" required placeholder="Ej: Black Friday 50% Off" style="
+            width: 100%;
+            padding: 0.9rem 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            background: white;
+            color: #0f172a;
+            transition: all 0.3s ease;
+          " onfocus="this.style.borderColor='#a89968'; this.style.boxShadow='0 4px 12px rgba(168, 153, 104, 0.15)'" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'" />
+        </div>
+
+        <!-- Descripción -->
+        <div>
+          <label style="display: block; margin-bottom: 0.75rem; font-weight: 700; color: #0f172a; font-size: 0.95rem;">Descripción (opcional)</label>
+          <textarea id="descripcion" placeholder="Describe los detalles de la oferta..." style="
+            width: 100%;
+            padding: 0.9rem 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 1rem;
+            min-height: 80px;
+            box-sizing: border-box;
+            background: white;
+            color: #0f172a;
+            resize: vertical;
+            transition: all 0.3s ease;
+            font-family: inherit;
+          " onfocus="this.style.borderColor='#a89968'; this.style.boxShadow='0 4px 12px rgba(168, 153, 104, 0.15)'" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'"></textarea>
+        </div>
+
+        <!-- Precios -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; background: linear-gradient(135deg, rgba(168, 153, 104, 0.05) 0%, rgba(139, 115, 85, 0.05) 100%); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(168, 153, 104, 0.1);">
+          <div>
+            <label style="display: block; margin-bottom: 0.75rem; font-weight: 700; color: #0f172a; font-size: 0.95rem;">Precio Original (€)</label>
+            <input type="number" id="precioOriginal" required step="0.01" placeholder="0.00" readonly style="
+              width: 100%;
+              padding: 0.9rem 1rem;
+              border: 2px solid rgba(168, 153, 104, 0.3);
+              border-radius: 10px;
+              font-size: 1.1rem;
+              box-sizing: border-box;
+              background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+              cursor: not-allowed;
+              color: #64748b;
+              font-weight: 600;
+            " />
+            <p style="margin: 0.5rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">Auto-llenado desde el producto</p>
+          </div>
+
+          <div>
+            <label style="display: block; margin-bottom: 0.75rem; font-weight: 700; color: #0f172a; font-size: 0.95rem;">Precio Descuento (€)</label>
+            <input type="number" id="precioDescuento" required step="0.01" placeholder="0.00" style="
+              width: 100%;
+              padding: 0.9rem 1rem;
+              border: 2px solid #e2e8f0;
+              border-radius: 10px;
+              font-size: 1.1rem;
+              box-sizing: border-box;
+              background: white;
+              color: #0f172a;
+              font-weight: 600;
+              transition: all 0.3s ease;
+            " onfocus="this.style.borderColor='#a89968'; this.style.boxShadow='0 4px 12px rgba(168, 153, 104, 0.15)'" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'" />
+            <p style="margin: 0.5rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">Debe ser menor al original</p>
+          </div>
+        </div>
+
+        <!-- Fechas -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+          <div>
+            <label style="display: block; margin-bottom: 0.75rem; font-weight: 700; color: #0f172a; font-size: 0.95rem;">Fecha Inicio</label>
+            <input type="datetime-local" id="fechaInicio" required style="
+              width: 100%;
+              padding: 0.9rem 1rem;
+              border: 2px solid #e2e8f0;
+              border-radius: 10px;
+              font-size: 1rem;
+              box-sizing: border-box;
+              background: white;
+              color: #0f172a;
+              transition: all 0.3s ease;
+            " onfocus="this.style.borderColor='#a89968'; this.style.boxShadow='0 4px 12px rgba(168, 153, 104, 0.15)'" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'" />
+          </div>
+
+          <div>
+            <label style="display: block; margin-bottom: 0.75rem; font-weight: 700; color: #0f172a; font-size: 0.95rem;">Fecha Fin</label>
+            <input type="datetime-local" id="fechaFin" required style="
+              width: 100%;
+              padding: 0.9rem 1rem;
+              border: 2px solid #e2e8f0;
+              border-radius: 10px;
+              font-size: 1rem;
+              box-sizing: border-box;
+              background: white;
+              color: #0f172a;
+              transition: all 0.3s ease;
+            " onfocus="this.style.borderColor='#a89968'; this.style.boxShadow='0 4px 12px rgba(168, 153, 104, 0.15)'" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'" />
+          </div>
+        </div>
+
+        <!-- Botones -->
+        <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0;">
+          <button type="button" id="btnCancelar" style="
+            padding: 0.85rem 2rem;
+            border: 2px solid #e2e8f0;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #64748b;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+          " onmouseover="this.style.background='#f1f5f9'; this.style.borderColor='#cbd5e1'" onmouseout="this.style.background='white'; this.style.borderColor='#e2e8f0'">
+            Cancelar
+          </button>
+          <button type="submit" style="
+            padding: 0.85rem 2rem;
+            background: linear-gradient(135deg, #a89968 0%, #8b7355 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            box-shadow: 0 4px 15px rgba(168, 153, 104, 0.3);
+          " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(168, 153, 104, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(168, 153, 104, 0.3)'">
+            Guardar Oferta
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let ofertas: any[] = [];
+    let productos: any[] = [];
+
+    // Cargar productos y ofertas
+    async function cargarDatos() {
+      try {
+        // Cargar productos
+        const respProductos = await fetch('/api/admin/productos');
+        const dataProductos = await respProductos.json();
+        if (dataProductos.success) {
+          productos = dataProductos.productos || [];
+          actualizarSelectProductos();
+        }
+
+        // Cargar ofertas
+        cargarOfertas();
+      } catch (error) {
+        console.error('Error cargando datos:', error);
+      }
+    }
+
+    function actualizarSelectProductos() {
+      const select = document.getElementById('productoSelect') as HTMLSelectElement;
+      select.innerHTML = '<option value="">Selecciona un producto...</option>';
+      productos.forEach(p => {
+        const option = document.createElement('option');
+        option.value = p.id;
+        option.textContent = p.nombre;
+        option.dataset.precio = p.precio_centimos; // Guardar precio en atributo de datos
+        select.appendChild(option);
+      });
+      
+      // Agregar evento para llenar el precio original
+      select.addEventListener('change', (e) => {
+        const selectedOption = (e.target as HTMLSelectElement).selectedOptions[0];
+        const precioCentimos = selectedOption?.dataset.precio;
+        if (precioCentimos) {
+          const precioEnEuros = parseInt(precioCentimos) / 100;
+          (document.getElementById('precioOriginal') as HTMLInputElement).value = precioEnEuros.toString();
+        } else {
+          (document.getElementById('precioOriginal') as HTMLInputElement).value = '';
+        }
+      });
+    }
+
+    async function cargarOfertas() {
+      try {
+        const response = await fetch('/api/admin/ofertas');
+        const data = await response.json();
+        if (data.success) {
+          ofertas = data.data;
+          renderizarOfertas();
+          
+          // Actualizar estadísticas del panel
+          const totalOfertas = ofertas.length;
+          const ofertasActivas = ofertas.filter((o: any) => o.activa).length;
+          
+          document.getElementById('totalOfertas')!.textContent = totalOfertas.toString();
+          document.getElementById('ofertasActivas')!.textContent = ofertasActivas.toString();
+        }
+      } catch (error) {
+        console.error('Error cargando ofertas:', error);
+      }
+    }
+
+    function renderizarOfertas() {
+      const container = document.getElementById('ofertasContainer') as HTMLDivElement;
+      
+      if (ofertas.length === 0) {
+        container.innerHTML = '<p style="color: #64748b; text-align: center;">No hay ofertas creadas aún</p>';
+        return;
+      }
+
+      let html = '<table style="width: 100%; border-collapse: collapse;">';
+      html += '<thead><tr style="background: #f8f7f4; border-bottom: 2px solid #e2e8f0;">';
+      html += '<th style="padding: 1rem; text-align: left; font-weight: 600;">Nombre</th>';
+      html += '<th style="padding: 1rem; text-align: left; font-weight: 600;">Producto</th>';
+      html += '<th style="padding: 1rem; text-align: left; font-weight: 600;">Descuento</th>';
+      html += '<th style="padding: 1rem; text-align: left; font-weight: 600;">Fecha Fin</th>';
+      html += '<th style="padding: 1rem; text-align: left; font-weight: 600;">Estado</th>';
+      html += '<th style="padding: 1rem; text-align: center; font-weight: 600;">Acciones</th>';
+      html += '</tr></thead>';
+      html += '<tbody>';
+
+      ofertas.forEach(oferta => {
+        const descuento = oferta.porcentaje_descuento || 0;
+        const estado = oferta.activa ? 'Activa' : 'Inactiva';
+        const fechaFin = new Date(oferta.fecha_fin).toLocaleDateString('es-ES');
+        
+        html += `<tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 1rem;">${oferta.nombre_oferta}</td>
+          <td style="padding: 1rem;">${oferta.producto?.nombre || 'Sin producto'}</td>
+          <td style="padding: 1rem;"><strong style="color: #dc2626;">${descuento}%</strong></td>
+          <td style="padding: 1rem;">${fechaFin}</td>
+          <td style="padding: 1rem;">
+            <span style="
+              background: ${oferta.activa ? '#dcfce7' : '#fee2e2'};
+              color: ${oferta.activa ? '#15803d' : '#991b1b'};
+              padding: 0.25rem 0.75rem;
+              border-radius: 4px;
+              font-size: 0.875rem;
+            ">${estado}</span>
+          </td>
+          <td style="padding: 1rem; text-align: center;">
+            <button onclick="editarOferta(${oferta.id})" style="background: none; border: none; color: #0f172a; cursor: pointer; font-weight: 600; margin-right: 0.5rem;">Editar</button>
+            <button onclick="eliminarOferta(${oferta.id})" style="background: none; border: none; color: #dc2626; cursor: pointer; font-weight: 600;">Eliminar</button>
+          </td>
+        </tr>`;
+      });
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    function abrirModal() {
+      const modal = document.getElementById('modalOferta') as HTMLDivElement;
+      modal.style.display = 'flex';
+      document.getElementById('formOferta')?.reset();
+    }
+
+    function cerrarModal() {
+      const modal = document.getElementById('modalOferta') as HTMLDivElement;
+      modal.style.display = 'none';
+    }
+
+    async function guardarOferta(e: any) {
+      e.preventDefault();
+      
+      const productoId = (document.getElementById('productoSelect') as HTMLSelectElement).value;
+      const nombreOferta = (document.getElementById('nombreOferta') as HTMLInputElement).value;
+      const descripcion = (document.getElementById('descripcion') as HTMLTextAreaElement).value;
+      const precioOriginal = parseFloat((document.getElementById('precioOriginal') as HTMLInputElement).value) * 100;
+      const precioDescuento = parseFloat((document.getElementById('precioDescuento') as HTMLInputElement).value) * 100;
+      const fechaInicio = (document.getElementById('fechaInicio') as HTMLInputElement).value;
+      const fechaFin = (document.getElementById('fechaFin') as HTMLInputElement).value;
+
+      try {
+        const response = await fetch('/api/admin/ofertas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            producto_id: parseInt(productoId),
+            nombre_oferta: nombreOferta,
+            descripcion: descripcion || null,
+            precio_original_centimos: Math.round(precioOriginal),
+            precio_descuento_centimos: Math.round(precioDescuento),
+            fecha_inicio: new Date(fechaInicio).toISOString(),
+            fecha_fin: new Date(fechaFin).toISOString()
+          })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          cerrarModal();
+          cargarOfertas();
+          alert('Oferta creada exitosamente');
+        } else {
+          alert('Error: ' + data.error);
+        }
+      } catch (error) {
+        console.error('Error guardando oferta:', error);
+        alert('Error al guardar la oferta');
+      }
+    }
+
+    async function editarOferta(id: number) {
+      alert('Función de edición en desarrollo');
+    }
+
+    async function eliminarOferta(id: number) {
+      if (!confirm('¿Estás seguro de que deseas eliminar esta oferta?')) return;
+
+      try {
+        const response = await fetch(`/api/admin/ofertas/${id}`, { method: 'DELETE' });
+        const data = await response.json();
+        if (data.success) {
+          cargarOfertas();
+          alert('Oferta eliminada');
+        }
+      } catch (error) {
+        console.error('Error eliminando oferta:', error);
+      }
+    }
+
+    // Event listeners
+    document.getElementById('btnNuevaOferta')?.addEventListener('click', abrirModal);
+    document.getElementById('btnCancelar')?.addEventListener('click', cerrarModal);
+    document.getElementById('formOferta')?.addEventListener('submit', guardarOferta);
+
+    // Cargar datos al iniciar
+    cargarDatos();
+  </script>
+
+  <style>
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+  </style>
+</ProtectedLayout>

@@ -1,0 +1,225 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout>
+  <div style="min-height: 100vh; padding: 4rem 2rem; background: linear-gradient(135deg, #fafbfc 0%, #f3f4f6 100%);">
+    <div style="max-width: 1400px; margin: 0 auto;">
+      <!-- Header -->
+      <div style="text-align: center; margin-bottom: 4rem;">
+        <span style="color: #a89968; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700;">
+          🎉 Ofertas Especiales
+        </span>
+        <h1 style="
+          color: #0f172a;
+          font-size: 3rem;
+          margin: 0.5rem 0 1rem 0;
+          font-weight: 900;
+        ">
+          Todas Nuestras Ofertas
+        </h1>
+        <p style="color: #64748b; margin: 0.5rem 0 0 0; font-size: 1.1rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+          Descubre nuestros mejores precios en una selección de productos premium
+        </p>
+      </div>
+
+      <!-- Contenedor de ofertas -->
+      <div id="ofertasContainer" style="
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 2rem;
+        min-height: 300px;
+      ">
+        <p style="grid-column: 1 / -1; text-align: center; color: #64748b;">Cargando ofertas...</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function cargarOfertas() {
+      try {
+        const response = await fetch('/api/ofertas?limit=100');
+        const { success, data: ofertas } = await response.json();
+
+        const container = document.getElementById('ofertasContainer') as HTMLDivElement;
+
+        if (!success || !ofertas || ofertas.length === 0) {
+          container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: #64748b; padding: 3rem;">No hay ofertas disponibles en este momento</p>';
+          return;
+        }
+
+        let html = '';
+        ofertas.forEach((oferta: any) => {
+          const precioOriginal = (oferta.precio_original_centimos / 100).toFixed(2);
+          const precioDescuento = (oferta.precio_descuento_centimos / 100).toFixed(2);
+          const descuento = oferta.porcentaje_descuento || 0;
+          const imagenUrl = oferta.imagen_url || oferta.producto?.imagen_url || '';
+
+          html += `
+            <div style="
+              background: white;
+              border-radius: 12px;
+              overflow: hidden;
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+              transition: all 0.3s;
+              position: relative;
+            ">
+              <!-- Badge de descuento -->
+              <div style="
+                position: absolute;
+                top: 1rem;
+                right: 1rem;
+                background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+                color: white;
+                padding: 0.5rem 1rem;
+                border-radius: 8px;
+                font-weight: 700;
+                z-index: 10;
+                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+              ">
+                -${descuento}%
+              </div>
+
+              <!-- Imagen -->
+              <div style="
+                width: 100%;
+                height: 250px;
+                overflow: hidden;
+                background: #f3f4f6;
+              ">
+                ${imagenUrl ? `
+                  <img
+                    src="${imagenUrl}"
+                    alt="${oferta.nombre_oferta}"
+                    style="
+                      width: 100%;
+                      height: 100%;
+                      object-fit: cover;
+                    "
+                  />
+                ` : `
+                  <div style="
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #9ca3af;
+                  ">
+                    Sin imagen
+                  </div>
+                `}
+              </div>
+
+              <!-- Contenido -->
+              <div style="padding: 1.5rem;">
+                <h3 style="
+                  color: #0f172a;
+                  font-size: 1.25rem;
+                  margin: 0 0 0.5rem 0;
+                  font-weight: 700;
+                ">
+                  ${oferta.nombre_oferta}
+                </h3>
+
+                ${oferta.producto ? `
+                  <p style="
+                    color: #64748b;
+                    font-size: 0.9rem;
+                    margin: 0 0 1rem 0;
+                  ">
+                    ${oferta.producto.nombre}
+                  </p>
+                ` : ''}
+
+                ${oferta.descripcion ? `
+                  <p style="
+                    color: #64748b;
+                    font-size: 0.9rem;
+                    margin: 0 0 1rem 0;
+                    line-height: 1.5;
+                  ">
+                    ${oferta.descripcion}
+                  </p>
+                ` : ''}
+
+                <!-- Precios -->
+                <div style="
+                  display: flex;
+                  align-items: center;
+                  gap: 1rem;
+                  margin-bottom: 1.5rem;
+                ">
+                  <span style="
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    color: #0f172a;
+                  ">
+                    ${precioDescuento}€
+                  </span>
+                  <span style="
+                    font-size: 1rem;
+                    color: #9ca3af;
+                    text-decoration: line-through;
+                  ">
+                    ${precioOriginal}€
+                  </span>
+                </div>
+
+                <!-- Rating -->
+                ${oferta.producto?.rating ? `
+                  <div style="
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    margin-bottom: 1.5rem;
+                  ">
+                    <span style="color: #a89968;">★</span>
+                    <span style="color: #64748b; font-size: 0.9rem;">
+                      ${oferta.producto.rating}/5
+                    </span>
+                  </div>
+                ` : ''}
+
+                <!-- Botón -->
+                <a
+                  href="/productos/${oferta.producto?.id || '#'}"
+                  style="
+                    display: block;
+                    background: linear-gradient(135deg, #a89968 0%, #8b7355 100%);
+                    color: white;
+                    text-align: center;
+                    padding: 0.75rem 1.5rem;
+                    border-radius: 8px;
+                    text-decoration: none;
+                    font-weight: 600;
+                    transition: all 0.3s;
+                  "
+                >
+                  Ver Oferta
+                </a>
+              </div>
+            </div>
+          `;
+        });
+
+        container.innerHTML = html;
+      } catch (error) {
+        console.error('Error cargando ofertas:', error);
+        const container = document.getElementById('ofertasContainer') as HTMLDivElement;
+        container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: #dc2626;">Error al cargar las ofertas</p>';
+      }
+    }
+
+    // Cargar al iniciar
+    cargarOfertas();
+  </script>
+
+  <style>
+    @media (max-width: 768px) {
+      #ofertasContainer {
+        grid-template-columns: 1fr !important;
+      }
+    }
+  </style>
+</Layout>
