@@ -1,80 +1,284 @@
 ---
-import Layout from '../../../layouts/Layout.astro';
-import { obtenerUsuarioDelToken } from '../../../lib/auth';
-
-const token = Astro.cookies.get('auth_token')?.value;
-const usuario = token ? obtenerUsuarioDelToken(token) : null;
-
-if (!usuario || usuario.rol !== 'admin') {
-  return Astro.redirect('/sin-acceso');
-}
-
-// Datos simulados de pedidos
-const pedidos = [
-  { id: 1, numero: 'PED-001', cliente: 'Juan García', total: 12199, estado: 'pendiente', fecha: '2026-01-08' },
-  { id: 2, numero: 'PED-002', cliente: 'María López', total: 4000, estado: 'confirmado', fecha: '2026-01-07' },
-  { id: 3, numero: 'PED-003', cliente: 'Carlos Rodríguez', total: 27998, estado: 'enviado', fecha: '2026-01-06' }
-];
+import Layout from '../../layouts/Layout.astro';
 ---
 
-<Layout>
-  <div style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
-    <div style="margin-bottom: 2rem;">
-      <a href="/admin/dashboard" style="color: #a89968; text-decoration: none; font-weight: 600;">← Volver al Panel</a>
-    </div>
+<Layout title="Admin - Pedidos">
+  <div style="min-height: 100vh; background: #f8f4f0; padding: 2rem 0;">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 0 1rem;">
+      <h1 style="color: #001a33; margin-bottom: 2rem;">Todos los Pedidos</h1>
+      
+      <div style="margin-bottom: 2rem; display: flex; gap: 1rem;">
+        <button id="filtro-todos" style="
+          padding: 0.75rem 1.5rem;
+          background: #a89968;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-weight: 600;
+          transition: background 0.3s;
+        ">
+          Todos los Pedidos
+        </button>
+        <button id="filtro-dia" style="
+          padding: 0.75rem 1.5rem;
+          background: #e0d5c7;
+          color: #001a33;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-weight: 600;
+          transition: background 0.3s;
+        ">
+          Hoy
+        </button>
+        <button id="filtro-semana" style="
+          padding: 0.75rem 1.5rem;
+          background: #e0d5c7;
+          color: #001a33;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-weight: 600;
+          transition: background 0.3s;
+        ">
+          Esta Semana
+        </button>
+        <button id="filtro-mes" style="
+          padding: 0.75rem 1.5rem;
+          background: #e0d5c7;
+          color: #001a33;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-weight: 600;
+          transition: background 0.3s;
+        ">
+          Este Mes
+        </button>
+      </div>
 
-    <h1 style="color: #001a33; font-size: 2rem; margin-bottom: 2rem;">Gestionar Pedidos</h1>
-
-    <div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
-      <table style="width: 100%; border-collapse: collapse;">
-        <thead>
-          <tr style="background: #f5f5f5; border-bottom: 2px solid #ddd;">
-            <th style="padding: 1rem; text-align: left; color: #001a33; font-weight: 700;">Pedido</th>
-            <th style="padding: 1rem; text-align: left; color: #001a33; font-weight: 700;">Cliente</th>
-            <th style="padding: 1rem; text-align: center; color: #001a33; font-weight: 700;">Total</th>
-            <th style="padding: 1rem; text-align: center; color: #001a33; font-weight: 700;">Estado</th>
-            <th style="padding: 1rem; text-align: center; color: #001a33; font-weight: 700;">Fecha</th>
-            <th style="padding: 1rem; text-align: center; color: #001a33; font-weight: 700;">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {pedidos.map((pedido) => (
-            <tr style="border-bottom: 1px solid #eee;">
-              <td style="padding: 1rem; color: #001a33; font-weight: 600;">{pedido.numero}</td>
-              <td style="padding: 1rem; color: #666;">{pedido.cliente}</td>
-              <td style="padding: 1rem; text-align: center; color: #a89968; font-weight: 700;">€{(pedido.total / 100).toFixed(2)}</td>
-              <td style="padding: 1rem; text-align: center;">
-                <span style={`
-                  display: inline-block;
-                  padding: 0.3rem 0.8rem;
-                  border-radius: 3px;
-                  font-size: 0.8rem;
-                  font-weight: 600;
-                  ${pedido.estado === 'pendiente' ? 'background: #fff3cd; color: #856404;' : ''}
-                  ${pedido.estado === 'confirmado' ? 'background: #d1ecf1; color: #0c5460;' : ''}
-                  ${pedido.estado === 'enviado' ? 'background: #e8f5e9; color: #2e7d32;' : ''}
-                `}>
-                  {pedido.estado.toUpperCase()}
-                </span>
-              </td>
-              <td style="padding: 1rem; text-align: center; color: #666;">{pedido.fecha}</td>
-              <td style="padding: 1rem; text-align: center;">
-                <a href={`/admin/pedidos/${pedido.id}`} style="
-                  padding: 0.4rem 0.8rem;
-                  background: #001a33;
-                  color: white;
-                  border-radius: 4px;
-                  text-decoration: none;
-                  font-size: 0.85rem;
-                  font-weight: 600;
-                ">
-                  Ver Detalles
-                </a>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <p id="loadingMessage" style="color: #5c4a3d; font-size: 1.1rem; text-align: center;">Cargando pedidos...</p>
+      <div id="pedidosContent"></div>
     </div>
   </div>
+
+  <script>
+    let filtroActual = 'todos';
+
+    // Validar que es admin
+    const userRole = localStorage.getItem('user_role');
+    if (userRole !== 'admin') {
+      window.location.href = '/sin-acceso';
+    }
+
+    async function cargarPedidos(filtro = 'todos') {
+      try {
+        filtroActual = filtro;
+        
+        // Actualizar estilos de botones
+        document.querySelectorAll('button[id^="filtro-"]').forEach(btn => {
+          btn.style.background = '#e0d5c7';
+          btn.style.color = '#001a33';
+        });
+        document.getElementById(`filtro-${filtro}`).style.background = '#a89968';
+        document.getElementById(`filtro-${filtro}`).style.color = 'white';
+
+        const response = await fetch(`/api/admin/pedidos?filtro=${filtro}`, {
+          credentials: 'include'
+        });
+
+        console.log('Response status:', response.status);
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('Error del API:', errorData);
+          throw new Error('Error cargando pedidos: ' + errorData.error);
+        }
+
+        const data = await response.json();
+        const pedidos = data.pedidos || [];
+
+        if (!pedidos || pedidos.length === 0) {
+          document.getElementById('loadingMessage').style.display = 'none';
+          document.getElementById('pedidosContent').innerHTML = `
+            <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; border-left: 4px solid #a89968;">
+              <h2 style="color: #001a33; margin: 0 0 1rem 0;">Sin pedidos</h2>
+              <p style="color: #5c4a3d; margin: 0;">No hay pedidos en este período.</p>
+            </div>
+          `;
+          return;
+        }
+
+        let html = '<div style="display: grid; gap: 1.5rem;">';
+
+        pedidos.forEach(pedido => {
+          const estadoColor = {
+            'pagado': '#28a745',
+            'preparando': '#ffc107',
+            'enviado': '#17a2b8',
+            'entregado': '#6c757d',
+            'cancelado': '#dc3545'
+          };
+
+          html += `
+            <div style="background: white; border-radius: 8px; overflow: hidden; border: 1px solid #e0d5c7;">
+              <div style="padding: 1.5rem; background: #f8f4f0; border-bottom: 1px solid #e0d5c7; display: grid; grid-template-columns: 1fr auto auto auto; gap: 2rem; align-items: center;">
+                <div>
+                  <h3 style="color: #001a33; margin: 0 0 0.5rem 0;">Pedido #${pedido.numero_pedido}</h3>
+                  <p style="color: #5c4a3d; margin: 0; font-size: 0.9rem;">
+                    ${new Date(pedido.fecha_creacion).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+                <div>
+                  <p style="color: #5c4a3d; margin: 0; font-size: 0.9rem;">📧 ${pedido.email_cliente || 'N/A'}</p>
+                  <p style="color: #5c4a3d; margin: 0; font-size: 0.9rem;">📱 ${pedido.telefono_cliente || 'N/A'}</p>
+                </div>
+                <div style="text-align: right;">
+                  <select class="cambiar-estado" data-pedido-id="${pedido.id}" style="
+                    background: ${estadoColor[pedido.estado] || '#6c757d'};
+                    color: white;
+                    padding: 0.5rem 1rem;
+                    border-radius: 4px;
+                    border: none;
+                    font-weight: 600;
+                    font-size: 0.85rem;
+                    cursor: pointer;
+                    min-width: 140px;
+                  ">
+                    <option value="pagado" ${pedido.estado === 'pagado' ? 'selected' : ''}>Pagado</option>
+                    <option value="preparando" ${pedido.estado === 'preparando' ? 'selected' : ''}>Preparado</option>
+                    <option value="enviado" ${pedido.estado === 'enviado' ? 'selected' : ''}>Enviado</option>
+                    <option value="entregado" ${pedido.estado === 'entregado' ? 'selected' : ''}>Entregado</option>
+                    <option value="cancelado" ${pedido.estado === 'cancelado' ? 'selected' : ''}>Cancelado</option>
+                  </select>
+                </div>
+                <div style="text-align: right;">
+                  <p style="color: #a89968; font-weight: 700; font-size: 1.2rem; margin: 0;">
+                    ${(pedido.total / 100).toFixed(2)}€
+                  </p>
+                </div>
+              </div>
+
+              <div style="padding: 1.5rem;">
+                <h4 style="color: #001a33; margin: 0 0 1rem 0;">Productos (${pedido.pedido_items.length})</h4>
+                ${pedido.pedido_items.map((item, index) => {
+                  const precioUnitario = (parseFloat(item.precio_unitario) / 100) || (parseFloat(item.subtotal) / item.cantidad / 100);
+                  const subtotal = parseFloat(item.subtotal) / 100 || (precioUnitario * item.cantidad);
+                  return `
+                  <div style="
+                    padding: 0.75rem;
+                    border-bottom: 1px solid #e0d5c7;
+                    display: grid;
+                    grid-template-columns: 1fr auto;
+                    gap: 1rem;
+                    align-items: center;
+                  ">
+                    <div>
+                      <p style="color: #001a33; font-weight: 600; margin: 0 0 0.25rem 0;">
+                        ${item.nombre_producto}
+                        ${item.peso_kg ? `<span style="color: #a89968; font-weight: 400; font-size: 0.9rem;">(${item.peso_kg.toFixed(3)} kg)</span>` : ''}
+                      </p>
+                      <p style="color: #5c4a3d; margin: 0; font-size: 0.9rem;">Cantidad: ${item.cantidad} x ${precioUnitario.toFixed(2)}€</p>
+                    </div>
+                    <div style="text-align: right;">
+                      <p style="color: #001a33; font-weight: 600; margin: 0;">
+                        ${subtotal.toFixed(2)}€
+                      </p>
+                    </div>
+                  </div>
+                `;}).join('')}
+
+                <div style="padding: 1rem 0; border-top: 2px solid #e0d5c7; margin-top: 1rem;">
+                  <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; margin-bottom: 0.5rem;">
+                    <span style="color: #5c4a3d;">Subtotal</span>
+                    <span style="color: #001a33; font-weight: 600;">${(pedido.subtotal / 100).toFixed(2)}€</span>
+                  </div>
+                  ${pedido.envio > 0 ? `
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; margin-bottom: 0.5rem;">
+                      <span style="color: #5c4a3d;">Envío</span>
+                      <span style="color: #001a33; font-weight: 600;">${(pedido.envio / 100).toFixed(2)}€</span>
+                    </div>
+                  ` : ''}
+                  ${pedido.impuestos > 0 ? `
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; margin-bottom: 0.5rem;">
+                      <span style="color: #5c4a3d;">Impuestos</span>
+                      <span style="color: #001a33; font-weight: 600;">${(pedido.impuestos / 100).toFixed(2)}€</span>
+                    </div>
+                  ` : ''}
+                  <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; border-top: 1px solid #e0d5c7; padding-top: 0.75rem; margin-top: 0.75rem;">
+                    <span style="color: #001a33; font-weight: 700;">Total</span>
+                    <span style="color: #a89968; font-weight: 700; font-size: 1.1rem;">${(pedido.total / 100).toFixed(2)}€</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+
+        html += '</div>';
+
+        document.getElementById('loadingMessage').style.display = 'none';
+        document.getElementById('pedidosContent').innerHTML = html;
+
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('loadingMessage').style.display = 'none';
+        document.getElementById('pedidosContent').innerHTML = `
+          <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; border-left: 4px solid #f5576c;">
+            <h2 style="color: #001a33; margin: 0 0 1rem 0;">Error</h2>
+            <p style="color: #5c4a3d; margin: 0;">No se pudieron cargar los pedidos.</p>
+          </div>
+        `;
+      }
+    }
+
+    // Event listeners para botones
+    document.getElementById('filtro-todos').addEventListener('click', () => cargarPedidos('todos'));
+    document.getElementById('filtro-dia').addEventListener('click', () => cargarPedidos('dia'));
+    document.getElementById('filtro-semana').addEventListener('click', () => cargarPedidos('semana'));
+    document.getElementById('filtro-mes').addEventListener('click', () => cargarPedidos('mes'));
+
+    // Event listeners para cambiar estado
+    document.addEventListener('change', async (e) => {
+      if (e.target.classList.contains('cambiar-estado')) {
+        const pedidoId = e.target.dataset.pedidoId;
+        const nuevoEstado = e.target.value;
+
+        try {
+          const response = await fetch('/api/admin/pedidos/actualizar-estado', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              pedido_id: pedidoId,
+              estado: nuevoEstado
+            })
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            alert('Error al actualizar el estado: ' + error.error);
+            // Recargar los pedidos para restaurar el estado anterior
+            cargarPedidos(filtroActual);
+            return;
+          }
+
+          // Mostrar notificación de éxito
+          alert('Estado actualizado correctamente');
+          // Recargar los pedidos
+          cargarPedidos(filtroActual);
+
+        } catch (error) {
+          console.error('Error:', error);
+          alert('Error al actualizar el estado');
+          cargarPedidos(filtroActual);
+        }
+      }
+    });
+
+    // Cargar pedidos al iniciar
+    cargarPedidos('todos');
+  </script>
 </Layout>
