@@ -10,7 +10,10 @@ export const GET: APIRoute = async ({ cookies, request }) => {
       userId = cookies.get('user_id')?.value;
     }
 
+    console.log('🔍 GET /api/carrito - User ID:', userId);
+
     if (!userId) {
+      console.log('❌ No autenticado');
       return new Response(
         JSON.stringify({ error: 'No autenticado' }),
         { status: 401 }
@@ -25,6 +28,7 @@ export const GET: APIRoute = async ({ cookies, request }) => {
       .single();
 
     if (carritoError || !carrito) {
+      console.log('📦 Creando nuevo carrito para usuario:', userId);
       const { data: nuevoCarrito, error: createError } = await supabaseClient
         .from('carritos')
         .insert({
@@ -36,12 +40,16 @@ export const GET: APIRoute = async ({ cookies, request }) => {
         .single();
 
       if (createError) {
+        console.log('❌ Error creando carrito:', createError);
         return new Response(
           JSON.stringify({ error: 'Error creando carrito' }),
           { status: 500 }
         );
       }
       carrito = nuevoCarrito;
+      console.log('✅ Carrito creado:', carrito.id);
+    } else {
+      console.log('✅ Carrito existente encontrado, ID:', carrito.id);
     }
 
     // Obtener items del carrito
@@ -55,16 +63,99 @@ export const GET: APIRoute = async ({ cookies, request }) => {
       .order('fecha_agregado', { ascending: false });
 
     if (itemsError) {
+      console.log('❌ Error obteniendo items:', itemsError);
       return new Response(
         JSON.stringify({ error: 'Error obteniendo items' }),
         { status: 500 }
       );
     }
 
+    console.log('📦 Items obtenidos del carrito:', items?.length ?? 0, 'items');
+
+    // Filtrar items válidos (últimos 15 minutos) en el cliente
+    const ahora = new Date();
+    const itemsValidos: any[] = [];
+    const itemsExpirados: number[] = [];
+
+    console.log('🔍 Filtrando items:', items?.length ?? 0, 'items');
+
+    (items || []).forEach(item => {
+      // Agregar 'Z' al timestamp si no lo tiene (PostgreSQL lo devuelve sin timezone)
+      let fechaStr = item.fecha_agregado;
+      if (fechaStr && !fechaStr.endsWith('Z')) {
+        fechaStr = fechaStr + 'Z';
+      }
+
+      console.log(`📋 Item ${item.id}:`, {
+        fecha_original: item.fecha_agregado,
+        fecha_con_z: fechaStr,
+        tipo: typeof item.fecha_agregado
+      });
+
+      if (!fechaStr) {
+        console.log(`✅ Item ${item.id} sin fecha, manteniendo como válido`);
+        itemsValidos.push(item);
+        return;
+      }
+
+      const fechaAgregado = new Date(fechaStr);
+      const minutosPasados = (ahora.getTime() - fechaAgregado.getTime()) / (1000 * 60);
+
+      console.log(`⏱️ Item ${item.id}: ${minutosPasados.toFixed(2)} minutos (ahora=${ahora.toISOString()}, fecha=${fechaAgregado.toISOString()})`);
+
+      if (minutosPasados > 15) {
+        console.log(`❌ Item ${item.id} expirado`);
+        itemsExpirados.push(item.id);
+      } else {
+        console.log(`✅ Item ${item.id} válido`);
+        itemsValidos.push(item);
+      }
+    });
+
+    console.log('📊 Resultado:', { itemsValidos: itemsValidos.length, itemsExpirados: itemsExpirados.length });
+
+    // Eliminar items expirados de la BD
+    if (itemsExpirados.length > 0) {
+      await supabaseClient
+        .from('carrito_items')
+        .delete()
+        .in('id', itemsExpirados);
+      console.log(`🗑️ Eliminados ${itemsExpirados.length} items expirados`);
+    }
+
+    // Si hay items expirados, eliminarlos de la BD
+    if (itemsExpirados.length > 0) {
+      // Eliminar items expirados
+      const { error: deleteError } = await supabaseClient
+        .from('carrito_items')
+        .delete()
+        .in('id', itemsExpirados);
+
+      if (deleteError) {
+        console.error('Error eliminando items expirados:', deleteError);
+      }
+      console.log('🗑️ Eliminados items expirados:', itemsExpirados);
+    }
+
+    console.log('✅ GET /api/carrito - Retornando:', {
+      carritoId: carrito.id,
+      itemsCount: itemsValidos.length,
+      itemsExpirados: itemsExpirados.length > 0
+    });
+
+    // Agregar 'Z' a todas las fechas antes de enviar al cliente
+    const itemsConFechas = itemsValidos.map(item => ({
+      ...item,
+      fecha_agregado: item.fecha_agregado && !item.fecha_agregado.endsWith('Z') 
+        ? item.fecha_agregado + 'Z'
+        : item.fecha_agregado
+    }));
+
     return new Response(
       JSON.stringify({
         carrito,
-        items: items || []
+        items: itemsConFechas || [],
+        itemsExpirados: itemsExpirados.length > 0
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
@@ -81,17 +172,21 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     const { producto_id, cantidad, user_id, producto_variante_id, peso_kg } = await request.json();
 
+    console.log('🛒 POST /api/carrito - Datos recibidos:', { producto_id, cantidad, user_id, producto_variante_id, peso_kg });
+
     // Validar user_id
     if (!user_id) {
+      console.log('❌ Error: No user_id');
       return new Response(
-        JSON.stringify({ error: 'No autenticado' }),
+        JSON.stringify({ error: 'No autenticado', success: false }),
         { status: 401 }
       );
     }
 
     if (!producto_id || !cantidad || cantidad <= 0) {
+      console.log('❌ Error: Datos inválidos', { producto_id, cantidad });
       return new Response(
-        JSON.stringify({ error: 'Datos inválidos' }),
+        JSON.stringify({ error: 'Datos inválidos', success: false }),
         { status: 400 }
       );
     }
@@ -104,6 +199,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       .single();
 
     if (carritoError || !carrito) {
+      console.log('📦 Creando nuevo carrito para usuario:', user_id);
       const { data: nuevoCarrito, error: createError } = await supabaseClient
         .from('carritos')
         .insert({
@@ -115,17 +211,22 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         .single();
 
       if (createError) {
+        console.log('❌ Error creando carrito:', createError);
         return new Response(
-          JSON.stringify({ error: 'Error creando carrito' }),
+          JSON.stringify({ error: 'Error creando carrito', success: false }),
           { status: 500 }
         );
       }
       carrito = nuevoCarrito;
+      console.log('✅ Carrito creado:', carrito.id);
+    } else {
+      console.log('✅ Carrito existente:', carrito.id);
     }
 
     // Si es un producto variable, obtener el precio de la variante
     let precioUnitario = null;
     if (producto_variante_id) {
+      console.log('🔍 Buscando variante:', producto_variante_id);
       const { data: variante, error: varianteError } = await supabaseClient
         .from('producto_variantes')
         .select('precio_total')
@@ -133,14 +234,17 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         .single();
 
       if (varianteError || !variante) {
+        console.log('❌ Variante no encontrada:', varianteError);
         return new Response(
-          JSON.stringify({ error: 'Variante no encontrada' }),
+          JSON.stringify({ error: 'Variante no encontrada', success: false }),
           { status: 404 }
         );
       }
-      precioUnitario = variante.precio_total * 100; // Convertir a centimos
+      precioUnitario = Math.round(variante.precio_total * 100); // Convertir euros a centimos
+      console.log('✅ Precio variante:', precioUnitario);
     } else {
       // Obtener precio del producto normal
+      console.log('🔍 Buscando producto:', producto_id);
       const { data: producto, error: productoError } = await supabaseClient
         .from('productos')
         .select('precio_centimos')
@@ -148,12 +252,14 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         .single();
 
       if (productoError || !producto) {
+        console.log('❌ Producto no encontrado:', productoError);
         return new Response(
-          JSON.stringify({ error: 'Producto no encontrado' }),
+          JSON.stringify({ error: 'Producto no encontrado', success: false }),
           { status: 404 }
         );
       }
       precioUnitario = producto.precio_centimos;
+      console.log('✅ Precio producto:', precioUnitario);
     }
 
     // Verificar si el producto ya está en el carrito (con misma variante si aplica)
@@ -173,29 +279,33 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     if (existente) {
       // Actualizar cantidad
+      console.log('📝 Item existente, actualizando cantidad:', existente.id);
       const { data: actualizado, error: updateError } = await supabaseClient
         .from('carrito_items')
         .update({
-          cantidad: existente.cantidad + cantidad,
-          fecha_agregado: new Date().toISOString()
+          cantidad: existente.cantidad + cantidad
+          // NO actualizar fecha_agregado - mantener la original
         })
         .eq('id', existente.id)
         .select()
         .single();
 
       if (updateError) {
+        console.log('❌ Error actualizando item:', updateError);
         return new Response(
-          JSON.stringify({ error: 'Error actualizando item' }),
+          JSON.stringify({ error: 'Error actualizando item', success: false }),
           { status: 500 }
         );
       }
 
+      console.log('✅ Item actualizado:', actualizado);
       return new Response(
         JSON.stringify({ success: true, item: actualizado }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
     } else {
       // Crear nuevo item
+      console.log('➕ Creando nuevo item en carrito:', carrito.id);
       const { data: nuevoItem, error: insertError } = await supabaseClient
         .from('carrito_items')
         .insert({
@@ -204,28 +314,30 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           cantidad,
           precio_unitario: precioUnitario,
           producto_variante_id: producto_variante_id || null,
-          peso_kg: peso_kg || null,
-          fecha_agregado: new Date().toISOString()
+          peso_kg: peso_kg || null
+          // NO incluir fecha_agregado - dejar que PostgreSQL use NOW()
         })
         .select()
         .single();
 
       if (insertError) {
+        console.log('❌ Error insertando item:', insertError);
         return new Response(
-          JSON.stringify({ error: 'Error agregando item' }),
+          JSON.stringify({ error: 'Error agregando item', success: false }),
           { status: 500 }
         );
       }
 
+      console.log('✅ Item agregado:', nuevoItem);
       return new Response(
         JSON.stringify({ success: true, item: nuevoItem }),
         { status: 201, headers: { 'Content-Type': 'application/json' } }
       );
     }
   } catch (error) {
-    console.error('Error en POST /api/carrito:', error);
+    console.error('❌ Error en POST /api/carrito:', error);
     return new Response(
-      JSON.stringify({ error: 'Error interno del servidor' }),
+      JSON.stringify({ error: 'Error interno del servidor', success: false }),
       { status: 500 }
     );
   }
