@@ -150,6 +150,7 @@ import Layout from '../../layouts/Layout.astro';
 
     // Cargar productos desde Supabase
     async function cargarProductos() {
+      console.log('🔄 cargarProductos() ejecutándose');
       try {
         const response = await fetch('/api/admin/productos');
         const data = await response.json();
@@ -171,11 +172,21 @@ import Layout from '../../layouts/Layout.astro';
           }));
 
           // Cargar variantes para productos variables
+          console.log('📦 Total de productos:', productos.length);
+          console.log('📦 Productos variables:', productos.filter(p => p.es_variable).length);
+          
           for (const producto of productos) {
             if (producto.es_variable) {
-              await cargarVariantesProducto(producto.id);
+              console.log('⏳ Cargando variantes para producto:', producto.id);
+              try {
+                await cargarVariantesProducto(producto.id);
+                console.log('✅ Variantes cargadas para producto:', producto.id);
+              } catch (error) {
+                console.error('❌ Error cargando variantes para producto:', producto.id, error);
+              }
             }
           }
+          console.log('✅ Todas las variantes cargadas');
         }
 
         const grid = document.getElementById('productosGrid');
@@ -219,11 +230,20 @@ import Layout from '../../layouts/Layout.astro';
         `;
         }).join('');
 
+        console.log('✅ Grid HTML generado, agregando event listeners');
+        const botonesAgregar = document.querySelectorAll('.btn-agregar-carrito');
+        const botonesVariante = document.querySelectorAll('.btn-seleccionar-variante');
+        console.log('📌 Botones "Agregar": ', botonesAgregar.length);
+        console.log('📌 Botones "Variante": ', botonesVariante.length);
+        
         // Event listeners para productos normales
-        document.querySelectorAll('.btn-agregar-carrito').forEach(btn => {
+        botonesAgregar.forEach(btn => {
+          console.log('📌 Agregando event listener a botón:', btn.getAttribute('data-id'));
           btn.addEventListener('click', async (e) => {
             e.stopPropagation();
+            console.log('🖱️ Click en botón agregar carrito');
             const productoId = btn.getAttribute('data-id');
+            console.log('📦 Product ID:', productoId);
             await agregarAlCarrito(productoId, 1);
           });
 
@@ -237,7 +257,8 @@ import Layout from '../../layouts/Layout.astro';
         });
 
         // Event listeners para productos variables
-        document.querySelectorAll('.btn-seleccionar-variante').forEach(btn => {
+        botonesVariante.forEach(btn => {
+          console.log('📌 Agregando event listener a botón variante:', btn.getAttribute('data-id'));
           btn.addEventListener('click', async (e) => {
             e.stopPropagation();
             const productoId = btn.getAttribute('data-id');
@@ -326,8 +347,11 @@ import Layout from '../../layouts/Layout.astro';
 
     async function agregarAlCarritoConVariante(productoId, varianteId, peso) {
       try {
+        console.log('🛒 agregarAlCarritoConVariante llamada con:', { productoId, varianteId, peso });
         const userId = localStorage.getItem('user_id');
+        console.log('👤 User ID:', userId);
         if (!userId) {
+          console.log('❌ No hay user_id');
           mostrarNotificacion('Por favor, inicia sesión para agregar productos al carrito', 'info');
           setTimeout(() => {
             window.location.href = '/login';
@@ -348,8 +372,11 @@ import Layout from '../../layouts/Layout.astro';
           })
         });
 
+        console.log('📡 Respuesta del API:', { status: response.status, ok: response.ok });
+
         if (!response.ok) {
           if (response.status === 401) {
+            console.log('❌ No autorizado');
             mostrarNotificacion('Por favor, inicia sesión para agregar productos al carrito', 'info');
             setTimeout(() => {
               window.location.href = '/login';
@@ -360,12 +387,14 @@ import Layout from '../../layouts/Layout.astro';
         }
 
         const result = await response.json();
+        console.log('✅ Resultado del API:', result);
         if (result.success) {
+          console.log('✅ Producto agregado exitosamente');
           mostrarNotificacion(`Jamón de ${peso.toFixed(3)} kg agregado al carrito`, 'exito');
           actualizarContadorCarrito();
         }
       } catch (error) {
-        console.error('Error:', error);
+        console.error('❌ Error en agregarAlCarritoConVariante:', error);
         mostrarNotificacion('Error al agregar el producto al carrito', 'error');
       }
     }
@@ -459,9 +488,12 @@ import Layout from '../../layouts/Layout.astro';
 
     async function agregarAlCarrito(productoId: string, cantidad: number = 1) {
       try {
+        console.log('🛒 agregarAlCarrito llamada con:', { productoId, cantidad });
         // Obtener user_id del localStorage
         const userId = localStorage.getItem('user_id');
+        console.log('👤 User ID:', userId);
         if (!userId) {
+          console.log('❌ No hay user_id, redirigiendo a login');
           mostrarNotificacion('Por favor, inicia sesión para agregar productos al carrito', 'info');
           setTimeout(() => {
             window.location.href = '/login';
@@ -480,8 +512,11 @@ import Layout from '../../layouts/Layout.astro';
           })
         });
 
+        console.log('📡 Respuesta del API:', { status: response.status, ok: response.ok });
+
         if (!response.ok) {
           if (response.status === 401) {
+            console.log('❌ No autorizado, redirigiendo a login');
             mostrarNotificacion('Por favor, inicia sesión para agregar productos al carrito', 'info');
             setTimeout(() => {
               window.location.href = '/login';
@@ -492,13 +527,15 @@ import Layout from '../../layouts/Layout.astro';
         }
 
         const result = await response.json();
+        console.log('✅ Resultado del API:', result);
         if (result.success) {
+          console.log('✅ Producto agregado exitosamente');
           mostrarNotificacion('Producto agregado al carrito', 'exito');
           // Actualizar contador del carrito si existe
           actualizarContadorCarrito();
         }
       } catch (error) {
-        console.error('Error:', error);
+        console.error('❌ Error en agregarAlCarrito:', error);
         mostrarNotificacion('Error al agregar el producto al carrito', 'error');
       }
     }
@@ -518,6 +555,8 @@ import Layout from '../../layouts/Layout.astro';
     });
 
     // Cargar al iniciar
+    console.log('📄 Script iniciando, llamando a cargarProductos()');
     cargarProductos();
+    console.log('📄 cargarProductos() llamada');
   </script>
 </Layout>

@@ -59,17 +59,51 @@ import Layout from '../layouts/Layout.astro';
           }
         });
 
+        console.log('📡 Response status:', response.status);
+        
         if (!response.ok) {
+          console.log('❌ Response no OK:', response.statusText);
           throw new Error('Error cargando carrito');
         }
 
         const data = await response.json();
+        console.log('📦 Datos recibidos del API:', JSON.stringify(data));
         const carrito = data.carrito;
         const items = data.items || [];
+        const itemsExpirados = data.itemsExpirados || false;
+
+        let html = '';
 
         if (!items || items.length === 0) {
           document.getElementById('loadingMessage').style.display = 'none';
-          document.getElementById('carritoContent').innerHTML = `
+          
+          if (itemsExpirados) {
+            html += `
+              <div style="background: #fef3c7; border: 1px solid #fcd34d; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                <div style="display: flex; gap: 1rem;">
+                  <div style="font-size: 1.5rem; color: #f59e0b; flex-shrink: 0;">⚠</div>
+                  <div>
+                    <h3 style="color: #92400e; margin: 0 0 0.5rem 0; font-weight: 700;">Tu carrito ha expirado</h3>
+                    <p style="color: #b45309; margin: 0 0 1rem 0;">Algunos productos fueron reservados por 15 minutos y han expirado. Por favor, vuelve a seleccionar los productos que deseas comprar.</p>
+                    <a href="/productos" style="
+                      display: inline-block;
+                      background: #f59e0b;
+                      color: white;
+                      padding: 0.5rem 1.5rem;
+                      border-radius: 4px;
+                      text-decoration: none;
+                      font-weight: 600;
+                      transition: background 0.3s;
+                    " onmouseover="this.style.background='#d97706'" onmouseout="this.style.background='#f59e0b'">
+                      Volver a Seleccionar
+                    </a>
+                  </div>
+                </div>
+              </div>
+            `;
+          }
+          
+          document.getElementById('carritoContent').innerHTML = html + `
             <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; border-left: 4px solid #a89968;">
               <h2 style="color: #001a33; margin: 0 0 1rem 0;">Tu carrito está vacío</h2>
               <p style="color: #5c4a3d; margin: 0 0 1.5rem 0;">Empieza a agregar productos para tu compra.</p>
@@ -97,7 +131,24 @@ import Layout from '../layouts/Layout.astro';
         }, 0);
 
         // Renderizar carrito
-        let html = `
+        let htmlContent = ``;
+        
+        // Agregar alerta de expiración si es necesario
+        if (itemsExpirados) {
+          htmlContent += `
+            <div style="background: #fef3c7; border: 1px solid #fcd34d; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
+              <div style="display: flex; gap: 1rem;">
+                <div style="font-size: 1.5rem; color: #f59e0b; flex-shrink: 0;">⚠</div>
+                <div>
+                  <h3 style="color: #92400e; margin: 0 0 0.5rem 0; font-weight: 700;">Tu carrito ha expirado parcialmente</h3>
+                  <p style="color: #b45309; margin: 0;">Algunos productos fueron reservados por 15 minutos y han expirado. Los productos que ves abajo siguen disponibles.</p>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        htmlContent += `
           <div style="display: grid; grid-template-columns: 1fr 350px; gap: 2rem; align-items: start;">
             <div style="background: white; border-radius: 8px; overflow: hidden; border: 1px solid #e0d5c7;">
               <div style="padding: 1.5rem; background: #f8f4f0; border-bottom: 1px solid #e0d5c7;">
@@ -107,7 +158,7 @@ import Layout from '../layouts/Layout.astro';
         `;
 
         items.forEach(item => {
-          html += `
+          htmlContent += `
             <div class="cart-item" data-item-id="${item.id}" style="
               padding: 1.5rem;
               border-bottom: 1px solid #e0d5c7;
@@ -123,6 +174,9 @@ import Layout from '../layouts/Layout.astro';
                 </h3>
                 <p style="color: #a89968; margin: 0; font-weight: 600; font-size: 0.95rem;">
                   ${(item.precio_unitario / 100).toFixed(2)}€
+                </p>
+                <p style="color: #d97706; margin: 0.5rem 0 0 0; font-size: 0.85rem; font-weight: 500;">
+                  ⏱️ Expira en: <span class="countdown" data-fecha="${item.fecha_agregado}">cargando...</span>
                 </p>
               </div>
               <div style="display: flex; align-items: center; gap: 0.5rem; border: 1px solid #e0d5c7; border-radius: 4px;">
@@ -173,7 +227,7 @@ import Layout from '../layouts/Layout.astro';
           `;
         });
 
-        html += `
+        htmlContent += `
               </div>
             </div>
             <div style="background: white; border-radius: 8px; padding: 1.5rem; border: 1px solid #e0d5c7; position: sticky; top: 1rem;">
@@ -242,7 +296,7 @@ import Layout from '../layouts/Layout.astro';
         `;
 
         document.getElementById('loadingMessage').style.display = 'none';
-        document.getElementById('carritoContent').innerHTML = html;
+        document.getElementById('carritoContent').innerHTML = htmlContent;
 
         // Event listeners
         document.querySelectorAll('.btn-cantidad').forEach(btn => {
@@ -433,6 +487,46 @@ import Layout from '../layouts/Layout.astro';
     if (btnCheckoutGlobal) {
       btnCheckoutGlobal.addEventListener('click', irAStripe);
     }
+
+    // Función para actualizar contadores de expiración
+    function actualizarContadores() {
+      const countdowns = document.querySelectorAll('.countdown');
+      countdowns.forEach(span => {
+        const fechaAgregado = span.getAttribute('data-fecha');
+        if (!fechaAgregado) return;
+
+        const fecha = new Date(fechaAgregado);
+        const ahora = new Date();
+        
+        console.log('📅 Countdown debug:', {
+          fechaAgregado,
+          fecha: fecha.toISOString(),
+          ahora: ahora.toISOString(),
+          diferenciaMilisegundos: ahora.getTime() - fecha.getTime()
+        });
+
+        const diff = fecha.getTime() + (15 * 60 * 1000) - ahora.getTime(); // 15 minutos en ms
+
+        console.log('⏱️ Diff calculado:', diff, 'ms =', Math.floor(diff / (1000 * 60)), 'minutos');
+
+        if (diff <= 0) {
+          span.textContent = '⚠️ EXPIRADO';
+          span.style.color = '#dc2626';
+        } else {
+          const minutos = Math.floor(diff / (1000 * 60));
+          const segundos = Math.floor((diff % (1000 * 60)) / 1000);
+          span.textContent = `${minutos}:${segundos.toString().padStart(2, '0')}`;
+          
+          if (diff < 60000) { // Menos de 1 minuto
+            span.style.color = '#dc2626';
+          }
+        }
+      });
+    }
+
+    // Actualizar contadores cada segundo
+    actualizarContadores();
+    setInterval(actualizarContadores, 1000);
 
     cargarCarrito();
   </script>
