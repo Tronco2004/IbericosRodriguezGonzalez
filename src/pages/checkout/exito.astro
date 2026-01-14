@@ -114,7 +114,8 @@ const success = params.get('status') === 'success';
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            'x-user-id': userId
+            'x-user-id': userId,
+            'x-envio': String(envio)
           },
           body: JSON.stringify({
             stripe_session_id: sessionId,

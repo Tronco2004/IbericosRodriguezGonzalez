@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { supabaseClient } from '../../../lib/supabase';
+import { enviarConfirmacionPedido } from '../../../lib/email';
 
 export const prerender = false;
 
@@ -91,6 +92,24 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
 
+    // Obtener email y teléfono del usuario desde la BD
+    const { data: usuario, error: errorUsuario } = await supabaseClient
+      .from('usuarios')
+      .select('email, telefono')
+      .eq('id', userId)
+      .single();
+
+    if (errorUsuario || !usuario) {
+      console.error('Error obteniendo datos del usuario:', errorUsuario);
+      return new Response(
+        JSON.stringify({ error: 'Error obteniendo datos del usuario' }),
+        { status: 500 }
+      );
+    }
+
+    const emailCliente = usuario.email;
+    const telefonoCliente = usuario.telefono || telefono || '';
+
     // Generar número de pedido único
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 10000);
@@ -105,8 +124,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         numero_pedido,
         subtotal: parseFloat(subtotal),
         total: parseFloat(total),
-        email_cliente: email,
-        telefono_cliente: telefono,
+        email_cliente: emailCliente,
+        telefono_cliente: telefonoCliente,
         estado: 'pagado',
         fecha_pago: new Date().toISOString()
       })
@@ -145,17 +164,44 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    // Vaciar el carrito del usuario
-    await supabaseClient
-      .from('carrito_items')
-      .delete()
-      .eq('carrito_id', (
-        await supabaseClient
-          .from('carritos')
-          .select('id')
-          .eq('usuario_id', userId)
-          .single()
-      ).data.id);
+    const { data: cartData } = await supabaseClient
+      .from('carritos')
+      .select('id')
+      .eq('usuario_id', userId)
+      .single();
+
+    if (cartData?.id) {
+      await supabaseClient
+        .from('carrito_items')
+        .delete()
+        .eq('carrito_id', cartData.id);
+    }
+
+    // Enviar correo de confirmación
+    try {
+      console.log('📧 Enviando correo de confirmación...');
+      console.log('📧 Email del cliente:', emailCliente);
+      console.log('📧 Items a enviar:', cartItems.length);
+      
+      await enviarConfirmacionPedido({
+        email_cliente: emailCliente,
+        numero_pedido: pedido.numero_pedido,
+        fecha: pedido.fecha_pago,
+        items: cartItems.map((item: any) => ({
+          nombre: item.nombre,
+          cantidad: item.cantidad,
+          precio: item.precio,
+          peso_kg: item.peso_kg
+        })),
+        subtotal: parseFloat(subtotal),
+        envio: request.headers.get('x-envio') ? parseFloat(request.headers.get('x-envio') || '0') : 500,
+        total: parseFloat(total)
+      });
+      console.log('✅ Correo enviado exitosamente');
+    } catch (emailError) {
+      console.error('❌ Error enviando correo:', emailError);
+      // No fallar la transacción si el email falla
+    }
 
     return new Response(
       JSON.stringify({ 
