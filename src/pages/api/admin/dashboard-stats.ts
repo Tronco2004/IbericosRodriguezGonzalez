@@ -21,6 +21,7 @@ export const GET: APIRoute = async () => {
         JSON.stringify({ 
           success: false, 
           clientesActivos: 0,
+          pedidosPendientes: 0,
           error: error.message
         }),
         { status: 200 }
@@ -29,12 +30,35 @@ export const GET: APIRoute = async () => {
 
     const clientesActivos = usuarios?.length || 0;
 
+    // Obtener pedidos pendientes (estado = 'pagado')
+    const { data: pedidos, error: pedidosError } = await supabaseClient
+      .from('pedidos')
+      .select('id')
+      .eq('estado', 'pagado');
+
+    if (pedidosError) {
+      console.log('Error obteniendo pedidos:', pedidosError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          clientesActivos: clientesActivos,
+          pedidosPendientes: 0,
+          error: pedidosError.message
+        }),
+        { status: 200 }
+      );
+    }
+
+    const pedidosPendientes = pedidos?.length || 0;
+
     console.log('✅ Clientes activos (rol=cliente, activo=true):', clientesActivos);
+    console.log('✅ Pedidos pendientes (estado=pagado):', pedidosPendientes);
 
     return new Response(
       JSON.stringify({
         success: true,
-        clientesActivos: clientesActivos
+        clientesActivos: clientesActivos,
+        pedidosPendientes: pedidosPendientes
       }),
       { status: 200 }
     );
@@ -44,6 +68,7 @@ export const GET: APIRoute = async () => {
       JSON.stringify({ 
         success: false, 
         clientesActivos: 0,
+        pedidosPendientes: 0,
         error: error.toString()
       }),
       { status: 200 }
