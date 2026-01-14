@@ -184,6 +184,11 @@ import Layout from '../../layouts/Layout.astro';
         const response = await fetch('/api/admin/productos');
         const data = await response.json();
         
+        // Obtener variantes reservadas
+        const reservadosResponse = await fetch('/api/productos/reservados');
+        const { variantesReservadas } = await reservadosResponse.json();
+        console.log('🔒 Variantes reservadas:', variantesReservadas);
+        
         let productos = [];
         
         if (data.success && data.productos && data.productos.length > 0) {
@@ -229,8 +234,14 @@ import Layout from '../../layouts/Layout.astro';
           const botonText = p.es_variable ? 'Seleccionar Peso' : 'Agregar al Carrito';
           const botonClass = p.es_variable ? 'btn-seleccionar-variante' : 'btn-agregar-carrito';
           
+          // Verificar si es producto variable y si todas sus variantes están reservadas
+          const variantesDelProducto = variantesMap[p.id] || [];
+          const variantesReservadasDelProducto = variantesReservadas[p.id] || [];
+          const todasReservadas = p.es_variable && variantesDelProducto.length > 0 && 
+                                  variantesDelProducto.length === variantesReservadasDelProducto.length;
+          
           return `
-          <article data-id="${p.id}">;
+          <article data-id="${p.id}" style="position: relative;">
             <div class="product-image-wrapper">
               <img src="${p.imagen}" alt="${p.nombre}" loading="lazy" />
             </div>
@@ -245,21 +256,21 @@ import Layout from '../../layouts/Layout.astro';
                   ${p.stock > 0 ? '✅ En stock: ' + p.stock : '❌ Agotado'}
                 </p>
               ` : ''}
-              <button class="${botonClass}" data-id="${p.id}" ${!p.es_variable && p.stock <= 0 ? 'disabled' : ''} style="
+              <button class="${botonClass}" data-id="${p.id}" ${(!p.es_variable && p.stock <= 0) || todasReservadas ? 'disabled' : ''} style="
                 width: 100%;
                 margin-top: 0.75rem;
-                background: ${!p.es_variable && p.stock <= 0 ? '#d1d5db' : '#a89968'};
+                background: ${(!p.es_variable && p.stock <= 0) || todasReservadas ? '#d1d5db' : '#a89968'};
                 color: white;
                 border: none;
                 padding: 0.6rem;
                 border-radius: 4px;
                 font-weight: 600;
-                cursor: ${!p.es_variable && p.stock <= 0 ? 'not-allowed' : 'pointer'};
+                cursor: ${(!p.es_variable && p.stock <= 0) || todasReservadas ? 'not-allowed' : 'pointer'};
                 transition: background 0.3s;
                 font-size: 0.85rem;
-                opacity: ${!p.es_variable && p.stock <= 0 ? '0.5' : '1'};
+                opacity: ${(!p.es_variable && p.stock <= 0) || todasReservadas ? '0.5' : '1'};
               ">
-                ${!p.es_variable && p.stock <= 0 ? 'Agotado' : botonText}
+                ${todasReservadas ? 'No disponible actualmente' : (!p.es_variable && p.stock <= 0 ? 'Agotado' : botonText)}
               </button>
             </div>
           </article>
@@ -267,8 +278,8 @@ import Layout from '../../layouts/Layout.astro';
         }).join('');
 
         console.log('✅ Grid HTML generado, agregando event listeners');
-        const botonesAgregar = document.querySelectorAll('.btn-agregar-carrito');
-        const botonesVariante = document.querySelectorAll('.btn-seleccionar-variante');
+        const botonesAgregar = document.querySelectorAll('.btn-agregar-carrito:not([disabled])');
+        const botonesVariante = document.querySelectorAll('.btn-seleccionar-variante:not([disabled])');
         console.log('📌 Botones "Agregar": ', botonesAgregar.length);
         console.log('📌 Botones "Variante": ', botonesVariante.length);
         
@@ -284,11 +295,11 @@ import Layout from '../../layouts/Layout.astro';
           });
 
           btn.addEventListener('mouseover', () => {
-            btn.style.background = '#9a8560';
+            if (!btn.disabled) btn.style.background = '#9a8560';
           });
 
           btn.addEventListener('mouseout', () => {
-            btn.style.background = '#a89968';
+            if (!btn.disabled) btn.style.background = '#a89968';
           });
         });
 
@@ -298,15 +309,15 @@ import Layout from '../../layouts/Layout.astro';
           btn.addEventListener('click', async (e) => {
             e.stopPropagation();
             const productoId = btn.getAttribute('data-id');
-            abrirModalVariantes(productoId);
+            abrirModalVariantes(productoId, variantesReservadas);
           });
 
           btn.addEventListener('mouseover', () => {
-            btn.style.background = '#9a8560';
+            if (!btn.disabled) btn.style.background = '#9a8560';
           });
 
           btn.addEventListener('mouseout', () => {
-            btn.style.background = '#a89968';
+            if (!btn.disabled) btn.style.background = '#a89968';
           });
         });
       } catch (error) {
@@ -330,9 +341,18 @@ import Layout from '../../layouts/Layout.astro';
       }
     }
 
-    function abrirModalVariantes(productoId) {
+    function abrirModalVariantes(productoId, variantesReservadas = {}) {
       const producto = document.querySelector(`article[data-id="${productoId}"] .product-name`)?.textContent || 'Producto';
-      const variantes = variantesMap[productoId] || [];
+      let variantes = variantesMap[productoId] || [];
+      
+      // Filtrar variantes reservadas
+      const variantesReservadasDelProducto = variantesReservadas[productoId] || [];
+      variantes = variantes.filter(v => !variantesReservadasDelProducto.includes(v.id));
+      
+      console.log('📋 Abriendo modal para producto:', productoId);
+      console.log('📋 Variantes disponibles:', variantes.length);
+      console.log('📋 Variantes reservadas del producto:', variantesReservadasDelProducto);
+      
       const modal = document.getElementById('varianteModal');
       const title = document.getElementById('varianteModalTitle');
       const variantesList = document.getElementById('variantesList');

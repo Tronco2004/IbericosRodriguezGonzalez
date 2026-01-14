@@ -129,6 +129,8 @@ import Layout from '../layouts/Layout.astro';
         const subtotal = items.reduce((total, item) => {
           return total + (item.precio_unitario * item.cantidad);
         }, 0);
+        const envio = 500; // 5€ en centimos
+        const total = subtotal + envio;
 
         // Renderizar carrito
         let htmlContent = ``;
@@ -239,11 +241,11 @@ import Layout from '../layouts/Layout.astro';
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; color: #5c4a3d;">
                   <span>Envío</span>
-                  <span style="color: #a89968; font-weight: 600;">A calcular</span>
+                  <span style="color: #a89968; font-weight: 600;">${(envio / 100).toFixed(2)}€</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; color: #5c4a3d;">
                   <span>Impuestos</span>
-                  <span style="color: #a89968; font-weight: 600;">A calcular</span>
+                  <span style="color: #a89968; font-weight: 600;">Incluidos</span>
                 </div>
               </div>
               <div style="
@@ -255,7 +257,7 @@ import Layout from '../layouts/Layout.astro';
                 <div style="display: flex; justify-content: space-between;">
                   <span style="color: #001a33; font-weight: 700;">Total</span>
                   <span style="color: #a89968; font-weight: 700; font-size: 1.3rem;">
-                    ${(subtotal / 100).toFixed(2)}€
+                    ${(total / 100).toFixed(2)}€
                   </span>
                 </div>
               </div>

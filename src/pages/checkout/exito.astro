@@ -95,8 +95,10 @@ const success = params.get('status') === 'success';
         }));
 
         // Calcular totales
+        const SHIPPING_COST = 500; // 5€ en centimos
         const subtotal = items.reduce((sum, item) => sum + (item.precio_unitario * item.cantidad), 0);
-        const total = subtotal; // Por ahora sin envío ni impuestos
+        const envio = SHIPPING_COST;
+        const total = subtotal + envio; // Subtotal + envío
 
         // Obtener email del usuario
         const userDataResponse = await fetch('/api/auth/me', {
@@ -118,6 +120,7 @@ const success = params.get('status') === 'success';
             stripe_session_id: sessionId,
             cartItems,
             subtotal,
+            envio,
             total,
             email: userData.email,
             telefono: userData.telefono || ''
@@ -131,6 +134,30 @@ const success = params.get('status') === 'success';
 
         if (pedidoData.success) {
           console.log('Pedido creado exitosamente:', pedidoData.numero_pedido);
+          
+          // Eliminar las variantes vendidas
+          for (const item of cartItems) {
+            if (item.producto_variante_id) {
+              try {
+                console.log('🗑️ Eliminando variante:', item.producto_variante_id);
+                const deleteResponse = await fetch('/api/variantes/eliminar', {
+                  method: 'DELETE',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ variante_id: item.producto_variante_id })
+                });
+                
+                const deleteData = await deleteResponse.json();
+                if (deleteData.success) {
+                  console.log('✅ Variante eliminada:', item.producto_variante_id);
+                } else {
+                  console.error('❌ Error eliminando variante:', deleteData.error);
+                }
+              } catch (error) {
+                console.error('Error al eliminar variante:', error);
+              }
+            }
+          }
+          
           // Redirigir a mis-pedidos después de 3 segundos
           setTimeout(() => {
             window.location.href = '/mis-pedidos';
