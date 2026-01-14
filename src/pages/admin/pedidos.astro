@@ -3,57 +3,125 @@ import Layout from '../../layouts/Layout.astro';
 ---
 
 <Layout title="Admin - Pedidos">
-  <div style="min-height: 100vh; background: #f8f4f0; padding: 2rem 0;">
-    <div style="max-width: 1200px; margin: 0 auto; padding: 0 1rem;">
-      <h1 style="color: #001a33; margin-bottom: 2rem;">Todos los Pedidos</h1>
+  <div style="min-height: 100vh; background: linear-gradient(135deg, #fafbfc 0%, #f3f4f6 100%); padding: 3rem 2rem;">
+    <div style="max-width: 1200px; margin: 0 auto;">
+      <!-- Header with Back Button -->
+      <div style="margin-bottom: 3rem;">
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+          <a href="/admin/dashboard" style="
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            color: #0f172a;
+            text-decoration: none;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+          " onmouseover="this.style.background='#f1f5f9'; this.style.borderColor='#cbd5e1'" onmouseout="this.style.background='white'; this.style.borderColor='#e2e8f0'">←</a>
+        </div>
+        <h1 style="color: #0f172a; font-size: 2.5rem; margin: 0; font-weight: 900; letter-spacing: -0.5px;">Gestión de Pedidos</h1>
+        <p style="color: #64748b; margin: 0.5rem 0 0 0; font-size: 1rem;">Administra los pedidos de tus clientes</p>
+      </div>
       
-      <div style="margin-bottom: 2rem; display: flex; gap: 1rem;">
+      <!-- Notification Toast -->
+      <div id="notificationToast" style="
+        display: none;
+        position: fixed;
+        top: 2rem;
+        right: 2rem;
+        background: white;
+        padding: 1.25rem 1.75rem;
+        border-radius: 8px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        z-index: 9999;
+        max-width: 400px;
+        animation: slideIn 0.3s ease-out;
+      ">
+        <div style="display: flex; align-items: flex-start; gap: 1rem;">
+          <div id="notificationIcon" style="font-size: 1.5rem; flex-shrink: 0;"></div>
+          <div>
+            <div id="notificationTitle" style="font-weight: 700; color: #0f172a; margin-bottom: 0.25rem;"></div>
+            <div id="notificationMessage" style="color: #64748b; font-size: 0.9rem;"></div>
+          </div>
+        </div>
+      </div>
+
+      <style>
+        @keyframes slideIn {
+          from {
+            transform: translateX(400px);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+
+        @keyframes slideOut {
+          from {
+            transform: translateX(0);
+            opacity: 1;
+          }
+          to {
+            transform: translateX(400px);
+            opacity: 0;
+          }
+        }
+      </style>
+      
+      <div style="margin-bottom: 2rem; display: flex; gap: 1rem; flex-wrap: wrap;">
         <button id="filtro-todos" style="
           padding: 0.75rem 1.5rem;
-          background: #a89968;
+          background: linear-gradient(135deg, #a89968 0%, #8b6f47 100%);
           color: white;
-          border: none;
-          border-radius: 4px;
+          border: 1px solid transparent;
+          border-radius: 8px;
           cursor: pointer;
           font-weight: 600;
-          transition: background 0.3s;
-        ">
+          transition: all 0.3s;
+          box-shadow: 0 2px 8px rgba(168, 153, 104, 0.2);
+        " onmouseover="this.style.boxShadow='0 8px 16px rgba(168, 153, 104, 0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='0 2px 8px rgba(168, 153, 104, 0.2)'; this.style.transform='translateY(0)'">
           Todos los Pedidos
         </button>
         <button id="filtro-dia" style="
           padding: 0.75rem 1.5rem;
-          background: #e0d5c7;
+          background: white;
           color: #001a33;
-          border: none;
-          border-radius: 4px;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
           cursor: pointer;
           font-weight: 600;
-          transition: background 0.3s;
-        ">
+          transition: all 0.3s;
+        " onmouseover="this.style.background='#f1f5f9'; this.style.borderColor='#cbd5e1'" onmouseout="this.style.background='white'; this.style.borderColor='#e2e8f0'">
           Hoy
         </button>
         <button id="filtro-semana" style="
           padding: 0.75rem 1.5rem;
-          background: #e0d5c7;
+          background: white;
           color: #001a33;
-          border: none;
-          border-radius: 4px;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
           cursor: pointer;
           font-weight: 600;
-          transition: background 0.3s;
-        ">
+          transition: all 0.3s;
+        " onmouseover="this.style.background='#f1f5f9'; this.style.borderColor='#cbd5e1'" onmouseout="this.style.background='white'; this.style.borderColor='#e2e8f0'">
           Esta Semana
         </button>
         <button id="filtro-mes" style="
           padding: 0.75rem 1.5rem;
-          background: #e0d5c7;
+          background: white;
           color: #001a33;
-          border: none;
-          border-radius: 4px;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
           cursor: pointer;
           font-weight: 600;
-          transition: background 0.3s;
-        ">
+          transition: all 0.3s;
+        " onmouseover="this.style.background='#f1f5f9'; this.style.borderColor='#cbd5e1'" onmouseout="this.style.background='white'; this.style.borderColor='#e2e8f0'">
           Este Mes
         </button>
       </div>
@@ -72,17 +140,64 @@ import Layout from '../../layouts/Layout.astro';
       window.location.href = '/sin-acceso';
     }
 
+    // Función para mostrar notificación toast
+    function mostrarNotificacion(tipo, titulo, mensaje) {
+      const toast = document.getElementById('notificationToast');
+      const icon = document.getElementById('notificationIcon');
+      const titleEl = document.getElementById('notificationTitle');
+      const messageEl = document.getElementById('notificationMessage');
+
+      // Definir estilos según el tipo
+      const estilos = {
+        success: {
+          icon: '✓',
+          color: '#10b981',
+          background: '#ecfdf5'
+        },
+        error: {
+          icon: '✕',
+          color: '#ef4444',
+          background: '#fef2f2'
+        }
+      };
+
+      const estilo = estilos[tipo] || estilos.success;
+
+      icon.textContent = estilo.icon;
+      icon.style.color = estilo.color;
+      titleEl.textContent = titulo;
+      titleEl.style.color = estilo.color;
+      messageEl.textContent = mensaje;
+
+      toast.style.display = 'flex';
+      toast.style.background = estilo.background;
+
+      // Auto ocultar después de 3 segundos
+      setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => {
+          toast.style.display = 'none';
+          toast.style.animation = 'slideIn 0.3s ease-out';
+        }, 300);
+      }, 3000);
+    }
+
     async function cargarPedidos(filtro = 'todos') {
       try {
         filtroActual = filtro;
         
         // Actualizar estilos de botones
         document.querySelectorAll('button[id^="filtro-"]').forEach(btn => {
-          btn.style.background = '#e0d5c7';
+          btn.style.background = 'white';
           btn.style.color = '#001a33';
+          btn.style.border = '1px solid #e2e8f0';
+          btn.style.boxShadow = 'none';
         });
-        document.getElementById(`filtro-${filtro}`).style.background = '#a89968';
-        document.getElementById(`filtro-${filtro}`).style.color = 'white';
+        const activeBtn = document.getElementById(`filtro-${filtro}`);
+        activeBtn.style.background = 'linear-gradient(135deg, #a89968 0%, #8b6f47 100%)';
+        activeBtn.style.color = 'white';
+        activeBtn.style.border = '1px solid transparent';
+        activeBtn.style.boxShadow = '0 2px 8px rgba(168, 153, 104, 0.2)';
 
         const response = await fetch(`/api/admin/pedidos?filtro=${filtro}`, {
           credentials: 'include'
@@ -259,20 +374,28 @@ import Layout from '../../layouts/Layout.astro';
 
           if (!response.ok) {
             const error = await response.json();
-            alert('Error al actualizar el estado: ' + error.error);
+            mostrarNotificacion('error', 'Error al actualizar', error.error || 'No se pudo actualizar el estado');
             // Recargar los pedidos para restaurar el estado anterior
             cargarPedidos(filtroActual);
             return;
           }
 
           // Mostrar notificación de éxito
-          alert('Estado actualizado correctamente');
+          const estadoTexto = {
+            'pagado': 'Pagado',
+            'preparando': 'Preparando',
+            'enviado': 'Enviado',
+            'entregado': 'Entregado',
+            'cancelado': 'Cancelado'
+          }[nuevoEstado] || nuevoEstado;
+          
+          mostrarNotificacion('success', '¡Perfecto!', `El pedido ha sido actualizado a ${estadoTexto}`);
           // Recargar los pedidos
           cargarPedidos(filtroActual);
 
         } catch (error) {
           console.error('Error:', error);
-          alert('Error al actualizar el estado');
+          mostrarNotificacion('error', 'Error', 'Algo salió mal al actualizar el pedido');
           cargarPedidos(filtroActual);
         }
       }

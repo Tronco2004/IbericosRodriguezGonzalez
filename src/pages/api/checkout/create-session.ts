@@ -24,7 +24,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           description: item.peso_kg ? `Peso: ${item.peso_kg} kg` : undefined,
           images: item.imagen ? [item.imagen] : [],
         },
-        unit_amount: Math.round(item.precio * 100), // Stripe usa centavos
+        unit_amount: Math.round(item.precio), // El precio ya está en centimos desde la BD
       },
       quantity: item.cantidad,
     }));

@@ -471,6 +471,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 
         if (data.success) {
           document.getElementById('clientesCount').textContent = data.clientesActivos || 0;
+          document.getElementById('pedidosCount').textContent = data.pedidosPendientes || 0;
         }
       } catch (error) {
         console.error('Error cargando estadísticas:', error);
