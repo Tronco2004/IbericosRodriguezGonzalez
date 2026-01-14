@@ -152,6 +152,35 @@ import Layout from '../../layouts/Layout.astro';
     async function cargarProductos() {
       console.log('🔄 cargarProductos() ejecutándose');
       try {
+        // Primero obtener items en el carrito
+        const userId = localStorage.getItem('user_id');
+        let productosEnCarrito = new Map(); // {producto_id -> [variante_ids]}
+        
+        if (userId) {
+          try {
+            const carritoResponse = await fetch('/api/carrito', {
+              headers: { 'x-user-id': userId }
+            });
+            if (carritoResponse.ok) {
+              const carritoData = await carritoResponse.json();
+              if (carritoData.items && carritoData.items.length > 0) {
+                carritoData.items.forEach(item => {
+                  const key = item.producto_id;
+                  if (!productosEnCarrito.has(key)) {
+                    productosEnCarrito.set(key, []);
+                  }
+                  if (item.producto_variante_id) {
+                    productosEnCarrito.get(key).push(item.producto_variante_id);
+                  }
+                });
+                console.log('🛒 Productos en carrito:', Array.from(productosEnCarrito.entries()));
+              }
+            }
+          } catch (error) {
+            console.error('❌ Error cargando carrito:', error);
+          }
+        }
+
         const response = await fetch('/api/admin/productos');
         const data = await response.json();
         
@@ -168,7 +197,8 @@ import Layout from '../../layouts/Layout.astro';
             descripcion: p.descripcion || 'Sin descripción',
             rating: p.rating || 4.8,
             es_variable: p.es_variable || false,
-            precio_por_kg: p.precio_por_kg || null
+            precio_por_kg: p.precio_por_kg || null,
+            stock: p.stock ?? 0  // Agregar stock
           }));
 
           // Cargar variantes para productos variables
@@ -200,7 +230,7 @@ import Layout from '../../layouts/Layout.astro';
           const botonClass = p.es_variable ? 'btn-seleccionar-variante' : 'btn-agregar-carrito';
           
           return `
-          <article data-id="${p.id}">
+          <article data-id="${p.id}">;
             <div class="product-image-wrapper">
               <img src="${p.imagen}" alt="${p.nombre}" loading="lazy" />
             </div>
@@ -210,20 +240,26 @@ import Layout from '../../layouts/Layout.astro';
                 <span class="product-price">${p.precio}€</span>
               </div>
               <h3 class="product-name">${p.nombre}</h3>
-              <button class="${botonClass}" data-id="${p.id}" style="
+              ${!p.es_variable ? `
+                <p style="color: ${p.stock > 0 ? '#059669' : '#dc2626'}; margin: 0.5rem 0 0 0; font-size: 0.85rem; font-weight: 500;">
+                  ${p.stock > 0 ? '✅ En stock: ' + p.stock : '❌ Agotado'}
+                </p>
+              ` : ''}
+              <button class="${botonClass}" data-id="${p.id}" ${!p.es_variable && p.stock <= 0 ? 'disabled' : ''} style="
                 width: 100%;
                 margin-top: 0.75rem;
-                background: #a89968;
+                background: ${!p.es_variable && p.stock <= 0 ? '#d1d5db' : '#a89968'};
                 color: white;
                 border: none;
                 padding: 0.6rem;
                 border-radius: 4px;
                 font-weight: 600;
-                cursor: pointer;
+                cursor: ${!p.es_variable && p.stock <= 0 ? 'not-allowed' : 'pointer'};
                 transition: background 0.3s;
                 font-size: 0.85rem;
+                opacity: ${!p.es_variable && p.stock <= 0 ? '0.5' : '1'};
               ">
-                ${botonText}
+                ${!p.es_variable && p.stock <= 0 ? 'Agotado' : botonText}
               </button>
             </div>
           </article>
@@ -392,6 +428,8 @@ import Layout from '../../layouts/Layout.astro';
           console.log('✅ Producto agregado exitosamente');
           mostrarNotificacion(`Jamón de ${peso.toFixed(3)} kg agregado al carrito`, 'exito');
           actualizarContadorCarrito();
+          // Recargar productos para actualizar stock (si aplica)
+          await cargarProductos();
         }
       } catch (error) {
         console.error('❌ Error en agregarAlCarritoConVariante:', error);
@@ -533,6 +571,8 @@ import Layout from '../../layouts/Layout.astro';
           mostrarNotificacion('Producto agregado al carrito', 'exito');
           // Actualizar contador del carrito si existe
           actualizarContadorCarrito();
+          // Recargar productos para actualizar stock
+          await cargarProductos();
         }
       } catch (error) {
         console.error('❌ Error en agregarAlCarrito:', error);

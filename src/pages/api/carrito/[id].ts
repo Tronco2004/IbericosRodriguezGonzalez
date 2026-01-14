@@ -22,6 +22,13 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
       );
     }
 
+    // Obtener el item antes de actualizar para saber la cantidad anterior
+    const { data: itemAnterior } = await supabaseClient
+      .from('carrito_items')
+      .select('*')
+      .eq('id', item_id)
+      .single();
+
     // Si la cantidad es 0 o menor, eliminar
     if (cantidad <= 0) {
       const { error: deleteError } = await supabaseClient
@@ -34,6 +41,24 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
           JSON.stringify({ error: 'Error eliminando item' }),
           { status: 500 }
         );
+      }
+
+      // Devolver stock si es producto simple
+      if (itemAnterior && !itemAnterior.producto_variante_id) {
+        const { data: producto } = await supabaseClient
+          .from('productos')
+          .select('stock')
+          .eq('id', itemAnterior.producto_id)
+          .single();
+        
+        if (producto) {
+          const nuevoStock = producto.stock + itemAnterior.cantidad;
+          await supabaseClient
+            .from('productos')
+            .update({ stock: nuevoStock })
+            .eq('id', itemAnterior.producto_id);
+          console.log('✅ Stock devuelto (cantidad=0):', { producto_id: itemAnterior.producto_id, nuevoStock });
+        }
       }
 
       return new Response(
@@ -55,6 +80,32 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
         JSON.stringify({ error: 'Error actualizando item' }),
         { status: 500 }
       );
+    }
+
+    // Ajustar stock si cambió la cantidad (solo si es producto simple)
+    if (itemAnterior && !itemAnterior.producto_variante_id && itemAnterior.cantidad !== cantidad) {
+      const diferencia = itemAnterior.cantidad - cantidad; // Si es positivo, devolvemos stock
+      
+      const { data: producto } = await supabaseClient
+        .from('productos')
+        .select('stock')
+        .eq('id', itemAnterior.producto_id)
+        .single();
+      
+      if (producto) {
+        const nuevoStock = producto.stock + diferencia;
+        await supabaseClient
+          .from('productos')
+          .update({ stock: nuevoStock })
+          .eq('id', itemAnterior.producto_id);
+        console.log('✅ Stock ajustado:', { 
+          producto_id: itemAnterior.producto_id, 
+          cantidadAnterior: itemAnterior.cantidad,
+          cantidadNueva: cantidad,
+          diferencia,
+          nuevoStock 
+        });
+      }
     }
 
     return new Response(
@@ -91,6 +142,21 @@ export const DELETE: APIRoute = async ({ request, cookies, params }) => {
       );
     }
 
+    // Obtener el item antes de eliminarlo
+    const { data: item, error: getError } = await supabaseClient
+      .from('carrito_items')
+      .select('*')
+      .eq('id', parseInt(itemId))
+      .single();
+
+    if (getError || !item) {
+      console.log('❌ Item no encontrado:', itemId);
+      return new Response(
+        JSON.stringify({ error: 'Item no encontrado', success: false }),
+        { status: 404 }
+      );
+    }
+
     const { error: deleteError } = await supabaseClient
       .from('carrito_items')
       .delete()
@@ -101,6 +167,27 @@ export const DELETE: APIRoute = async ({ request, cookies, params }) => {
         JSON.stringify({ error: 'Error eliminando item' }),
         { status: 500 }
       );
+    }
+
+    console.log('✅ Item eliminado:', itemId);
+
+    // Si es un producto simple (sin variante), devolver el stock
+    if (!item.producto_variante_id) {
+      console.log('➕ Devolviendo stock del producto:', item.producto_id, 'cantidad:', item.cantidad);
+      const { data: producto } = await supabaseClient
+        .from('productos')
+        .select('stock')
+        .eq('id', item.producto_id)
+        .single();
+
+      if (producto) {
+        const nuevoStock = producto.stock + item.cantidad;
+        await supabaseClient
+          .from('productos')
+          .update({ stock: nuevoStock })
+          .eq('id', item.producto_id);
+        console.log('✅ Stock devuelto:', { producto_id: item.producto_id, stockAnterior: producto.stock, nuevoStock });
+      }
     }
 
     return new Response(

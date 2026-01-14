@@ -121,6 +121,27 @@ export const GET: APIRoute = async ({ cookies, request }) => {
         .delete()
         .in('id', itemsExpirados);
       console.log(`🗑️ Eliminados ${itemsExpirados.length} items expirados`);
+
+      // Devolver stock de los items eliminados (solo si son productos simples)
+      for (const item of items) {
+        if (itemsExpirados.includes(item.id) && !item.producto_variante_id) {
+          console.log('➕ Devolviendo stock del producto:', item.producto_id, 'cantidad:', item.cantidad);
+          const { data: producto } = await supabaseClient
+            .from('productos')
+            .select('stock')
+            .eq('id', item.producto_id)
+            .single();
+          
+          if (producto) {
+            const nuevoStock = producto.stock + item.cantidad;
+            await supabaseClient
+              .from('productos')
+              .update({ stock: nuevoStock })
+              .eq('id', item.producto_id);
+            console.log('✅ Stock devuelto:', { producto_id: item.producto_id, stockAnterior: producto.stock, nuevoStock });
+          }
+        }
+      }
     }
 
     // Si hay items expirados, eliminarlos de la BD
@@ -326,6 +347,31 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           JSON.stringify({ error: 'Error agregando item', success: false }),
           { status: 500 }
         );
+      }
+
+      // Si es un producto simple (no tiene variante), restar stock
+      if (!producto_variante_id) {
+        console.log('📉 Restando stock del producto:', producto_id, 'cantidad:', cantidad);
+        const { error: stockError } = await supabaseClient
+          .from('productos')
+          .update({ stock: supabaseClient.from('productos').select('stock').eq('id', producto_id) })
+          .eq('id', producto_id);
+        
+        // Mejor forma: usar SQL directo con RPC o hacer resta manual
+        const { data: producto, error: getError } = await supabaseClient
+          .from('productos')
+          .select('stock')
+          .eq('id', producto_id)
+          .single();
+        
+        if (!getError && producto) {
+          const nuevoStock = Math.max(0, producto.stock - cantidad);
+          await supabaseClient
+            .from('productos')
+            .update({ stock: nuevoStock })
+            .eq('id', producto_id);
+          console.log('✅ Stock actualizado:', { producto_id, stockAnterior: producto.stock, nuevoStock });
+        }
       }
 
       console.log('✅ Item agregado:', nuevoItem);

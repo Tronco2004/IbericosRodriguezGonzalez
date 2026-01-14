@@ -304,7 +304,23 @@ import Layout from '../layouts/Layout.astro';
             const itemId = btn.getAttribute('data-item-id');
             const action = btn.getAttribute('data-action');
             const cartItem = btn.closest('.cart-item');
-            const cantidadSpan = cartItem.querySelector('span');
+            
+            // Buscar el span de cantidad que está entre los dos botones (no el countdown)
+            const cantidadSpans = cartItem.querySelectorAll('span');
+            let cantidadSpan = null;
+            for (const span of cantidadSpans) {
+              // El span de cantidad tiene width: 40px
+              if (span.style.width === '40px') {
+                cantidadSpan = span;
+                break;
+              }
+            }
+            
+            if (!cantidadSpan) {
+              console.error('No se encontró el span de cantidad');
+              return;
+            }
+
             let cantidad = parseInt(cantidadSpan.textContent);
 
             if (action === 'increase') {
