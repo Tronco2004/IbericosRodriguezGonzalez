@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY || '');
+const SHIPPING_COST = 500; // 5€ en centimos
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
@@ -28,6 +29,19 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       },
       quantity: item.cantidad,
     }));
+
+    // Agregar envío como un line item
+    lineItems.push({
+      price_data: {
+        currency: 'eur',
+        product_data: {
+          name: 'Envío',
+          description: 'Costo de envío',
+        },
+        unit_amount: SHIPPING_COST,
+      },
+      quantity: 1,
+    });
 
     // Crear sesión de Stripe
     const session = await stripe.checkout.sessions.create({
