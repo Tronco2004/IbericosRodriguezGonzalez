@@ -1,6 +1,7 @@
-import { supabase } from '../../../lib/supabase';
+import type { APIRoute } from 'astro';
+import { supabaseClient } from '../../../lib/supabase';
 
-export async function GET({ request }: any) {
+export const GET: APIRoute = async ({ request }) => {
   try {
     const userId = request.headers.get('x-user-id');
     const url = new URL(request.url);
@@ -14,7 +15,7 @@ export async function GET({ request }: any) {
     }
 
     // Verificar si el usuario ya usó este código
-    const { data: usoExistente, error } = await supabase
+    const { data: usoExistente, error } = await supabaseClient
       .from('uso_codigos')
       .select('*')
       .eq('codigo_id', parseInt(codigoId))
@@ -40,4 +41,4 @@ export async function GET({ request }: any) {
       headers: { 'Content-Type': 'application/json' }
     });
   }
-}
+};
