@@ -1,0 +1,419 @@
+---
+import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
+---
+
+<ProtectedLayout>
+  <div style="max-width: 1200px; margin: 0 auto; padding: 2rem 1rem;">
+    <!-- Header -->
+    <div style="margin-bottom: 3rem;">
+      <h1 style="font-size: 3rem; margin: 0 0 0.5rem 0; color: #001a33; font-weight: 800; letter-spacing: -1px;">Códigos de Descuento</h1>
+      <div style="width: 80px; height: 3px; background: linear-gradient(90deg, #a89968, #d4a574); border-radius: 10px; margin-bottom: 1.5rem;"></div>
+      <p style="color: #666; font-size: 1.05rem; margin: 0;">Gestiona promociones y ofertas</p>
+    </div>
+
+    <!-- Botón crear código -->
+    <div style="margin-bottom: 2rem;">
+      <button id="btnCrearCodigo" style="padding: 0.85rem 1.5rem; background: linear-gradient(135deg, #a89968, #9a8560); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 1rem; transition: all 0.3s; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(168, 153, 104, 0.2);">
+        Crear Nuevo Código
+      </button>
+    </div>
+
+    <!-- Tabla de códigos -->
+    <div style="background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); overflow: hidden;">
+      <div id="tablaCodigos" style="padding: 2rem;">
+        <p style="text-align: center; color: #999;">Cargando códigos...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal crear código -->
+  <div id="modalCrearCodigo" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; padding: 2rem; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);">
+      <h2 style="margin: 0 0 1.5rem 0; font-size: 1.5rem; color: #001a33; font-weight: 700;">Crear Código de Descuento</h2>
+      
+      <form id="formCrearCodigo" style="display: grid; gap: 1rem;">
+        <!-- Código -->
+        <div>
+          <label for="codigo" style="display: block; font-size: 0.9rem; font-weight: 600; color: #001a33; margin-bottom: 0.5rem;">Código</label>
+          <input 
+            id="codigo"
+            type="text" 
+            required
+            placeholder="Ej: VERANO2024"
+            style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box;"
+          />
+        </div>
+
+        <!-- Descripción -->
+        <div>
+          <label for="descripcion" style="display: block; font-size: 0.9rem; font-weight: 600; color: #001a33; margin-bottom: 0.5rem;">Descripción</label>
+          <input 
+            id="descripcion"
+            type="text" 
+            placeholder="Descripción de la promoción"
+            style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box;"
+          />
+        </div>
+
+        <!-- Tipo de descuento -->
+        <div>
+          <label for="tipoDescuento" style="display: block; font-size: 0.9rem; font-weight: 600; color: #001a33; margin-bottom: 0.5rem;">Tipo de Descuento</label>
+          <select 
+            id="tipoDescuento"
+            required
+            style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box;"
+          >
+            <option value="">Selecciona una opción</option>
+            <option value="porcentaje">Porcentaje (%)</option>
+            <option value="fijo">Monto Fijo (€)</option>
+          </select>
+        </div>
+
+        <!-- Valor descuento -->
+        <div>
+          <label for="valorDescuento" style="display: block; font-size: 0.9rem; font-weight: 600; color: #001a33; margin-bottom: 0.5rem;">Valor del Descuento</label>
+          <input 
+            id="valorDescuento"
+            type="number" 
+            required
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box;"
+          />
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <!-- Fecha inicio -->
+          <div>
+            <label for="fechaInicio" style="display: block; font-size: 0.9rem; font-weight: 600; color: #001a33; margin-bottom: 0.5rem;">Fecha Inicio</label>
+            <input 
+              id="fechaInicio"
+              type="datetime-local" 
+              required
+              style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box;"
+            />
+          </div>
+
+          <!-- Fecha fin -->
+          <div>
+            <label for="fechaFin" style="display: block; font-size: 0.9rem; font-weight: 600; color: #001a33; margin-bottom: 0.5rem;">Fecha Fin</label>
+            <input 
+              id="fechaFin"
+              type="datetime-local" 
+              required
+              style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box;"
+            />
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <!-- Uso máximo -->
+          <div>
+            <label for="usoMaximo" style="display: block; font-size: 0.9rem; font-weight: 600; color: #001a33; margin-bottom: 0.5rem;">Usos Máximos</label>
+            <input 
+              id="usoMaximo"
+              type="number" 
+              min="0"
+              placeholder="Dejar vacío para ilimitado"
+              style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box;"
+            />
+          </div>
+
+          <!-- Monto mínimo -->
+          <div>
+            <label for="montoMinimo" style="display: block; font-size: 0.9rem; font-weight: 600; color: #001a33; margin-bottom: 0.5rem;">Monto Mínimo (€)</label>
+            <input 
+              id="montoMinimo"
+              type="number" 
+              step="0.01"
+              min="0"
+              placeholder="Dejar vacío para sin límite"
+              style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box;"
+            />
+          </div>
+        </div>
+
+        <div id="mensajeFormulario" style="display: none; padding: 1rem; border-radius: 8px; font-size: 0.95rem; border-left: 4px solid #a89968;"></div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+          <button 
+            type="button"
+            id="btnCancelarCodigo"
+            style="padding: 0.75rem; background: #e2e8f0; color: #001a33; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 1rem;"
+          >
+            Cancelar
+          </button>
+          <button 
+            type="submit"
+            style="padding: 0.75rem; background: linear-gradient(135deg, #a89968, #9a8560); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 1rem; transition: all 0.3s;"
+          >
+            Crear Código
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <style>
+    input:focus, select:focus {
+      outline: none;
+      border-color: #a89968;
+      box-shadow: 0 0 0 3px rgba(168, 153, 104, 0.1);
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      text-align: left;
+      padding: 1rem;
+      border-bottom: 2px solid #e0e0e0;
+      font-weight: 700;
+      color: #001a33;
+      background: #f8f7f4;
+    }
+
+    td {
+      padding: 1rem;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    tr:hover {
+      background: #f8f7f4;
+    }
+  </style>
+
+  <script>
+    const modal = document.getElementById('modalCrearCodigo');
+    const btnCrear = document.getElementById('btnCrearCodigo');
+    const btnCancelar = document.getElementById('btnCancelarCodigo');
+    const form = document.getElementById('formCrearCodigo');
+
+    btnCrear.addEventListener('click', () => {
+      modal.style.display = 'flex';
+    });
+
+    btnCancelar.addEventListener('click', () => {
+      modal.style.display = 'none';
+      form.reset();
+    });
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.style.display = 'none';
+        form.reset();
+      }
+    });
+
+    async function cargarCodigos() {
+      try {
+        const response = await fetch('/api/admin/codigos-lista', {
+          headers: {
+            'x-user-id': localStorage.getItem('user_id') || ''
+          }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          renderizarTabla(data.codigos);
+        } else {
+          document.getElementById('tablaCodigos').innerHTML = '<p style="color: red;">Error al cargar códigos</p>';
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('tablaCodigos').innerHTML = '<p style="color: red;">Error de conexión</p>';
+      }
+    }
+
+    function renderizarTabla(codigos) {
+      if (codigos.length === 0) {
+        document.getElementById('tablaCodigos').innerHTML = '<p style="text-align: center; color: #999;">No hay códigos creados aún</p>';
+        return;
+      }
+
+      let html = '<table><thead><tr><th>Código</th><th>Descuento</th><th>Usos</th><th>Descuento Total</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>';
+
+      codigos.forEach(codigo => {
+        const ahora = new Date();
+        const inicio = new Date(codigo.fecha_inicio);
+        const fin = new Date(codigo.fecha_fin);
+        
+        let estado = 'Inactivo';
+        if (codigo.activo) {
+          if (ahora < inicio) estado = 'Próximo';
+          else if (ahora > fin) estado = 'Expirado';
+          else estado = 'Activo';
+        }
+
+        const estadoColor = estado === 'Activo' ? '#10b981' : estado === 'Próximo' ? '#f59e0b' : '#ef4444';
+        const descuentoDisplay = codigo.tipo_descuento === 'porcentaje' ? `${codigo.valor_descuento}%` : `${codigo.valor_descuento.toFixed(2)}€`;
+
+        html += `
+          <tr>
+            <td style="font-weight: 600; color: #a89968;">${codigo.codigo}</td>
+            <td>${descuentoDisplay}</td>
+            <td>${codigo.usos_totales || 0}${codigo.uso_maximo ? `/${codigo.uso_maximo}` : ''}</td>
+            <td>${codigo.descuento_total?.toFixed(2) || '0.00'}€</td>
+            <td><span style="background: ${estadoColor}; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">${estado}</span></td>
+            <td>
+              <button onclick="verDetalles(${codigo.id})" style="background: #a89968; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">
+                Ver Detalles
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+
+      html += '</tbody></table>';
+      document.getElementById('tablaCodigos').innerHTML = html;
+    }
+
+    async function verDetalles(codigoId) {
+      try {
+        const response = await fetch(`/api/admin/codigos-detalles?codigo_id=${codigoId}`, {
+          headers: {
+            'x-user-id': localStorage.getItem('user_id') || ''
+          }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          mostrarDetalles(data);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error al obtener detalles');
+      }
+    }
+
+    function mostrarDetalles(data) {
+      const codigo = data.codigo;
+      const usos = data.usos || [];
+      const stats = data.estadisticas;
+
+      let html = `
+        <div style="background: white; border-radius: 12px; padding: 2rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+          <h2 style="margin: 0 0 1.5rem 0; color: #001a33;">${codigo.codigo}</h2>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
+            <div style="background: #f8f7f4; padding: 1rem; border-radius: 8px;">
+              <p style="margin: 0 0 0.5rem 0; font-size: 0.85rem; color: #999;">Total Usos</p>
+              <p style="margin: 0; font-size: 1.5rem; font-weight: 700; color: #a89968;">${stats.total_usos}</p>
+            </div>
+            <div style="background: #f8f7f4; padding: 1rem; border-radius: 8px;">
+              <p style="margin: 0 0 0.5rem 0; font-size: 0.85rem; color: #999;">Descuento Total</p>
+              <p style="margin: 0; font-size: 1.5rem; font-weight: 700; color: #a89968;">${stats.descuento_total.toFixed(2)}€</p>
+            </div>
+            <div style="background: #f8f7f4; padding: 1rem; border-radius: 8px;">
+              <p style="margin: 0 0 0.5rem 0; font-size: 0.85rem; color: #999;">Promedio</p>
+              <p style="margin: 0; font-size: 1.5rem; font-weight: 700; color: #a89968;">${stats.promedio_descuento}€</p>
+            </div>
+          </div>
+          
+          <h3 style="margin: 0 0 1rem 0; color: #001a33;">Historial de Uso</h3>
+          ${usos.length === 0 ? '<p style="color: #999;">No hay usos registrados</p>' : `
+            <table style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="border-bottom: 2px solid #e0e0e0;">
+                  <th style="text-align: left; padding: 1rem; font-weight: 700;">Usuario</th>
+                  <th style="text-align: left; padding: 1rem; font-weight: 700;">Email</th>
+                  <th style="text-align: left; padding: 1rem; font-weight: 700;">Descuento</th>
+                  <th style="text-align: left; padding: 1rem; font-weight: 700;">Fecha</th>
+                  <th style="text-align: left; padding: 1rem; font-weight: 700;">Pedido</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${usos.map(uso => `
+                  <tr style="border-bottom: 1px solid #e0e0e0;">
+                    <td style="padding: 1rem;">${uso.nombre_usuario}</td>
+                    <td style="padding: 1rem;">${uso.email_usuario || '-'}</td>
+                    <td style="padding: 1rem; font-weight: 600; color: #a89968;">${uso.descuento_aplicado.toFixed(2)}€</td>
+                    <td style="padding: 1rem;">${new Date(uso.fecha_uso).toLocaleDateString('es-ES')}</td>
+                    <td style="padding: 1rem;">#${uso.pedido_id}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `}
+        </div>
+      `;
+
+      document.getElementById('tablaCodigos').innerHTML = html;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const codigo = document.getElementById('codigo').value;
+      const descripcion = document.getElementById('descripcion').value;
+      const tipoDescuento = document.getElementById('tipoDescuento').value;
+      const valorDescuento = document.getElementById('valorDescuento').value;
+      const fechaInicio = document.getElementById('fechaInicio').value;
+      const fechaFin = document.getElementById('fechaFin').value;
+      const usoMaximo = document.getElementById('usoMaximo').value;
+      const montoMinimo = document.getElementById('montoMinimo').value;
+
+      try {
+        const response = await fetch('/api/admin/codigos-crear', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': localStorage.getItem('user_id') || ''
+          },
+          body: JSON.stringify({
+            codigo,
+            descripcion,
+            tipo_descuento: tipoDescuento,
+            valor_descuento: parseFloat(valorDescuento),
+            fecha_inicio: new Date(fechaInicio).toISOString(),
+            fecha_fin: new Date(fechaFin).toISOString(),
+            uso_maximo: usoMaximo ? parseInt(usoMaximo) : null,
+            restriccion_monto_minimo: montoMinimo ? parseFloat(montoMinimo) : null
+          })
+        });
+
+        const data = await response.json();
+        const mensaje = document.getElementById('mensajeFormulario');
+
+        if (response.ok && data.success) {
+          mensaje.textContent = 'Código creado correctamente';
+          mensaje.style.display = 'block';
+          mensaje.style.background = '#d1fae5';
+          mensaje.style.color = '#065f46';
+          mensaje.style.borderLeftColor = '#10b981';
+          
+          form.reset();
+          setTimeout(() => {
+            modal.style.display = 'none';
+            cargarCodigos();
+          }, 1500);
+        } else {
+          mensaje.textContent = 'Error: ' + (data.message || 'No se pudo crear el código');
+          mensaje.style.display = 'block';
+          mensaje.style.background = '#fee2e2';
+          mensaje.style.color = '#991b1b';
+          mensaje.style.borderLeftColor = '#ef4444';
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        const mensaje = document.getElementById('mensajeFormulario');
+        mensaje.textContent = 'Error de conexión';
+        mensaje.style.display = 'block';
+        mensaje.style.background = '#fee2e2';
+        mensaje.style.color = '#991b1b';
+        mensaje.style.borderLeftColor = '#ef4444';
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', cargarCodigos);
+  </script>
+</ProtectedLayout>

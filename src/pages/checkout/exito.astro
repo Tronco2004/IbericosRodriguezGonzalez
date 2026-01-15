@@ -58,12 +58,15 @@ const success = params.get('status') === 'success';
   <script>
     async function crearPedidoDesdeStripe() {
       try {
-        const sessionId = new URLSearchParams(window.location.search).get('session_id');
+        const params = new URLSearchParams(window.location.search);
+        const sessionId = params.get('session_id');
+        const codigoDescuento = params.get('codigo');
         const userId = localStorage.getItem('user_id');
 
         console.log('=== Creando pedido ===');
         console.log('sessionId:', sessionId);
         console.log('userId:', userId);
+        console.log('codigoDescuento:', codigoDescuento);
 
         if (!sessionId || !userId) {
           console.error('Faltan datos para crear el pedido');
@@ -118,8 +121,40 @@ const success = params.get('status') === 'success';
           headers: { 'x-user-id': userId }
         });
 
-        const userData = await userDataResponse.json();
+        const userDataRaw = await userDataResponse.json();
+        const userData = userDataRaw.usuario || userDataRaw;
         console.log('👤 Email del usuario:', userData.email);
+        console.log('Datos del usuario completos:', userData);
+
+        // Si hay código de descuento, obtener el descuento aplicado
+        let descuentoAplicado = 0;
+        if (codigoDescuento) {
+          try {
+            const validarResponse = await fetch('/api/codigos/validar', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-user-id': userId
+              },
+              body: JSON.stringify({
+                codigo: codigoDescuento,
+                monto_carrito: (subtotal / 100)
+              })
+            });
+
+            const validarData = await validarResponse.json();
+            if (validarData.success) {
+              descuentoAplicado = validarData.descuento;
+              console.log('Descuento a aplicar:', descuentoAplicado);
+            }
+          } catch (error) {
+            console.error('Error validando descuento:', error);
+          }
+        }
+
+        // Calcular total con descuento (en centimos)
+        const descuentoEnCentimos = Math.round(descuentoAplicado * 100);
+        const totalConDescuentoCentimos = (subtotal + envio) - descuentoEnCentimos;
 
         // Crear el pedido
         const pedidoResponse = await fetch('/api/pedidos', {
@@ -135,7 +170,8 @@ const success = params.get('status') === 'success';
             cartItems,
             subtotal,
             envio,
-            total,
+            total: totalConDescuentoCentimos,
+            descuento_aplicado: descuentoAplicado,
             email: userData.email,
             telefono: userData.telefono || ''
           })
@@ -148,6 +184,38 @@ const success = params.get('status') === 'success';
 
         if (pedidoData.success) {
           console.log('Pedido creado exitosamente:', pedidoData.numero_pedido);
+
+          // Registrar uso del código de descuento si existe
+          if (codigoDescuento) {
+            try {
+              console.log('Registrando uso del código:', codigoDescuento);
+              
+              const registroResponse = await fetch('/api/codigos/registrar-uso', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-user-id': userId
+                },
+                body: JSON.stringify({
+                  codigo: codigoDescuento,
+                  pedido_id: pedidoData.pedido_id,
+                  email_usuario: userData.email
+                })
+              });
+
+              const registroData = await registroResponse.json();
+              
+              if (registroData.success) {
+                console.log('Uso del código registrado correctamente');
+              } else {
+                console.error('Error registrando uso:', registroData.error);
+              }
+            } catch (error) {
+              console.error('Error al registrar uso del código:', error);
+              // No fallar el pedido si no se puede registrar el código
+            }
+          }
+
           console.log('Redirigiendo a mis-pedidos en 2 segundos...');
           
           // Las variantes se eliminarán automáticamente mediante trigger en la BD
