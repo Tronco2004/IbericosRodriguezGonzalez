@@ -152,6 +152,23 @@ import Layout from '../../layouts/Layout.astro';
     async function cargarProductos() {
       console.log('🔄 cargarProductos() ejecutándose');
       try {
+        // Primero obtener ofertas activas
+        let ofertasMap = new Map(); // {producto_id -> oferta}
+        try {
+          const ofertasResponse = await fetch('/api/ofertas');
+          const ofertasData = await ofertasResponse.json();
+          if (ofertasData.success && ofertasData.data) {
+            console.log('📊 Ofertas obtenidas:', ofertasData.data);
+            ofertasData.data.forEach(oferta => {
+              ofertasMap.set(oferta.producto_id, oferta);
+              console.log(`✅ Oferta para producto ${oferta.producto_id}: ${oferta.nombre_oferta} (${oferta.porcentaje_descuento}% descuento)`);
+            });
+            console.log('🎉 Ofertas cargadas:', ofertasMap.size);
+          }
+        } catch (error) {
+          console.error('❌ Error cargando ofertas:', error);
+        }
+
         // Primero obtener items en el carrito
         const userId = localStorage.getItem('user_id');
         let productosEnCarrito = new Map(); // {producto_id -> [variante_ids]}
@@ -193,18 +210,27 @@ import Layout from '../../layouts/Layout.astro';
         
         if (data.success && data.productos && data.productos.length > 0) {
           // Convertir productos de Supabase al formato esperado
-          productos = data.productos.map((p) => ({
-            id: p.id,
-            nombre: p.nombre,
-            precio: (p.precio_centimos / 100).toFixed(2),
-            categoria: p.categorias?.slug || 'desconocida',
-            imagen: p.imagen_url || 'https://images.unsplash.com/photo-1557803104268-0ef0f060e15f?w=500&h=500&fit=crop',
-            descripcion: p.descripcion || 'Sin descripción',
-            rating: p.rating || 4.8,
-            es_variable: p.es_variable || false,
-            precio_por_kg: p.precio_por_kg || null,
-            stock: p.stock ?? 0  // Agregar stock
-          }));
+          productos = data.productos.map((p) => {
+            const oferta = ofertasMap.get(p.id);
+            const precioOriginal = p.precio_centimos / 100;
+            const precioFinal = oferta ? (oferta.precio_descuento_centimos / 100) : precioOriginal;
+            
+            return {
+              id: p.id,
+              nombre: p.nombre,
+              precio: precioFinal.toFixed(2),
+              precioOriginal: precioOriginal.toFixed(2),
+              tieneOferta: !!oferta,
+              oferta: oferta,
+              categoria: p.categorias?.slug || 'desconocida',
+              imagen: p.imagen_url || 'https://images.unsplash.com/photo-1557803104268-0ef0f060e15f?w=500&h=500&fit=crop',
+              descripcion: p.descripcion || 'Sin descripción',
+              rating: p.rating || 4.8,
+              es_variable: p.es_variable || false,
+              precio_por_kg: p.precio_por_kg || null,
+              stock: p.stock ?? 0  // Agregar stock
+            };
+          });
 
           // Cargar variantes para productos variables
           console.log('📦 Total de productos:', productos.length);
@@ -254,12 +280,13 @@ import Layout from '../../layouts/Layout.astro';
           
           return `
           <article data-id="${p.id}" style="position: relative;">
+            ${p.tieneOferta ? `<div style="position: absolute; top: 10px; right: 10px; background: #dc2626; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: 700; font-size: 0.85rem; z-index: 10;">-${p.oferta.porcentaje_descuento}%</div>` : ''}
             <div class="product-image-wrapper">
               <img src="${p.imagen}" alt="${p.nombre}" loading="lazy" />
             </div>
             <div class="product-info">
               <div class="product-footer">
-                <span class="product-price-original">Antes ${(p.precio * 1.2).toFixed(2)}€</span>
+                ${p.tieneOferta ? `<span class="product-price-original" style="text-decoration: line-through; opacity: 0.6;">${p.precioOriginal}€</span>` : ''}
                 <span class="product-price">${p.precio}€</span>
               </div>
               <h3 class="product-name">${p.nombre}</h3>

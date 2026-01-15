@@ -15,6 +15,7 @@ export const GET: APIRoute = async ({ request }) => {
       .from('ofertas')
       .select(`
         id,
+        producto_id,
         nombre_oferta,
         descripcion,
         precio_original_centimos,
