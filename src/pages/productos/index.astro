@@ -334,6 +334,9 @@ import Layout from '../../layouts/Layout.astro';
               ">
                 ${productoAgotado ? 'Agotado' : botonText}
               </button>
+              <p style="margin-top: 0.5rem; font-size: 0.8rem; color: #5c4a3d; text-align: center;">
+                Stock: ${p.es_variable ? variantesConStock.length + ' opciones disponibles' : p.stock + ' unidades'}
+              </p>
             </div>
           </article>
         `;

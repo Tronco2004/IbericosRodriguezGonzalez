@@ -174,3 +174,104 @@ export async function enviarConfirmacionPedido(datos: EmailPedido) {
     throw error;
   }
 }
+
+/**
+ * Enviar correo con instrucciones de devolución
+ */
+export async function enviarEmailDevolucion(emailCliente: string, numeroPedido: string) {
+  try {
+    console.log('📧 Preparando email de devolución para:', emailCliente);
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: 'Inter', Arial, sans-serif; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #a89968, #8b6f47); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+          .content { background: white; padding: 20px; border: 1px solid #e0d5c7; }
+          .section { margin: 20px 0; }
+          .section h3 { color: #001a33; margin-top: 0; }
+          .address-box { background: #f8f7f4; padding: 15px; border-left: 4px solid #a89968; margin: 15px 0; }
+          .disclaimer { background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 4px; color: #856404; font-size: 0.9rem; margin: 20px 0; }
+          .footer { background: #f8f7f4; padding: 15px; text-align: center; font-size: 0.85rem; color: #666; }
+          .button { display: inline-block; background: #a89968; color: white; padding: 10px 20px; border-radius: 4px; text-decoration: none; margin: 10px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1 style="margin: 0; font-size: 1.8rem;">Solicitud de Devolución Recibida</h1>
+            <p style="margin: 5px 0 0 0;">Pedido: ${numeroPedido}</p>
+          </div>
+          
+          <div class="content">
+            <div class="section">
+              <p>Hola,</p>
+              <p>Hemos recibido tu solicitud de devolución. Por favor, sigue los pasos a continuación para procesar la devolución de tu pedido.</p>
+            </div>
+
+            <div class="section">
+              <h3>Instrucciones de Envío de Devolución</h3>
+              <p>Por favor, empaqueta el producto en su <strong>embalaje original</strong> (sin abrir si es posible) y envíalo a:</p>
+              <div class="address-box">
+                <strong>Ibéricos Rodríguez González</strong><br>
+                Calle de la Moda 123<br>
+                Polígono Industrial<br>
+                28001 Madrid, España<br><br>
+                <strong>Referencia:</strong> ${numeroPedido}
+              </div>
+            </div>
+
+            <div class="section">
+              <h3>Etiqueta de Devolución</h3>
+              <p>Adjunto a este correo encontrarás la etiqueta de devolución. Úsala para enviar el paquete.</p>
+            </div>
+
+            <div class="section">
+              <h3>Próximos Pasos</h3>
+              <ol>
+                <li>Empaca el producto en su embalaje original</li>
+                <li>Imprime la etiqueta de devolución adjunta</li>
+                <li>Pega la etiqueta en el exterior del paquete</li>
+                <li>Lleva el paquete a tu oficina postal más cercana</li>
+                <li>Conserva el número de seguimiento</li>
+              </ol>
+            </div>
+
+            <div class="disclaimer">
+              <strong>Información Importante:</strong><br>
+              Una vez recibido y validado el paquete en nuestros almacenes, el reembolso se procesará en tu método de pago original en un plazo de <strong>5 a 7 días hábiles</strong>. Recibirás un correo de confirmación cuando procesemos tu reembolso.
+            </div>
+
+            <div class="section">
+              <h3>¿Preguntas?</h3>
+              <p>Si tienes alguna duda, no dudes en contactarnos a través de nuestro correo electrónico.</p>
+            </div>
+          </div>
+
+          <div class="footer">
+            <p>© 2026 Ibéricos Rodríguez González. Todos los derechos reservados.</p>
+            <p>Este es un correo automático. Por favor, no respondas directamente.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    await transporter.sendMail({
+      from: import.meta.env.GMAIL_USER,
+      to: emailCliente,
+      subject: `Instrucciones de Devolución - ${numeroPedido}`,
+      html: htmlContent
+    });
+
+    console.log('✅ Email de devolución enviado a:', emailCliente);
+    return true;
+  } catch (error) {
+    console.error('❌ Error enviando email de devolución:', error);
+    throw error;
+  }
+}
