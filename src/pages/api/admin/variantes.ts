@@ -139,14 +139,14 @@ export const DELETE: APIRoute = async ({ request, cookies }) => {
   }
 };
 
-// PUT - Actualizar variante (precio, peso, etc.)
+// PUT - Actualizar variante (precio, peso, disponibilidad, etc.)
 export const PUT: APIRoute = async ({ request, cookies }) => {
   try {
     const url = new URL(request.url);
     const varianteId = url.pathname.split('/').pop(); // Obtener ID de la URL
     
     const body = await request.json();
-    const { peso_kg, precio_total, cantidad_disponible } = body;
+    const { peso_kg, precio_total, cantidad_disponible, disponible } = body;
 
     if (!varianteId) {
       return new Response(
@@ -162,6 +162,9 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
     if (cantidad_disponible !== undefined) {
       updateData.cantidad_disponible = parseInt(cantidad_disponible);
       updateData.disponible = cantidad_disponible > 0;
+    }
+    if (disponible !== undefined) {
+      updateData.disponible = Boolean(disponible);
     }
 
     const { data: variante, error } = await supabaseClient

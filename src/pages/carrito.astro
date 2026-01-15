@@ -72,12 +72,17 @@ import Layout from '../layouts/Layout.astro';
         const items = data.items || [];
         const itemsExpirados = data.itemsExpirados || false;
 
+        // Guardar items en variable global para el contador
+        window.carritoItems = items;
+
         let html = '';
 
         if (!items || items.length === 0) {
           document.getElementById('loadingMessage').style.display = 'none';
           
           if (itemsExpirados) {
+            // Notificar que el carrito expiró (devuelve stock)
+            window.dispatchEvent(new CustomEvent('carritoActualizado'));
             html += `
               <div style="background: #fef3c7; border: 1px solid #fcd34d; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
                 <div style="display: flex; gap: 1rem;">
@@ -153,8 +158,12 @@ import Layout from '../layouts/Layout.astro';
         htmlContent += `
           <div style="display: grid; grid-template-columns: 1fr 350px; gap: 2rem; align-items: start;">
             <div style="background: white; border-radius: 8px; overflow: hidden; border: 1px solid #e0d5c7;">
-              <div style="padding: 1.5rem; background: #f8f4f0; border-bottom: 1px solid #e0d5c7;">
+              <div style="padding: 1.5rem; background: #f8f4f0; border-bottom: 1px solid #e0d5c7; display: flex; justify-content: space-between; align-items: center;">
                 <h2 style="color: #001a33; margin: 0;">Carrito (${totalItems} ${totalItems === 1 ? 'producto' : 'productos'})</h2>
+                <div style="text-align: right;">
+                  <div style="font-size: 0.9rem; color: #5c4a3d; margin-bottom: 0.25rem;">Expira en:</div>
+                  <span id="countdownGlobal" class="countdown-global" style="font-size: 1.3rem; font-weight: 600; color: #d97706;">cargando...</span>
+                </div>
               </div>
               <div>
         `;
@@ -176,9 +185,6 @@ import Layout from '../layouts/Layout.astro';
                 </h3>
                 <p style="color: #a89968; margin: 0; font-weight: 600; font-size: 0.95rem;">
                   ${(item.precio_unitario / 100).toFixed(2)}€
-                </p>
-                <p style="color: #d97706; margin: 0.5rem 0 0 0; font-size: 0.85rem; font-weight: 500;">
-                  ⏱️ Expira en: <span class="countdown" data-fecha="${item.fecha_agregado}">cargando...</span>
                 </p>
               </div>
               <div style="display: flex; align-items: center; gap: 0.5rem; border: 1px solid #e0d5c7; border-radius: 4px;">
@@ -434,6 +440,8 @@ import Layout from '../layouts/Layout.astro';
             user_id: localStorage.getItem('user_id')
           })
         });
+        // Disparar evento para que se actualicen los productos
+        window.dispatchEvent(new CustomEvent('carritoActualizado'));
       } catch (error) {
         console.error('Error eliminando item:', error);
       }
@@ -506,40 +514,44 @@ import Layout from '../layouts/Layout.astro';
       btnCheckoutGlobal.addEventListener('click', irAStripe);
     }
 
-    // Función para actualizar contadores de expiración
+    // Función para actualizar contadores de expiración (CONTADOR GLOBAL)
     function actualizarContadores() {
-      const countdowns = document.querySelectorAll('.countdown');
-      countdowns.forEach(span => {
-        const fechaAgregado = span.getAttribute('data-fecha');
-        if (!fechaAgregado) return;
+      if (!window.carritoItems || window.carritoItems.length === 0) return;
 
-        const fecha = new Date(fechaAgregado);
-        const ahora = new Date();
-        
-        console.log('📅 Countdown debug:', {
-          fechaAgregado,
-          fecha: fecha.toISOString(),
-          ahora: ahora.toISOString(),
-          diferenciaMilisegundos: ahora.getTime() - fecha.getTime()
-        });
+      // Encontrar el item más reciente
+      let itemMasReciente = window.carritoItems[0];
+      for (const item of window.carritoItems) {
+        const fecha1 = new Date(item.fecha_agregado);
+        const fecha2 = new Date(itemMasReciente.fecha_agregado);
+        if (fecha1 > fecha2) {
+          itemMasReciente = item;
+        }
+      }
 
-        const diff = fecha.getTime() + (15 * 60 * 1000) - ahora.getTime(); // 15 minutos en ms
+      // Calcular tiempo restante basado en el item más reciente
+      const ahora = new Date();
+      const fechaAgregado = new Date(itemMasReciente.fecha_agregado);
+      const tiempoExpiracion = fechaAgregado.getTime() + (15 * 60 * 1000); // 15 minutos
+      const diff = tiempoExpiracion - ahora.getTime();
 
-        console.log('⏱️ Diff calculado:', diff, 'ms =', Math.floor(diff / (1000 * 60)), 'minutos');
-
+      // Actualizar el countdown global con el tiempo del item más reciente
+      const countdownGlobal = document.getElementById('countdownGlobal');
+      if (countdownGlobal) {
         if (diff <= 0) {
-          span.textContent = '⚠️ EXPIRADO';
-          span.style.color = '#dc2626';
+          countdownGlobal.textContent = '⚠️ EXPIRADO';
+          countdownGlobal.style.color = '#dc2626';
         } else {
           const minutos = Math.floor(diff / (1000 * 60));
           const segundos = Math.floor((diff % (1000 * 60)) / 1000);
-          span.textContent = `${minutos}:${segundos.toString().padStart(2, '0')}`;
+          countdownGlobal.textContent = `${minutos}:${segundos.toString().padStart(2, '0')}`;
           
           if (diff < 60000) { // Menos de 1 minuto
-            span.style.color = '#dc2626';
+            countdownGlobal.style.color = '#dc2626';
+          } else {
+            countdownGlobal.style.color = '#d97706';
           }
         }
-      });
+      }
     }
 
     // Actualizar contadores cada segundo
@@ -547,5 +559,13 @@ import Layout from '../layouts/Layout.astro';
     setInterval(actualizarContadores, 1000);
 
     cargarCarrito();
+    
+    // Listener para cuando se actualice el contador (se dispara cuando el carrito cambia)
+    document.addEventListener('carritoActualizado', () => {
+      console.log('🔄 Carrito actualizado, reiniciando contadores');
+      setTimeout(() => {
+        actualizarContadores();
+      }, 500);
+    });
   </script>
 </Layout>

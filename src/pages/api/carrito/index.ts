@@ -72,60 +72,53 @@ export const GET: APIRoute = async ({ cookies, request }) => {
 
     console.log('📦 Items obtenidos del carrito:', items?.length ?? 0, 'items');
 
-    // Filtrar items válidos (últimos 15 minutos) en el cliente
+    // Verificar si el carrito ha expirado usando el item más reciente como referencia global
+    let carritoExpirado = false;
     const ahora = new Date();
-    const itemsValidos: any[] = [];
-    const itemsExpirados: number[] = [];
 
-    console.log('🔍 Filtrando items:', items?.length ?? 0, 'items');
+    if (items && items.length > 0) {
+      // Encontrar el item más reciente
+      let itemMasReciente = items[0];
+      for (const item of items) {
+        let fechaStr = item.fecha_agregado;
+        if (fechaStr && !fechaStr.endsWith('Z')) {
+          fechaStr = fechaStr + 'Z';
+        }
+        
+        let fechaMasRecienteStr = itemMasReciente.fecha_agregado;
+        if (fechaMasRecienteStr && !fechaMasRecienteStr.endsWith('Z')) {
+          fechaMasRecienteStr = fechaMasRecienteStr + 'Z';
+        }
 
-    (items || []).forEach(item => {
-      // Agregar 'Z' al timestamp si no lo tiene (PostgreSQL lo devuelve sin timezone)
-      let fechaStr = item.fecha_agregado;
+        if (new Date(fechaStr) > new Date(fechaMasRecienteStr)) {
+          itemMasReciente = item;
+        }
+      }
+
+      // Calcular minutos desde el item más reciente
+      let fechaStr = itemMasReciente.fecha_agregado;
       if (fechaStr && !fechaStr.endsWith('Z')) {
         fechaStr = fechaStr + 'Z';
       }
 
-      console.log(`📋 Item ${item.id}:`, {
-        fecha_original: item.fecha_agregado,
-        fecha_con_z: fechaStr,
-        tipo: typeof item.fecha_agregado
-      });
+      const fechaMasReciente = new Date(fechaStr);
+      const minutosPasados = (ahora.getTime() - fechaMasReciente.getTime()) / (1000 * 60);
 
-      if (!fechaStr) {
-        console.log(`✅ Item ${item.id} sin fecha, manteniendo como válido`);
-        itemsValidos.push(item);
-        return;
-      }
-
-      const fechaAgregado = new Date(fechaStr);
-      const minutosPasados = (ahora.getTime() - fechaAgregado.getTime()) / (1000 * 60);
-
-      console.log(`⏱️ Item ${item.id}: ${minutosPasados.toFixed(2)} minutos (ahora=${ahora.toISOString()}, fecha=${fechaAgregado.toISOString()})`);
+      console.log(`⏱️ Item más reciente (${itemMasReciente.id}): ${minutosPasados.toFixed(2)} minutos`);
 
       if (minutosPasados > 15) {
-        console.log(`❌ Item ${item.id} expirado`);
-        itemsExpirados.push(item.id);
-      } else {
-        console.log(`✅ Item ${item.id} válido`);
-        itemsValidos.push(item);
+        console.log(`❌ CARRITO EXPIRADO - Eliminando TODOS los items`);
+        carritoExpirado = true;
       }
-    });
+    }
 
-    console.log('📊 Resultado:', { itemsValidos: itemsValidos.length, itemsExpirados: itemsExpirados.length });
-
-    // Eliminar items expirados de la BD
-    if (itemsExpirados.length > 0) {
-      await supabaseClient
-        .from('carrito_items')
-        .delete()
-        .in('id', itemsExpirados);
-      console.log(`🗑️ Eliminados ${itemsExpirados.length} items expirados`);
-
-      // Devolver stock de los items eliminados (solo si son productos simples)
+    // Si el carrito expiró, eliminar TODOS los items y devolver stock
+    if (carritoExpirado && items && items.length > 0) {
+      // Devolver stock de TODOS los items (simples y variantes)
       for (const item of items) {
-        if (itemsExpirados.includes(item.id) && !item.producto_variante_id) {
-          console.log('➕ Devolviendo stock del producto:', item.producto_id, 'cantidad:', item.cantidad);
+        // Productos simples
+        if (!item.producto_variante_id) {
+          console.log('➕ Devolviendo stock del producto simple:', item.producto_id, 'cantidad:', item.cantidad);
           const { data: producto } = await supabaseClient
             .from('productos')
             .select('stock')
@@ -138,45 +131,77 @@ export const GET: APIRoute = async ({ cookies, request }) => {
               .from('productos')
               .update({ stock: nuevoStock })
               .eq('id', item.producto_id);
-            console.log('✅ Stock devuelto:', { producto_id: item.producto_id, stockAnterior: producto.stock, nuevoStock });
+            console.log('✅ Stock devuelto (simple):', { producto_id: item.producto_id, nuevoStock });
+          }
+        }
+        
+        // Productos variables (variantes)
+        if (item.producto_variante_id) {
+          console.log('➕ Devolviendo stock de variante:', item.producto_variante_id, 'cantidad:', item.cantidad);
+          const { data: variante } = await supabaseClient
+            .from('producto_variantes')
+            .select('cantidad_disponible')
+            .eq('id', item.producto_variante_id)
+            .single();
+          
+          if (variante) {
+            const stockAnterior = variante.cantidad_disponible || 0;
+            const nuevoStock = stockAnterior + item.cantidad;
+            const nuevoDisponible = nuevoStock > 0;
+            await supabaseClient
+              .from('producto_variantes')
+              .update({ 
+                cantidad_disponible: nuevoStock,
+                disponible: nuevoDisponible
+              })
+              .eq('id', item.producto_variante_id);
+            console.log('✅ Stock devuelto (variante):', { variante_id: item.producto_variante_id, stockAnterior, nuevoStock, ahora_disponible: nuevoDisponible });
           }
         }
       }
-    }
 
-    // Si hay items expirados, eliminarlos de la BD
-    if (itemsExpirados.length > 0) {
-      // Eliminar items expirados
+      // Eliminar TODOS los items del carrito
       const { error: deleteError } = await supabaseClient
         .from('carrito_items')
         .delete()
-        .in('id', itemsExpirados);
+        .eq('carrito_id', carrito.id);
 
       if (deleteError) {
-        console.error('Error eliminando items expirados:', deleteError);
+        console.log('❌ Error eliminando items expirados:', deleteError);
+      } else {
+        console.log('✅ Todos los items eliminados');
       }
-      console.log('🗑️ Eliminados items expirados:', itemsExpirados);
+
+      // Retornar carrito vacío con flag de expiración
+      return new Response(
+        JSON.stringify({
+          carrito,
+          items: [],
+          itemsExpirados: true
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
-    console.log('✅ GET /api/carrito - Retornando:', {
-      carritoId: carrito.id,
-      itemsCount: itemsValidos.length,
-      itemsExpirados: itemsExpirados.length > 0
-    });
-
-    // Agregar 'Z' a todas las fechas antes de enviar al cliente
-    const itemsConFechas = itemsValidos.map(item => ({
+    // Carrito válido - devolver todos los items con fechas formateadas
+    const itemsConFechas = (items || []).map(item => ({
       ...item,
       fecha_agregado: item.fecha_agregado && !item.fecha_agregado.endsWith('Z') 
         ? item.fecha_agregado + 'Z'
         : item.fecha_agregado
     }));
 
+    console.log('✅ GET /api/carrito - Retornando:', {
+      carritoId: carrito.id,
+      itemsCount: itemsConFechas.length,
+      itemsExpirados: false
+    });
+
     return new Response(
       JSON.stringify({
         carrito,
-        items: itemsConFechas || [],
-        itemsExpirados: itemsExpirados.length > 0
+        items: itemsConFechas,
+        itemsExpirados: false
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
@@ -250,7 +275,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       console.log('🔍 Buscando variante:', producto_variante_id);
       const { data: variante, error: varianteError } = await supabaseClient
         .from('producto_variantes')
-        .select('precio_total')
+        .select('precio_total, disponible')
         .eq('id', producto_variante_id)
         .single();
 
@@ -261,6 +286,16 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           { status: 404 }
         );
       }
+
+      // Validar que la variante esté disponible
+      if (!variante.disponible) {
+        console.log('❌ Variante no disponible:', producto_variante_id);
+        return new Response(
+          JSON.stringify({ error: 'Esta variante no está disponible', success: false }),
+          { status: 400 }
+        );
+      }
+
       precioUnitario = Math.round(variante.precio_total * 100); // Convertir euros a centimos
       console.log('✅ Precio variante:', precioUnitario);
     } else {
@@ -349,15 +384,41 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         );
       }
 
+      // Si es un producto variable (con variante), decrementar stock de la variante
+      if (producto_variante_id) {
+        console.log('📉 Decrementando stock de variante:', producto_variante_id, 'cantidad:', cantidad);
+        
+        const { data: variante, error: getError } = await supabaseClient
+          .from('producto_variantes')
+          .select('cantidad_disponible')
+          .eq('id', producto_variante_id)
+          .single();
+        
+        if (!getError && variante) {
+          const nuevoStock = Math.max(0, (variante.cantidad_disponible || 0) - cantidad);
+          const nuevoDisponible = nuevoStock > 0;
+          
+          await supabaseClient
+            .from('producto_variantes')
+            .update({ 
+              cantidad_disponible: nuevoStock,
+              disponible: nuevoDisponible
+            })
+            .eq('id', producto_variante_id);
+          
+          console.log('✅ Stock variante actualizado:', { 
+            variante_id: producto_variante_id, 
+            stockAnterior: variante.cantidad_disponible,
+            nuevoStock,
+            ahora_disponible: nuevoDisponible
+          });
+        }
+      }
+
       // Si es un producto simple (no tiene variante), restar stock
       if (!producto_variante_id) {
         console.log('📉 Restando stock del producto:', producto_id, 'cantidad:', cantidad);
-        const { error: stockError } = await supabaseClient
-          .from('productos')
-          .update({ stock: supabaseClient.from('productos').select('stock').eq('id', producto_id) })
-          .eq('id', producto_id);
         
-        // Mejor forma: usar SQL directo con RPC o hacer resta manual
         const { data: producto, error: getError } = await supabaseClient
           .from('productos')
           .select('stock')
@@ -366,11 +427,17 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         
         if (!getError && producto) {
           const nuevoStock = Math.max(0, producto.stock - cantidad);
-          await supabaseClient
+          const { error: updateError } = await supabaseClient
             .from('productos')
             .update({ stock: nuevoStock })
             .eq('id', producto_id);
-          console.log('✅ Stock actualizado:', { producto_id, stockAnterior: producto.stock, nuevoStock });
+          if (updateError) {
+            console.log('❌ Error actualizando stock:', updateError);
+          } else {
+            console.log('✅ Stock actualizado:', { producto_id, stockAnterior: producto.stock, nuevoStock });
+          }
+        } else {
+          console.log('❌ Error obteniendo stock:', getError);
         }
       }
 

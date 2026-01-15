@@ -201,7 +201,18 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
               </span>
             </td>
             <td style="padding: 1rem;">${v.cantidad_disponible}</td>
-            <td style="padding: 1rem; text-align: center;">
+            <td style="padding: 1rem; text-align: center; display: flex; gap: 0.5rem; justify-content: center;">
+              <button class="btn-toggle" data-id="${v.id}" data-disponible="${v.disponible}" style="
+                padding: 0.5rem 1rem;
+                background: ${v.disponible ? '#f59e0b' : '#10b981'};
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 0.85rem;
+              ">
+                ${v.disponible ? 'Agotar' : 'Disponible'}
+              </button>
               <button class="btn-eliminar" data-id="${v.id}" style="
                 padding: 0.5rem 1rem;
                 background: #f5576c;
@@ -218,13 +229,21 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           tbody.appendChild(row);
         });
 
-        // Agregar event listeners a botones eliminar
+        // Agregar event listeners a botones eliminar y toggle
         document.querySelectorAll('.btn-eliminar').forEach(btn => {
           btn.addEventListener('click', async () => {
             const id = btn.getAttribute('data-id');
             if (confirm('¿Estás seguro de que deseas eliminar esta variante?')) {
               await eliminarVariante(id);
             }
+          });
+        });
+
+        document.querySelectorAll('.btn-toggle').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-id');
+            const disponibleActual = btn.getAttribute('data-disponible') === 'true';
+            await toggleDisponible(id, !disponibleActual);
           });
         });
       } catch (error) {
@@ -302,6 +321,30 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       } catch (error) {
         console.error('Error:', error);
         mostrarNotificacion('Error al eliminar variante', 'error');
+      }
+    }
+
+    async function toggleDisponible(varianteId, nuevoEstado) {
+      try {
+        const response = await fetch(`/api/admin/variantes/${varianteId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ disponible: nuevoEstado }),
+          credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          const estadoTexto = nuevoEstado ? 'disponible' : 'agotada';
+          mostrarNotificacion(`Variante marcada como ${estadoTexto}`, 'exito');
+          await cargarVariantes(productoActual.id);
+        } else {
+          mostrarNotificacion('Error al actualizar disponibilidad', 'error');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        mostrarNotificacion('Error al actualizar disponibilidad', 'error');
       }
     }
 
