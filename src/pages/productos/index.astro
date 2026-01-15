@@ -12,7 +12,7 @@ import Layout from '../../layouts/Layout.astro';
     <p style="opacity: 0.6; font-size: 1.1rem; max-width: 700px; margin: 1.5rem auto 0; font-weight: 500; letter-spacing: 0.3px;">Descubre nuestra colección completa de productos ibéricos premium</p>
   </div>
   
-  <div id="productosGrid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-top: 3rem; padding: 0 1rem; max-width: 100%;">
+  <div id="productosGrid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-top: 3rem; padding: 0 1rem; max-width: 100%; auto-rows: max-content;">
     <!-- Cargará con JavaScript -->
   </div>
 
@@ -27,6 +27,24 @@ import Layout from '../../layouts/Layout.astro';
     </div>
   </div>
 
+  <!-- Modal para seleccionar cantidad -->
+  <div id="cantidadModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; padding: 2rem; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);">
+      <h2 style="margin: 0 0 1.5rem 0; color: #001a33; font-size: 1.5rem; font-weight: 700;">¿Cuántas unidades deseas?</h2>
+      <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;">
+        <input type="number" id="cantidadInput" min="1" value="1" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;" />
+      </div>
+      <div style="display: flex; gap: 1rem;">
+        <button id="cantidadConfirm" style="flex: 1; padding: 0.75rem; background: #a89968; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.background='#9a8560'" onmouseout="this.style.background='#a89968'">
+          Agregar
+        </button>
+        <button id="cantidadCancel" style="flex: 1; padding: 0.75rem; background: #e2e8f0; color: #001a33; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.background='#cbd5e1'" onmouseout="this.style.background='#e2e8f0'">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
   <style>
     article {
       background: white;
@@ -37,6 +55,8 @@ import Layout from '../../layouts/Layout.astro';
       cursor: pointer;
       display: flex;
       flex-direction: column;
+      height: 100%;
+      min-height: 480px;
     }
 
     article:hover {
@@ -44,14 +64,22 @@ import Layout from '../../layouts/Layout.astro';
     }
 
     .product-image-wrapper {
-      display: none;
+      display: block;
+      width: 100%;
+      height: 400px;
+      min-height: 400px;
+      max-height: 400px;
+      overflow: hidden;
+      background: linear-gradient(135deg, #f8f7f4 0%, #e8e6e0 100%);
     }
 
     img {
       width: 100%;
       height: 100%;
       object-fit: cover;
+      object-position: center;
       transition: transform 0.3s ease;
+      display: block;
     }
 
     article:hover img {
@@ -281,8 +309,8 @@ import Layout from '../../layouts/Layout.astro';
           return `
           <article data-id="${p.id}" style="position: relative;">
             ${p.tieneOferta ? `<div style="position: absolute; top: 10px; right: 10px; background: #dc2626; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: 700; font-size: 0.85rem; z-index: 10;">-${p.oferta.porcentaje_descuento}%</div>` : ''}
-            <div class="product-image-wrapper">
-              <img src="${p.imagen}" alt="${p.nombre}" loading="lazy" />
+            <div style="width: 100%; height: 280px; overflow: hidden; background: linear-gradient(135deg, #f8f7f4 0%, #e8e6e0 100%); display: flex; align-items: center; justify-content: center;">
+              <img src="${p.imagen}" alt="${p.nombre}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; object-position: center; display: block;" />
             </div>
             <div class="product-info">
               <div class="product-footer">
@@ -290,11 +318,6 @@ import Layout from '../../layouts/Layout.astro';
                 <span class="product-price">${p.precio}€</span>
               </div>
               <h3 class="product-name">${p.nombre}</h3>
-              ${!p.es_variable ? `
-                <p style="color: ${p.stock > 0 ? '#059669' : '#dc2626'}; margin: 0.5rem 0 0 0; font-size: 0.85rem; font-weight: 500;">
-                  ${p.stock > 0 ? '✅ En stock: ' + p.stock : '❌ Agotado'}
-                </p>
-              ` : ''}
               <button class="${botonClass}" data-id="${p.id}" ${productoAgotado ? 'disabled' : ''} style="
                 width: 100%;
                 margin-top: 0.75rem;
@@ -330,7 +353,9 @@ import Layout from '../../layouts/Layout.astro';
             console.log('🖱️ Click en botón agregar carrito');
             const productoId = btn.getAttribute('data-id');
             console.log('📦 Product ID:', productoId);
-            await agregarAlCarrito(productoId, 1);
+            
+            // Abrir modal de cantidad
+            abrirModalCantidad(productoId);
           });
 
           btn.addEventListener('mouseover', () => {
@@ -662,6 +687,57 @@ import Layout from '../../layouts/Layout.astro';
       const evento = new CustomEvent('carritoActualizado');
       document.dispatchEvent(evento);
     }
+
+    // Funciones para modal de cantidad
+    let productoIdParaCarrito = null; // Almacena el producto_id mientras el modal está abierto
+
+    function abrirModalCantidad(productoId) {
+      productoIdParaCarrito = productoId;
+      const modal = document.getElementById('cantidadModal');
+      const input = document.getElementById('cantidadInput');
+      modal.style.display = 'flex';
+      input.value = '1';
+      input.focus();
+      input.select();
+    }
+
+    function cerrarModalCantidad() {
+      const modal = document.getElementById('cantidadModal');
+      modal.style.display = 'none';
+      productoIdParaCarrito = null;
+    }
+
+    async function confirmarCantidad() {
+      const input = document.getElementById('cantidadInput');
+      const cantidad = parseInt(input.value);
+      
+      if (isNaN(cantidad) || cantidad <= 0) {
+        alert('Por favor ingresa una cantidad válida');
+        input.focus();
+        return;
+      }
+
+      if (productoIdParaCarrito) {
+        await agregarAlCarrito(productoIdParaCarrito, cantidad);
+        cerrarModalCantidad();
+      }
+    }
+
+    // Event listeners del modal de cantidad
+    document.getElementById('cantidadConfirm').addEventListener('click', confirmarCantidad);
+    document.getElementById('cantidadCancel').addEventListener('click', cerrarModalCantidad);
+    
+    document.getElementById('cantidadInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        confirmarCantidad();
+      }
+    });
+
+    document.getElementById('cantidadModal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('cantidadModal')) {
+        cerrarModalCantidad();
+      }
+    });
 
     // Event listeners del modal de variantes
     document.getElementById('varianteModalClose').addEventListener('click', cerrarModalVariantes);
