@@ -177,6 +177,10 @@ import Layout from '../layouts/Layout.astro';
         if (response.ok && data.success) {
           mostrarNotificacion('Pedido cancelado exitosamente. El reembolso será procesado en breve.', 'success');
           cargarPedidos(); // Recargar para actualizar el estado
+          // Recargar página de productos después de 2 segundos para mostrar stock actualizado
+          setTimeout(() => {
+            window.location.href = '/productos';
+          }, 2000);
         } else {
           mostrarNotificacion(data.error || 'Error al cancelar pedido', 'error');
         }

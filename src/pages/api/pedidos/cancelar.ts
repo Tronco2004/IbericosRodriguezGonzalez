@@ -99,28 +99,78 @@ export const POST: APIRoute = async ({ request }) => {
             }
           }
         } else {
-          // Producto sin variantes: crear una nueva variante con el peso_kg
-          console.log('🔵 Producto sin variantes, creando nueva variante con peso:', item.peso_kg);
+          // Producto sin variantes: verificar si es de peso variable o normal
+          console.log('🔵 Producto sin variantes, verificando tipo...');
           
-          const pesoARestaurar = item.peso_kg || item.cantidad;
-          
-          // Insertar nueva variante con el peso devuelto
-          const { data: nuevaVariante, error: insertError } = await supabaseClient
-            .from('producto_variantes')
-            .insert({
-              producto_id: item.producto_id,
-              peso_kg: pesoARestaurar,
-              disponible: true,
-              precio_total: 0 // Puedes ajustar esto si es necesario
-            })
-            .select()
+          const { data: producto, error: errorGetProducto } = await supabaseClient
+            .from('productos')
+            .select('es_variable, stock')
+            .eq('id', item.producto_id)
             .single();
 
-          if (insertError) {
-            console.error('❌ Error creando nueva variante:', insertError);
+          console.log('🔵 Producto obtenido:', { producto, error: errorGetProducto });
+
+          if (errorGetProducto || !producto) {
+            console.warn('⚠️ No se encontró el producto:', item.producto_id, errorGetProducto);
+            continue;
+          }
+
+          console.log('🔵 es_variable =', producto.es_variable, ', stock actual =', producto.stock);
+
+          if (producto.es_variable) {
+            // Producto de peso variable: crear nueva variante
+            console.log('🔵 Es producto de peso variable, creando nueva variante con peso:', item.peso_kg);
+            
+            const pesoARestaurar = item.peso_kg || item.cantidad;
+            
+            // Obtener precio del producto para calcular precio_total
+            const { data: productoCompleto } = await supabaseClient
+              .from('productos')
+              .select('precio_centimos')
+              .eq('id', item.producto_id)
+              .single();
+            
+            // Calcular precio total: precio por kg * peso
+            const precioTotal = productoCompleto ? (productoCompleto.precio_centimos / 100) * pesoARestaurar : 0;
+            console.log('🔵 Precio calculado:', precioTotal, 'euros para', pesoARestaurar, 'kg');
+            
+            const { data: nuevaVariante, error: insertError } = await supabaseClient
+              .from('producto_variantes')
+              .insert({
+                producto_id: item.producto_id,
+                peso_kg: pesoARestaurar,
+                disponible: true,
+                precio_total: precioTotal
+              })
+              .select()
+              .single();
+
+            if (insertError) {
+              console.error('❌ Error creando nueva variante:', insertError);
+            } else {
+              console.log('✅ Nueva variante creada:', nuevaVariante.id, 'con peso:', pesoARestaurar, 'precio:', precioTotal);
+              restaurados++;
+            }
           } else {
-            console.log('✅ Nueva variante creada:', nuevaVariante.id, 'con peso:', pesoARestaurar);
-            restaurados++;
+            // Producto normal: actualizar stock
+            console.log('🔵 Es producto normal, actualizando stock...');
+            
+            const nuevoStock = (producto.stock || 0) + item.cantidad;
+            console.log('🔵 Actualizando producto', item.producto_id, 'stock de', producto.stock, 'a', nuevoStock);
+            
+            const { error: errorRestore } = await supabaseClient
+              .from('productos')
+              .update({ stock: nuevoStock })
+              .eq('id', item.producto_id);
+
+            console.log('🔵 Error del update:', errorRestore);
+
+            if (errorRestore) {
+              console.error('❌ Error restaurando stock:', errorRestore);
+            } else {
+              console.log('✅ Stock restaurado para producto', item.producto_id);
+              restaurados++;
+            }
           }
         }
       }
