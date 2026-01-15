@@ -75,34 +75,48 @@ const description = "Descubre nuestra colección de productos ibéricos de la m�
           <a href="/categoria/quesos" style="font-size: 0.95rem; font-weight: 500; color: #001a33; padding-bottom: 0.5rem; border-bottom: 2px solid transparent; transition: border-color 0.3s ease;" onmouseover="this.style.borderColor='#000'" onmouseout="this.style.borderColor='transparent'">Quesos</a>
           <a href="/categoria/embutidos" style="font-size: 0.95rem; font-weight: 500; color: #001a33; padding-bottom: 0.5rem; border-bottom: 2px solid transparent; transition: border-color 0.3s ease;" onmouseover="this.style.borderColor='#000'" onmouseout="this.style.borderColor='transparent'">Embutidos</a>
 
-          <!-- Carrito Badge -->
-          <a href="/carrito" style="
-            position: relative;
-            font-size: 0.95rem;
-            font-weight: 500;
-            color: #001a33;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid transparent;
-            transition: border-color 0.3s ease;
-          " onmouseover="this.style.borderColor='#000'" onmouseout="this.style.borderColor='transparent'">
-            Carrito
-            <span id="carritoCount" style="
-              display: none;
+          <!-- Carrito Badge con Timer -->
+          <div style="position: relative; display: inline-block;">
+            <a href="/carrito" style="
+              position: relative;
+              font-size: 0.95rem;
+              font-weight: 500;
+              color: #001a33;
+              padding-bottom: 0.5rem;
+              border-bottom: 2px solid transparent;
+              transition: border-color 0.3s ease;
+              display: inline-block;
+            " onmouseover="this.style.borderColor='#000'" onmouseout="this.style.borderColor='transparent'">
+              Carrito
+              <span id="carritoCount" style="
+                display: none;
+                position: absolute;
+                top: -8px;
+                right: -12px;
+                background: #f5576c;
+                color: white;
+                border-radius: 50%;
+                width: 20px;
+                height: 20px;
+                font-size: 0.7rem;
+                font-weight: 700;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              ">0</span>
+            </a>
+            <div id="carritoTimer" style="
               position: absolute;
-              top: -8px;
-              right: -12px;
-              background: #f5576c;
-              color: white;
-              border-radius: 50%;
-              width: 20px;
-              height: 20px;
-              font-size: 0.7rem;
-              font-weight: 700;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            ">0</span>
-          </a>
+              top: 100%;
+              left: 0;
+              font-size: 0.75rem;
+              color: #d97706;
+              font-weight: 600;
+              display: none;
+              white-space: nowrap;
+              margin-top: 0.2rem;
+            ">cargando...</div>
+          </div>
 
           <div id="authContainer"></div>
         </nav>
@@ -155,6 +169,8 @@ const description = "Descubre nuestra colección de productos ibéricos de la m�
           if (!userId) {
             const contador = document.getElementById('carritoCount');
             if (contador) contador.style.display = 'none';
+            const timer = document.getElementById('carritoTimer');
+            if (timer) timer.style.display = 'none';
             return;
           }
 
@@ -168,6 +184,8 @@ const description = "Descubre nuestra colección de productos ibéricos de la m�
           if (response.status === 401 || !response.ok) {
             const contador = document.getElementById('carritoCount');
             if (contador) contador.style.display = 'none';
+            const timer = document.getElementById('carritoTimer');
+            if (timer) timer.style.display = 'none';
             return;
           }
 
@@ -184,6 +202,38 @@ const description = "Descubre nuestra colección de productos ibéricos de la m�
               contador.style.display = 'none';
             }
           }
+
+          // Actualizar el timer si hay items
+          const timer = document.getElementById('carritoTimer');
+          if (timer && totalItems > 0 && items.length > 0) {
+            const itemMasReciente = items.reduce((prev, current) => {
+              return new Date(current.fecha_agregado) > new Date(prev.fecha_agregado) ? current : prev;
+            });
+            
+            const ahora = new Date();
+            const fechaAgregado = new Date(itemMasReciente.fecha_agregado);
+            const tiempoExpiracion = fechaAgregado.getTime() + (15 * 60 * 1000);
+            const diff = tiempoExpiracion - ahora.getTime();
+            
+            if (diff <= 0) {
+              timer.textContent = '⚠️ Expirado';
+              timer.style.color = '#dc2626';
+              timer.style.display = 'block';
+            } else {
+              const minutos = Math.floor(diff / (1000 * 60));
+              const segundos = Math.floor((diff % (1000 * 60)) / 1000);
+              timer.textContent = `${minutos}:${segundos.toString().padStart(2, '0')}`;
+              
+              if (diff < 60000) {
+                timer.style.color = '#dc2626';
+              } else {
+                timer.style.color = '#d97706';
+              }
+              timer.style.display = 'block';
+            }
+          } else if (timer) {
+            timer.style.display = 'none';
+          }
         } catch (error) {
           console.error('Error actualizando carrito:', error);
         }
@@ -191,6 +241,9 @@ const description = "Descubre nuestra colección de productos ibéricos de la m�
 
       // Actualizar contador al cargar la página
       actualizarContadorCarrito();
+
+      // Actualizar contador cada segundo (para el timer)
+      setInterval(actualizarContadorCarrito, 1000);
 
       // Escuchar eventos de carrito actualizado
       document.addEventListener('carritoActualizado', actualizarContadorCarrito);

@@ -212,16 +212,21 @@ import Layout from '../../layouts/Layout.astro';
           
           for (const producto of productos) {
             if (producto.es_variable) {
-              console.log('⏳ Cargando variantes para producto:', producto.id);
+              console.log('⏳ Cargando variantes para producto:', producto.id, producto.nombre);
               try {
                 await cargarVariantesProducto(producto.id);
-                console.log('✅ Variantes cargadas para producto:', producto.id);
+                const cargsadas = variantesMap[producto.id] || [];
+                const disponibles = cargsadas.filter(v => v.disponible);
+                console.log(`✅ Variantes cargadas para producto ${producto.id}: total=${cargsadas.length}, disponibles=${disponibles.length}`);
+                cargsadas.forEach(v => {
+                  console.log(`   - Variante ${v.id}: peso=${v.peso_kg}, disponible=${v.disponible}`);
+                });
               } catch (error) {
                 console.error('❌ Error cargando variantes para producto:', producto.id, error);
               }
             }
           }
-          console.log('✅ Todas las variantes cargadas');
+          console.log('✅ Todas las variantes cargadas, re-renderizando grid...');
         }
 
         const grid = document.getElementById('productosGrid');
@@ -234,10 +239,18 @@ import Layout from '../../layouts/Layout.astro';
           const botonText = p.es_variable ? 'Seleccionar Peso' : 'Agregar al Carrito';
           const botonClass = p.es_variable ? 'btn-seleccionar-variante' : 'btn-agregar-carrito';
           
-          // Verificar si es producto variable y tiene variantes disponibles
+          // Verificar si es producto variable y tiene variantes con stock disponible
           const todasLasVariantes = variantesMap[p.id] || [];
-          const variantesDisponibles = todasLasVariantes.filter(v => v.disponible);
-          const noHayVariantesDisponibles = p.es_variable && todasLasVariantes.length > 0 && variantesDisponibles.length === 0;
+          const variantesConStock = todasLasVariantes.filter(v => v.disponible && (v.cantidad_disponible > 0));
+          
+          // Producto agotado si:
+          // - Es simple y no tiene stock, O
+          // - Es variable y no hay variantes con stock
+          const productoAgotado = (!p.es_variable && p.stock <= 0) || (p.es_variable && variantesConStock.length === 0);
+          
+          if (p.es_variable) {
+            console.log(`📦 Producto ${p.id} (${p.nombre}): totalVariantes=${todasLasVariantes.length}, conStock=${variantesConStock.length}, agotado=${productoAgotado}`);
+          }
           
           return `
           <article data-id="${p.id}" style="position: relative;">
@@ -255,21 +268,21 @@ import Layout from '../../layouts/Layout.astro';
                   ${p.stock > 0 ? '✅ En stock: ' + p.stock : '❌ Agotado'}
                 </p>
               ` : ''}
-              <button class="${botonClass}" data-id="${p.id}" ${(!p.es_variable && p.stock <= 0) || noHayVariantesDisponibles ? 'disabled' : ''} style="
+              <button class="${botonClass}" data-id="${p.id}" ${productoAgotado ? 'disabled' : ''} style="
                 width: 100%;
                 margin-top: 0.75rem;
-                background: ${(!p.es_variable && p.stock <= 0) || noHayVariantesDisponibles ? '#d1d5db' : '#a89968'};
+                background: ${productoAgotado ? '#d1d5db' : '#a89968'};
                 color: white;
                 border: none;
                 padding: 0.6rem;
                 border-radius: 4px;
                 font-weight: 600;
-                cursor: ${(!p.es_variable && p.stock <= 0) || noHayVariantesDisponibles ? 'not-allowed' : 'pointer'};
+                cursor: ${productoAgotado ? 'not-allowed' : 'pointer'};
                 transition: background 0.3s;
                 font-size: 0.85rem;
-                opacity: ${(!p.es_variable && p.stock <= 0) || noHayVariantesDisponibles ? '0.5' : '1'};
+                opacity: ${productoAgotado ? '0.5' : '1'};
               ">
-                ${noHayVariantesDisponibles ? 'Agotado' : (!p.es_variable && p.stock <= 0 ? 'Agotado' : botonText)}
+                ${productoAgotado ? 'Agotado' : botonText}
               </button>
             </div>
           </article>
@@ -332,6 +345,12 @@ import Layout from '../../layouts/Layout.astro';
         const data = await response.json();
         
         if (data.success && data.variantes) {
+          console.log(`📦 Variantes cargadas para producto ${productoId}:`, data.variantes);
+          console.log(`   - Total: ${data.variantes.length}`);
+          console.log(`   - Disponibles (disponible=true Y cantidad_disponible>0): ${data.variantes.filter(v => v.disponible && (v.cantidad_disponible > 0)).length}`);
+          data.variantes.forEach(v => {
+            console.log(`     • Variante ${v.id}: peso=${v.peso_kg}kg, disponible=${v.disponible}, cantidad_disponible=${v.cantidad_disponible}`);
+          });
           variantesMap[productoId] = data.variantes;
         }
       } catch (error) {
@@ -342,7 +361,11 @@ import Layout from '../../layouts/Layout.astro';
 
     function abrirModalVariantes(productoId, variantesReservadas = {}) {
       const producto = document.querySelector(`article[data-id="${productoId}"] .product-name`)?.textContent || 'Producto';
-      let variantes = (variantesMap[productoId] || []).filter(v => v.disponible);
+      // Obtener variantes que tengan stock disponible
+      let variantes = (variantesMap[productoId] || []).filter(v => v.disponible && (v.cantidad_disponible > 0));
+      
+      console.log(`📋 Abriendo modal para producto ${productoId}`);
+      console.log(`📋 Variantes con stock:`, variantes);
       
       // Filtrar variantes reservadas
       const variantesReservadasDelProducto = variantesReservadas[productoId] || [];
@@ -361,7 +384,9 @@ import Layout from '../../layouts/Layout.astro';
       if (variantes.length === 0) {
         variantesList.innerHTML = '<p style="color: #999; text-align: center;">No hay variantes disponibles en este momento</p>';
       } else {
-        variantesList.innerHTML = variantes.map((v, index) => `
+        // Mostrar solo las variantes disponibles
+        variantesList.innerHTML = variantes.map((v, index) => {
+          return `
           <button type="button" data-variante-id="${v.id}" data-producto-id="${productoId}" data-peso="${v.peso_kg}" data-precio="${v.precio_total}" style="
             padding: 1rem;
             background: #f8fafc;
@@ -379,7 +404,8 @@ import Layout from '../../layouts/Layout.astro';
             <span>${v.peso_kg.toFixed(3)} kg</span>
             <span style="color: #a89968; font-weight: 700;">${v.precio_total.toFixed(2)}€</span>
           </button>
-        `).join('');
+        `;
+        }).join('');
 
         // Event listeners para las variantes
         variantesList.querySelectorAll('button').forEach(btn => {
@@ -438,7 +464,11 @@ import Layout from '../../layouts/Layout.astro';
             }, 1500);
             return;
           }
-          throw new Error('Error agregando al carrito');
+          const errorData = await response.json();
+          const mensajeError = errorData.error || 'Error agregando al carrito';
+          console.log('❌ Error:', mensajeError);
+          mostrarNotificacion(mensajeError, 'error');
+          return;
         }
 
         const result = await response.json();
@@ -446,9 +476,10 @@ import Layout from '../../layouts/Layout.astro';
         if (result.success) {
           console.log('✅ Producto agregado exitosamente');
           mostrarNotificacion(`Jamón de ${peso.toFixed(3)} kg agregado al carrito`, 'exito');
-          actualizarContadorCarrito();
-          // Recargar productos para actualizar stock (si aplica)
-          await cargarProductos();
+          // Recargar página para reiniciar contador global
+          setTimeout(() => {
+            window.location.href = '/carrito';
+          }, 1500);
         }
       } catch (error) {
         console.error('❌ Error en agregarAlCarritoConVariante:', error);
@@ -588,10 +619,10 @@ import Layout from '../../layouts/Layout.astro';
         if (result.success) {
           console.log('✅ Producto agregado exitosamente');
           mostrarNotificacion('Producto agregado al carrito', 'exito');
-          // Actualizar contador del carrito si existe
-          actualizarContadorCarrito();
-          // Recargar productos para actualizar stock
-          await cargarProductos();
+          // Recargar página para reiniciar contador global y actualizar todo
+          setTimeout(() => {
+            window.location.href = '/carrito';
+          }, 1500);
         }
       } catch (error) {
         console.error('❌ Error en agregarAlCarrito:', error);
@@ -611,6 +642,12 @@ import Layout from '../../layouts/Layout.astro';
       if (e.target === document.getElementById('varianteModal')) {
         cerrarModalVariantes();
       }
+    });
+
+    // Escuchar evento de actualización del carrito (cuando se elimina un item o expira)
+    window.addEventListener('carritoActualizado', () => {
+      console.log('🔔 Evento carritoActualizado recibido, recargando productos...');
+      cargarProductos();
     });
 
     // Cargar al iniciar

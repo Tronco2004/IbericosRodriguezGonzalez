@@ -61,6 +61,28 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
         }
       }
 
+      // Devolver stock si es producto variable
+      if (itemAnterior && itemAnterior.producto_variante_id) {
+        const { data: variante } = await supabaseClient
+          .from('producto_variantes')
+          .select('cantidad_disponible')
+          .eq('id', itemAnterior.producto_variante_id)
+          .single();
+        
+        if (variante) {
+          const nuevoStock = (variante.cantidad_disponible || 0) + itemAnterior.cantidad;
+          const nuevoDisponible = nuevoStock > 0;
+          await supabaseClient
+            .from('producto_variantes')
+            .update({ 
+              cantidad_disponible: nuevoStock,
+              disponible: nuevoDisponible
+            })
+            .eq('id', itemAnterior.producto_variante_id);
+          console.log('✅ Stock variante devuelto (cantidad=0):', { variante_id: itemAnterior.producto_variante_id, nuevoStock });
+        }
+      }
+
       return new Response(
         JSON.stringify({ success: true, deleted: true }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
@@ -98,13 +120,31 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
           .from('productos')
           .update({ stock: nuevoStock })
           .eq('id', itemAnterior.producto_id);
-        console.log('✅ Stock ajustado:', { 
-          producto_id: itemAnterior.producto_id, 
-          cantidadAnterior: itemAnterior.cantidad,
-          cantidadNueva: cantidad,
-          diferencia,
-          nuevoStock 
-        });
+        console.log('✅ Stock ajustado:', { producto_id: itemAnterior.producto_id, cantidadAnterior: itemAnterior.cantidad, cantidadNueva: cantidad, diferencia, nuevoStock });
+      }
+    }
+
+    // Ajustar stock si cambió la cantidad (para variantes)
+    if (itemAnterior && itemAnterior.producto_variante_id && itemAnterior.cantidad !== cantidad) {
+      const diferencia = itemAnterior.cantidad - cantidad; // Si es positivo, devolvemos stock
+      
+      const { data: variante } = await supabaseClient
+        .from('producto_variantes')
+        .select('cantidad_disponible')
+        .eq('id', itemAnterior.producto_variante_id)
+        .single();
+      
+      if (variante) {
+        const nuevoStock = (variante.cantidad_disponible || 0) + diferencia;
+        const nuevoDisponible = nuevoStock > 0;
+        await supabaseClient
+          .from('producto_variantes')
+          .update({ 
+            cantidad_disponible: nuevoStock,
+            disponible: nuevoDisponible
+          })
+          .eq('id', itemAnterior.producto_variante_id);
+        console.log('✅ Stock variante ajustado:', { variante_id: itemAnterior.producto_variante_id, cantidadAnterior: itemAnterior.cantidad, cantidadNueva: cantidad, diferencia, nuevoStock });
       }
     }
 
@@ -187,6 +227,30 @@ export const DELETE: APIRoute = async ({ request, cookies, params }) => {
           .update({ stock: nuevoStock })
           .eq('id', item.producto_id);
         console.log('✅ Stock devuelto:', { producto_id: item.producto_id, stockAnterior: producto.stock, nuevoStock });
+      }
+    }
+
+    // Si es un producto variable (con variante), devolver el stock
+    if (item.producto_variante_id) {
+      console.log('➕ Devolviendo stock de variante:', item.producto_variante_id, 'cantidad:', item.cantidad);
+      const { data: variante } = await supabaseClient
+        .from('producto_variantes')
+        .select('cantidad_disponible')
+        .eq('id', item.producto_variante_id)
+        .single();
+
+      if (variante) {
+        const stockAnterior = variante.cantidad_disponible || 0;
+        const nuevoStock = stockAnterior + item.cantidad;
+        const nuevoDisponible = nuevoStock > 0;
+        await supabaseClient
+          .from('producto_variantes')
+          .update({ 
+            cantidad_disponible: nuevoStock,
+            disponible: nuevoDisponible
+          })
+          .eq('id', item.producto_variante_id);
+        console.log('✅ Stock variante devuelto:', { variante_id: item.producto_variante_id, stockAnterior, nuevoStock, ahora_disponible: nuevoDisponible });
       }
     }
 
