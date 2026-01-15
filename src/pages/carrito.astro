@@ -243,7 +243,7 @@ import Layout from '../layouts/Layout.astro';
               <div style="margin-bottom: 1rem;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; color: #5c4a3d;">
                   <span>Subtotal (${totalItems} ${totalItems === 1 ? 'producto' : 'productos'})</span>
-                  <span>${(subtotal / 100).toFixed(2)}€</span>
+                  <span id="subtotalDisplay">${(subtotal / 100).toFixed(2)}€</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; color: #5c4a3d;">
                   <span>Envío</span>
@@ -254,6 +254,57 @@ import Layout from '../layouts/Layout.astro';
                   <span style="color: #a89968; font-weight: 600;">Incluidos</span>
                 </div>
               </div>
+
+              <!-- Campo de Código de Descuento -->
+              <div style="margin-bottom: 1.5rem; padding: 1rem; background: #f8f7f4; border-radius: 6px; border: 1px solid #e0d5c7;">
+                <label style="display: block; font-weight: 600; color: #001a33; margin-bottom: 0.75rem; font-size: 0.95rem;">Código de Descuento</label>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                  <input 
+                    id="inputCodigo"
+                    type="text"
+                    placeholder="Ingresa tu código"
+                    style="
+                      flex: 1;
+                      padding: 0.65rem 0.75rem;
+                      border: 1px solid #d1d5db;
+                      border-radius: 4px;
+                      font-size: 0.95rem;
+                      box-sizing: border-box;
+                      text-transform: uppercase;
+                      background: white;
+                    "
+                  />
+                  <button 
+                    id="btnValidarCodigo"
+                    style="
+                      padding: 0.65rem 1.25rem;
+                      background: #a89968;
+                      color: white;
+                      border: none;
+                      border-radius: 4px;
+                      font-weight: 600;
+                      cursor: pointer;
+                      font-size: 0.9rem;
+                      white-space: nowrap;
+                      transition: all 0.2s;
+                      text-transform: uppercase;
+                      letter-spacing: 0.5px;
+                    "
+                  >
+                    Validar
+                  </button>
+                </div>
+                <div id="mensajeCodigoStatus" style="display: none; margin-top: 0.75rem; padding: 0.65rem; border-radius: 4px; font-size: 0.85rem; text-align: center; font-weight: 600;"></div>
+              </div>
+
+              <!-- Descuento aplicado -->
+              <div id="descuentoInfo" style="display: none; margin-bottom: 1rem; padding: 0.75rem; background: #d1fae5; border: 1px solid #a7f3d0; border-radius: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="color: #065f46; font-weight: 600;">Descuento aplicado</span>
+                  <span id="descuentoAmount" style="color: #065f46; font-weight: 700; font-size: 1.1rem;">-0.00€</span>
+                </div>
+              </div>
+
               <div style="
                 padding: 1rem 0;
                 border-top: 2px solid #e0d5c7;
@@ -262,7 +313,7 @@ import Layout from '../layouts/Layout.astro';
               ">
                 <div style="display: flex; justify-content: space-between;">
                   <span style="color: #001a33; font-weight: 700;">Total</span>
-                  <span style="color: #a89968; font-weight: 700; font-size: 1.3rem;">
+                  <span id="totalDisplay" style="color: #a89968; font-weight: 700; font-size: 1.3rem;">
                     ${(total / 100).toFixed(2)}€
                   </span>
                 </div>
@@ -407,6 +458,36 @@ import Layout from '../layouts/Layout.astro';
           });
         }
 
+        // Event listener para validar código
+        const btnValidarCodigo = document.getElementById('btnValidarCodigo');
+        if (btnValidarCodigo) {
+          btnValidarCodigo.addEventListener('click', validarCodigo);
+          btnValidarCodigo.addEventListener('mouseover', () => {
+            if (!btnValidarCodigo.disabled) {
+              btnValidarCodigo.style.background = '#8a7658';
+              btnValidarCodigo.style.transform = 'translateY(-2px)';
+              btnValidarCodigo.style.boxShadow = '0 4px 12px rgba(168, 153, 104, 0.3)';
+            }
+          });
+          btnValidarCodigo.addEventListener('mouseout', () => {
+            if (!btnValidarCodigo.disabled) {
+              btnValidarCodigo.style.background = '#a89968';
+              btnValidarCodigo.style.transform = 'translateY(0)';
+              btnValidarCodigo.style.boxShadow = 'none';
+            }
+          });
+        }
+
+        // Permitir validar con Enter
+        const inputCodigo = document.getElementById('inputCodigo');
+        if (inputCodigo) {
+          inputCodigo.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+              validarCodigo();
+            }
+          });
+        }
+
       } catch (error) {
         console.error('Error:', error);
         document.getElementById('loadingMessage').style.display = 'none';
@@ -447,6 +528,208 @@ import Layout from '../layouts/Layout.astro';
       }
     }
 
+    // Variables globales para el descuento
+    let descuentoAplicado = 0;
+    let codigoValidado = null;
+
+    async function validarCodigo() {
+      const inputCodigo = document.getElementById('inputCodigo');
+      const codigo = inputCodigo.value.trim().toUpperCase();
+      const statusDiv = document.getElementById('mensajeCodigoStatus');
+      const userId = localStorage.getItem('user_id');
+
+      if (!codigo) {
+        statusDiv.textContent = 'Por favor ingresa un código';
+        statusDiv.style.display = 'block';
+        statusDiv.style.background = '#fef3c7';
+        statusDiv.style.color = '#92400e';
+        statusDiv.style.borderLeft = '4px solid #f59e0b';
+        return;
+      }
+
+      try {
+        // Calcular subtotal actual
+        const carritoItems = window.carritoItems || [];
+        const subtotal = carritoItems.reduce((total, item) => total + (item.precio_unitario * item.cantidad), 0);
+
+        // Validar código en el servidor
+        const response = await fetch('/api/codigos/validar', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': userId
+          },
+          body: JSON.stringify({
+            codigo,
+            monto_carrito: subtotal / 100 // Convertir a euros
+          })
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+          statusDiv.textContent = data.mensaje || 'Código inválido';
+          statusDiv.style.display = 'block';
+          statusDiv.style.background = '#fee2e2';
+          statusDiv.style.color = '#991b1b';
+          statusDiv.style.borderLeft = '4px solid #ef4444';
+          inputCodigo.value = '';
+          descuentoAplicado = 0;
+          codigoValidado = null;
+          actualizarDescuentoUI();
+          return;
+        }
+
+        // Aquí agregamos la verificación de si el usuario ya usó este código
+        // Consultamos si ya existe un registro de uso
+        const verificarResponse = await fetch(`/api/codigos/verificar-uso?codigo_id=${data.codigo_id}&usuario_id=${userId}`, {
+          headers: {
+            'x-user-id': userId
+          }
+        });
+
+        const verificarData = await verificarResponse.json();
+
+        if (verificarData.yaUsado) {
+          // Mostrar popup de error
+          mostrarPopupError('Este código de descuento ya ha sido utilizado');
+          inputCodigo.value = '';
+          statusDiv.style.display = 'none';
+          return;
+        }
+
+        // Calcular descuento
+        let descuento = 0;
+        if (data.tipo_descuento === 'porcentaje') {
+          // subtotal está en centimos, calcular porcentaje y convertir a euros
+          const descuentoCentimos = (subtotal * data.valor) / 100;
+          descuento = descuentoCentimos / 100;
+        } else {
+          // data.valor ya está en euros
+          descuento = data.valor;
+        }
+
+        descuentoAplicado = descuento;
+        codigoValidado = {
+          id: data.codigo_id,
+          codigo: codigo,
+          descuento: descuento
+        };
+
+        statusDiv.textContent = `Código aplicado: ${descuento.toFixed(2)}€ de descuento`;
+        statusDiv.style.display = 'block';
+        statusDiv.style.background = '#d1fae5';
+        statusDiv.style.color = '#065f46';
+        statusDiv.style.borderLeft = '4px solid #10b981';
+
+        actualizarDescuentoUI();
+        inputCodigo.disabled = true;
+        document.getElementById('btnValidarCodigo').disabled = true;
+        document.getElementById('btnValidarCodigo').textContent = 'Código Aplicado';
+
+      } catch (error) {
+        console.error('Error:', error);
+        statusDiv.textContent = 'Error al validar el código';
+        statusDiv.style.display = 'block';
+        statusDiv.style.background = '#fee2e2';
+        statusDiv.style.color = '#991b1b';
+        statusDiv.style.borderLeft = '4px solid #ef4444';
+      }
+    }
+
+    function actualizarDescuentoUI() {
+      const descuentoInfo = document.getElementById('descuentoInfo');
+      const descuentoAmount = document.getElementById('descuentoAmount');
+      const totalDisplay = document.getElementById('totalDisplay');
+
+      if (descuentoAplicado > 0) {
+        descuentoInfo.style.display = 'block';
+        descuentoAmount.textContent = `-${descuentoAplicado.toFixed(2)}€`;
+
+        // Obtener valores actuales
+        const carritoItems = window.carritoItems || [];
+        const subtotal = carritoItems.reduce((total, item) => total + (item.precio_unitario * item.cantidad), 0);
+        const envio = 500; // 5€ en centimos
+        const totalConDescuento = (subtotal + envio) / 100 - descuentoAplicado;
+
+        totalDisplay.textContent = `${totalConDescuento.toFixed(2)}€`;
+      } else {
+        descuentoInfo.style.display = 'none';
+        
+        // Restaurar total original
+        const carritoItems = window.carritoItems || [];
+        const subtotal = carritoItems.reduce((total, item) => total + (item.precio_unitario * item.cantidad), 0);
+        const envio = 500;
+        const total = (subtotal + envio) / 100;
+        
+        totalDisplay.textContent = `${total.toFixed(2)}€`;
+      }
+    }
+
+    function mostrarPopupError(mensaje) {
+      const popup = document.createElement('div');
+      popup.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        z-index: 3000;
+        max-width: 500px;
+        text-align: center;
+      `;
+
+      popup.innerHTML = `
+        <div style="
+          font-size: 3rem;
+          color: #ef4444;
+          margin-bottom: 1rem;
+        ">!</div>
+        <h3 style="color: #001a33; margin: 0 0 0.5rem 0; font-size: 1.3rem;">${mensaje}</h3>
+        <p style="color: #5c4a3d; margin: 0 0 1.5rem 0;">Este código ya ha sido canjeado por tu cuenta.</p>
+        <button id="btnCerrarPopup" style="
+          background: #a89968;
+          color: white;
+          border: none;
+          padding: 0.75rem 2rem;
+          border-radius: 6px;
+          font-weight: 600;
+          cursor: pointer;
+          font-size: 1rem;
+        ">
+          Entendido
+        </button>
+      `;
+
+      document.body.appendChild(popup);
+
+      // Crear overlay
+      const overlay = document.createElement('div');
+      overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 2999;
+      `;
+      document.body.appendChild(overlay);
+
+      document.getElementById('btnCerrarPopup').addEventListener('click', () => {
+        popup.remove();
+        overlay.remove();
+      });
+
+      overlay.addEventListener('click', () => {
+        popup.remove();
+        overlay.remove();
+      });
+    }
+
     async function irAStripe() {
       try {
         const userId = localStorage.getItem('user_id');
@@ -479,7 +762,7 @@ import Layout from '../layouts/Layout.astro';
           peso_kg: item.peso_kg
         }));
 
-        // Crear sesión de pago
+        // Crear sesión de pago con código si existe
         const checkoutResponse = await fetch('/api/checkout/create-session', {
           method: 'POST',
           credentials: 'include',
@@ -487,7 +770,11 @@ import Layout from '../layouts/Layout.astro';
             'Content-Type': 'application/json',
             'x-user-id': userId
           },
-          body: JSON.stringify({ cartItems })
+          body: JSON.stringify({ 
+            cartItems,
+            codigoDescuento: codigoValidado ? codigoValidado.codigo : null,
+            descuentoAplicado: descuentoAplicado
+          })
         });
 
         const checkoutData = await checkoutResponse.json();

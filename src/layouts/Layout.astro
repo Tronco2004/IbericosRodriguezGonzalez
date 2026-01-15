@@ -290,7 +290,21 @@ const description = "Descubre nuestra colección de productos ibéricos de la m�
                 <p style="font-weight: 600; margin: 0; color: #001a33; font-size: 0.9rem;">${userName}</p>
                 <span style="background: #a89968; color: white; padding: 0.2rem 0.6rem; border-radius: 3px; font-size: 0.7rem; text-transform: uppercase; display: inline-block; margin-top: 0.3rem;">${userRole}</span>
               </div>
-              ${userRole === 'admin' ? '<a href="/admin/dashboard" style="display: block; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee;">Panel Admin</a>' : ''}
+              ${userRole === 'admin' ? `
+                <div id="adminMenuWrapper" style="position: relative;">
+                  <button id="adminMenuBtn" style="width: 100%; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee; text-align: left; background: #f8f7f4; font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
+                    Panel Admin
+                    <span id="adminArrow" style="transform: rotate(0deg); transition: transform 0.3s;">▼</span>
+                  </button>
+                  <div id="adminSubMenu" style="display: none; background: #f8f7f4; border-top: 1px solid #eee;">
+                    <a href="/admin/dashboard" style="display: block; padding: 0.5rem 1.5rem; color: #001a33; border-bottom: 1px solid #eee; font-size: 0.9rem;">Dashboard</a>
+                    <a href="/admin/productos" style="display: block; padding: 0.5rem 1.5rem; color: #001a33; border-bottom: 1px solid #eee; font-size: 0.9rem;">Productos</a>
+                    <a href="/admin/pedidos" style="display: block; padding: 0.5rem 1.5rem; color: #001a33; border-bottom: 1px solid #eee; font-size: 0.9rem;">Pedidos</a>
+                    <a href="/admin/usuarios" style="display: block; padding: 0.5rem 1.5rem; color: #001a33; border-bottom: 1px solid #eee; font-size: 0.9rem;">Usuarios</a>
+                    <a href="/admin/codigos-descuento" style="display: block; padding: 0.5rem 1.5rem; color: #a89968; font-weight: 600; font-size: 0.9rem;">Códigos Descuento</a>
+                  </div>
+                </div>
+              ` : ''}
               <!-- <a href="/carrito" style="display: block; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee;">Carrito</a> -->
               <a href="/mi-cuenta" style="display: block; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee;">Mi Cuenta</a>
               <a href="/mi-perfil" style="display: block; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee;">Mi Perfil</a>
@@ -304,9 +318,18 @@ const description = "Descubre nuestra colección de productos ibéricos de la m�
           const userBtn = document.getElementById('userBtn');
           const menu = document.getElementById('menu');
           const logoutBtn = document.getElementById('logoutBtn');
+          const adminMenuBtn = document.getElementById('adminMenuBtn');
+          const adminSubMenu = document.getElementById('adminSubMenu');
+          const adminArrow = document.getElementById('adminArrow');
 
           userBtn?.addEventListener('click', () => {
             menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+          });
+
+          adminMenuBtn?.addEventListener('click', (e) => {
+            e.preventDefault();
+            adminSubMenu.style.display = adminSubMenu.style.display === 'none' ? 'block' : 'none';
+            adminArrow.style.transform = adminSubMenu.style.display === 'block' ? 'rotate(180deg)' : 'rotate(0deg)';
           });
 
           logoutBtn?.addEventListener('click', async () => {

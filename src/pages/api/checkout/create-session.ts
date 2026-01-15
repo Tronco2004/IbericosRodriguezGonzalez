@@ -7,7 +7,7 @@ const SHIPPING_COST = 500; // 5€ en centimos
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     // Obtener el carrito del cliente
-    const { cartItems } = await request.json();
+    const { cartItems, codigoDescuento, descuentoAplicado } = await request.json();
 
     if (!cartItems || cartItems.length === 0) {
       return new Response(
@@ -43,13 +43,28 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       quantity: 1,
     });
 
+    // Agregar descuento si existe
+    let discounts = [];
+    if (descuentoAplicado && descuentoAplicado > 0) {
+      // Crear un cupón en Stripe para aplicar el descuento
+      const coupon = await stripe.coupons.create({
+        duration: 'once',
+        amount_off: Math.round(descuentoAplicado * 100), // Convertir a centimos
+        currency: 'eur',
+        name: codigoDescuento || 'Descuento'
+      });
+
+      discounts = [{ coupon: coupon.id }];
+    }
+
     // Crear sesión de Stripe
     const session = await stripe.checkout.sessions.create({
       line_items: lineItems,
       mode: 'payment',
-      success_url: `${new URL(request.url).origin}/checkout/exito?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${new URL(request.url).origin}/checkout/exito?session_id={CHECKOUT_SESSION_ID}${codigoDescuento ? `&codigo=${codigoDescuento}` : ''}`,
       cancel_url: `${new URL(request.url).origin}/carrito`,
       customer_email: cookies.get('user_email')?.value,
+      ...(discounts.length > 0 && { discounts })
     });
 
     return new Response(

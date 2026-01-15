@@ -82,7 +82,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       total,
       subtotal,
       email,
-      telefono
+      telefono,
+      descuento_aplicado
     } = await request.json();
 
     if (!stripe_session_id || !cartItems || !total) {
@@ -124,6 +125,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         numero_pedido,
         subtotal: parseFloat(subtotal),
         total: parseFloat(total),
+        descuento_aplicado: descuento_aplicado ? parseFloat(descuento_aplicado) : 0,
         email_cliente: emailCliente,
         telefono_cliente: telefonoCliente,
         estado: 'pagado',
@@ -207,6 +209,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       JSON.stringify({ 
         success: true,
         pedido,
+        pedido_id: pedido.id,
         numero_pedido: pedido.numero_pedido
       }),
       { status: 201, headers: { 'Content-Type': 'application/json' } }
