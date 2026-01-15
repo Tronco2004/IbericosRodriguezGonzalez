@@ -67,6 +67,7 @@ const success = params.get('status') === 'success';
 
         if (!sessionId || !userId) {
           console.error('Faltan datos para crear el pedido');
+          alert('Faltan datos para crear el pedido. Por favor intenta de nuevo.');
           return;
         }
 
@@ -76,13 +77,22 @@ const success = params.get('status') === 'success';
           headers: { 'x-user-id': userId }
         });
 
+        if (!carritoResponse.ok) {
+          console.error('Error obteniendo carrito:', carritoResponse.status);
+          alert('Error al obtener el carrito');
+          return;
+        }
+
         const carritoData = await carritoResponse.json();
         const items = carritoData.items || [];
 
         if (!items.length) {
           console.error('Carrito vacío');
+          alert('El carrito está vacío');
           return;
         }
+
+        console.log('📦 Items en carrito:', items.length);
 
         // Formatear items para crear el pedido
         const cartItems = items.map(item => ({
@@ -100,6 +110,8 @@ const success = params.get('status') === 'success';
         const envio = SHIPPING_COST;
         const total = subtotal + envio; // Subtotal + envío
 
+        console.log('💰 Totales:', { subtotal, envio, total });
+
         // Obtener email del usuario
         const userDataResponse = await fetch('/api/auth/me', {
           credentials: 'include',
@@ -107,6 +119,7 @@ const success = params.get('status') === 'success';
         });
 
         const userData = await userDataResponse.json();
+        console.log('👤 Email del usuario:', userData.email);
 
         // Crear el pedido
         const pedidoResponse = await fetch('/api/pedidos', {
@@ -135,39 +148,26 @@ const success = params.get('status') === 'success';
 
         if (pedidoData.success) {
           console.log('Pedido creado exitosamente:', pedidoData.numero_pedido);
+          console.log('Redirigiendo a mis-pedidos en 2 segundos...');
           
-          // Eliminar las variantes vendidas
-          for (const item of cartItems) {
-            if (item.producto_variante_id) {
-              try {
-                console.log('🗑️ Eliminando variante:', item.producto_variante_id);
-                const deleteResponse = await fetch('/api/variantes/eliminar', {
-                  method: 'DELETE',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ variante_id: item.producto_variante_id })
-                });
-                
-                const deleteData = await deleteResponse.json();
-                if (deleteData.success) {
-                  console.log('✅ Variante eliminada:', item.producto_variante_id);
-                } else {
-                  console.error('❌ Error eliminando variante:', deleteData.error);
-                }
-              } catch (error) {
-                console.error('Error al eliminar variante:', error);
-              }
-            }
-          }
+          // Las variantes se eliminarán automáticamente mediante trigger en la BD
+          // cuando se inserta el pedido_item
           
-          // Redirigir a mis-pedidos después de 3 segundos
+          // Limpiar carrito del localStorage también
+          localStorage.removeItem('carrito');
+          
+          // Redirigir a mis-pedidos después de 2 segundos
           setTimeout(() => {
+            console.log('Redirigiendo ahora...');
             window.location.href = '/mis-pedidos';
-          }, 3000);
+          }, 2000);
         } else {
           console.error('Error del API:', pedidoData.error);
+          alert('Error al crear el pedido: ' + pedidoData.error);
         }
       } catch (error) {
         console.error('Error creando pedido:', error);
+        alert('Error inesperado: ' + String(error));
       }
     }
 

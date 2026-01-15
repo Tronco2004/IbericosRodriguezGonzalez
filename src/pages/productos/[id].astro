@@ -1,103 +1,178 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 
-const productos = {
-  '1': { nombre: "Jamón Ibérico Reserva", precio: 9999, categoria: "jamones", imagen: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=800&h=800&fit=crop", rating: 4.9, descripcion: "Jamón ibérico de bellota, curado durante 48 meses en las bodegas de las mejores dehesas. Sabor intenso y aroma incomparable." },
-  '2': { nombre: "Queso Manchego Premium", precio: 2200, categoria: "quesos", imagen: "https://images.unsplash.com/photo-1452195463300-e83e0a2a7a25?w=800&h=800&fit=crop", rating: 4.8, descripcion: "Queso Manchego elaborado con leche de oveja manchega. Textura cremosa y sabor equilibrado con notas de nuez." },
-  '3': { nombre: "Chorizo de Bellota", precio: 1800, categoria: "embutidos", imagen: "https://images.unsplash.com/photo-1557803104268-0ef0f060e15f?w=800&h=800&fit=crop", rating: 4.7, descripcion: "Chorizo elaborado con carnes de cerdo ibérico de bellota. Curado lentamente para desarrollar un sabor profundo y complejo." }
-};
-
-export function getStaticPaths() {
-  return [
-    { params: { id: '1' } },
-    { params: { id: '2' } },
-    { params: { id: '3' } }
-  ];
-}
-
-const { id } = Astro.params;
-const producto = productos[id as string];
+// Esta página se cargará dinámicamente con JavaScript
 ---
 
 <Layout>
-  {producto ? (
-    <div>
-      <a href="/productos" style="
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        color: #a89968;
-        text-decoration: none;
-        font-weight: 600;
-        margin-bottom: 2rem;
-        transition: all 0.3s;
-      " onmouseover="this.style.transform='translateX(-4px)'" onmouseout="this.style.transform='translateX(0)'">
-        ← Volver al catálogo
-      </a>
+  <div id="productDetails" style="display: none;">
+    <!-- Contenido del producto se renderizará aquí -->
+  </div>
+  
+  <div id="loadingMessage" style="text-align: center; padding: 4rem 2rem;">
+    <p style="color: #999; font-size: 1.2rem;">Cargando producto...</p>
+  </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start;">
-        {/* Galería */}
-        <div>
-          <div style="
-            position: relative;
-            background: linear-gradient(135deg, #f8f7f4 0%, #e8e6e0 100%);
-            border-radius: 12px;
-            overflow: hidden;
-            aspect-ratio: 1;
-            display: flex;
+  <script>
+    async function cargarProducto() {
+      try {
+        // Obtener el ID del producto de la URL
+        const productoId = window.location.pathname.split('/').pop();
+        console.log('📦 Cargando producto:', productoId);
+
+        // Obtener datos del producto
+        const response = await fetch(`/api/admin/productos`);
+        const data = await response.json();
+        
+        if (!data.success || !data.productos) {
+          document.getElementById('loadingMessage').innerHTML = '<p style="color: #dc2626;">Error al cargar el producto</p>';
+          return;
+        }
+
+        const producto = data.productos.find(p => p.id === parseInt(productoId));
+        if (!producto) {
+          document.getElementById('loadingMessage').innerHTML = '<p style="color: #dc2626;">Producto no encontrado</p>';
+          return;
+        }
+
+        // Obtener ofertas
+        let oferta = null;
+        try {
+          const ofertasResponse = await fetch('/api/ofertas');
+          const ofertasData = await ofertasResponse.json();
+          if (ofertasData.success && ofertasData.data) {
+            oferta = ofertasData.data.find(o => o.producto_id === producto.id);
+          }
+        } catch (error) {
+          console.error('Error cargando ofertas:', error);
+        }
+
+        const precioOriginal = producto.precio_centimos / 100;
+        const precioFinal = oferta ? (oferta.precio_descuento_centimos / 100) : precioOriginal;
+        const porcentajeDescuento = oferta ? oferta.porcentaje_descuento : 0;
+
+        const html = `
+          <a href="/productos" style="
+            display: inline-flex;
             align-items: center;
-            justify-content: center;
-          ">
-            <img src={producto.imagen} alt={producto.nombre} style="
-              width: 100%;
-              height: 100%;
-              object-fit: cover;
-              transition: transform 0.4s;
-            " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" />
-          </div>
-        </div>
+            gap: 0.5rem;
+            color: #a89968;
+            text-decoration: none;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            transition: all 0.3s;
+          " onmouseover="this.style.transform='translateX(-4px)'" onmouseout="this.style.transform='translateX(0)'">
+            ← Volver al catálogo
+          </a>
 
-        {/* Detalles */}
-        <div>
-          <span style="color: #a89968; font-size: 0.85rem; text-transform: uppercase; font-weight: 700; letter-spacing: 1px;">{producto.categoria}</span>
-          <h1 style="font-size: 2.5rem; margin: 0.5rem 0 1rem 0; color: #001a33;">{producto.nombre}</h1>
-          
-          {/* Rating */}
-          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
-            <span style="color: #a89968; font-size: 1.1rem;">★ {producto.rating}</span>
-            <span style="opacity: 0.6;">(47 reseñas)</span>
-          </div>
-
-          {/* Precio */}
-          <p style="font-size: 2.2rem; color: #001a33; font-weight: 700; margin-bottom: 2rem;">€{(producto.precio / 100).toFixed(2)}</p>
-
-          {/* Descripción */}
-          <p style="font-size: 1.05rem; line-height: 1.7; opacity: 0.85; margin-bottom: 2rem;">{producto.descripcion}</p>
-
-          {/* Selectors */}
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start;">
+            {/* Galería */}
             <div>
-              <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.5rem; color: #001a33;">Tamaño</label>
-              <select style="
-                width: 100%;
-                padding: 0.6rem;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                font-size: 0.95rem;
-                background: #fff;
-                cursor: pointer;
+              <div style="
+                position: relative;
+                background: linear-gradient(135deg, #f8f7f4 0%, #e8e6e0 100%);
+                border-radius: 12px;
+                overflow: hidden;
+                aspect-ratio: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
               ">
-                <option>200g - Estándar</option>
-                <option>500g - Económico</option>
-                <option>1kg - Familiar</option>
-              </select>
+                ${oferta ? `<div style="position: absolute; top: 10px; right: 10px; background: #dc2626; color: white; padding: 0.6rem 1.2rem; border-radius: 4px; font-weight: 700; font-size: 1rem; z-index: 10;">-${porcentajeDescuento}%</div>` : ''}
+                <img src="${producto.imagen_url}" alt="${producto.nombre}" style="
+                  width: 100%;
+                  height: 100%;
+                  object-fit: cover;
+                  transition: transform 0.4s;
+                " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" />
+              </div>
             </div>
+
+            {/* Detalles */}
             <div>
-              <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.5rem; color: #001a33;">Cantidad</label>
-              <input type="number" min="1" max="10" value="1" style="
+              <span style="color: #a89968; font-size: 0.85rem; text-transform: uppercase; font-weight: 700; letter-spacing: 1px;">${producto.categorias?.nombre || 'Producto'}</span>
+              <h1 style="font-size: 2.5rem; margin: 0.5rem 0 1rem 0; color: #001a33;">${producto.nombre}</h1>
+              
+              {/* Rating */}
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+                <span style="color: #a89968; font-size: 1.1rem;">★ ${producto.rating || 4.8}</span>
+              </div>
+
+              {/* Precio */}
+              <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+                <p style="font-size: 2.2rem; color: #001a33; font-weight: 700; margin: 0;">€${precioFinal.toFixed(2)}</p>
+                ${oferta ? `<p style="font-size: 1.3rem; color: #999; text-decoration: line-through; margin: 0;">€${precioOriginal.toFixed(2)}</p>` : ''}
+              </div>
+
+              {/* Descripción */}
+              <p style="font-size: 1.05rem; line-height: 1.7; opacity: 0.85; margin-bottom: 2rem;">${producto.descripcion || 'Sin descripción'}</p>
+
+              <button onclick="agregarAlCarrito(${producto.id})" style="
                 width: 100%;
-                padding: 0.6rem;
-                border: 1px solid #ddd;
+                padding: 1rem;
+                background: #a89968;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                font-weight: 600;
+                cursor: pointer;
+                font-size: 1rem;
+                transition: background 0.3s;
+              " onmouseover="this.style.background='#9a8560'" onmouseout="this.style.background='#a89968'">
+                Agregar al Carrito
+              </button>
+            </div>
+          </div>
+        `;
+
+        document.getElementById('productDetails').innerHTML = html;
+        document.getElementById('productDetails').style.display = 'block';
+        document.getElementById('loadingMessage').style.display = 'none';
+
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('loadingMessage').innerHTML = '<p style="color: #dc2626;">Error al cargar el producto</p>';
+      }
+    }
+
+    async function agregarAlCarrito(productoId) {
+      try {
+        const userId = localStorage.getItem('user_id');
+        if (!userId) {
+          alert('Debes iniciar sesión para comprar');
+          window.location.href = '/login';
+          return;
+        }
+
+        const response = await fetch('/api/carrito/agregar', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': userId
+          },
+          body: JSON.stringify({
+            productoId: productoId,
+            cantidad: 1
+          })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          alert('Producto agregado al carrito');
+          window.location.href = '/carrito';
+        } else {
+          alert('Error: ' + data.message);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error al agregar al carrito');
+      }
+    }
+
+    // Cargar producto cuando carga la página
+    cargarProducto();
+  </script>
+</Layout>
                 border-radius: 4px;
                 font-size: 0.95rem;
                 text-align: center;
