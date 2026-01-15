@@ -11,7 +11,204 @@ import Layout from '../layouts/Layout.astro';
     </div>
   </div>
 
-  <script>
+  <div id="confirmModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 8px; padding: 2rem; max-width: 500px; animation: slideIn 0.3s ease;">
+      <h2 style="color: #001a33; margin: 0 0 1rem 0;" id="confirmTitle">Confirmar</h2>
+      <p style="color: #5c4a3d; margin: 0 0 2rem 0;" id="confirmMessage">¿Estás seguro?</p>
+      <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+        <button onclick="cerrarConfirmModal()" style="padding: 0.75rem 1.5rem; border: 2px solid #5c4a3d; background: transparent; color: #5c4a3d; border-radius: 4px; cursor: pointer; font-weight: 600; transition: all 0.3s;" onmouseover="this.style.background='#f8f4f0'" onmouseout="this.style.background='transparent'">
+          Cancelar
+        </button>
+        <button onclick="confirmarAccion()" style="padding: 0.75rem 1.5rem; background: #a89968; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; transition: background 0.3s;" onmouseover="this.style.background='#8f7959'" onmouseout="this.style.background='#a89968'">
+          Confirmar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="returnModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 8px; padding: 2rem; max-width: 600px; max-height: 80vh; overflow-y: auto; animation: slideIn 0.3s ease;">
+      <h2 style="color: #001a33; margin: 0 0 1.5rem 0;">Solicitar Devolución</h2>
+      <div style="background: #f8f4f0; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
+        <h3 style="color: #001a33; margin: 0 0 1rem 0;">Instrucciones de Devolución</h3>
+        <ol style="color: #5c4a3d; line-height: 1.8; margin: 0;">
+          <li>Prepara el producto en su empaque original</li>
+          <li>Imprime la etiqueta de devolución que recibirás por email</li>
+          <li>Envía el paquete al siguiente dirección:
+            <div style="background: white; padding: 1rem; margin: 1rem 0; border-left: 3px solid #a89968; border-radius: 4px;">
+              <p style="margin: 0; font-weight: 600; color: #001a33;">Ibéricos Rodríguez González</p>
+              <p style="margin: 0.25rem 0 0 0; color: #5c4a3d;">Calle de la Moda 123</p>
+              <p style="margin: 0.25rem 0 0 0; color: #5c4a3d;">Polígono Industrial</p>
+              <p style="margin: 0.25rem 0 0 0; color: #5c4a3d;">28001 Madrid, España</p>
+            </div>
+          </li>
+          <li>El reembolso se procesará en <strong>5 a 7 días hábiles</strong> después de recibir tu devolución</li>
+        </ol>
+        <p style="color: #f5576c; font-weight: 600; margin: 1rem 0 0 0; padding: 1rem; background: #ffe0e0; border-radius: 4px;">
+          ⚠️ Importante: Asegúrate de enviar el producto en buen estado para que se apruebe la devolución.
+        </p>
+      </div>
+      <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+        <button onclick="cerrarModalDevolucion()" style="
+          padding: 0.75rem 1.5rem;
+          border: 2px solid #5c4a3d;
+          background: transparent;
+          color: #5c4a3d;
+          border-radius: 4px;
+          cursor: pointer;
+          font-weight: 600;
+          transition: all 0.3s;
+        " onmouseover="this.style.background='#f8f4f0'" onmouseout="this.style.background='transparent'">
+          Cancelar
+        </button>
+        <button onclick="confirmarDevolucion()" style="
+          padding: 0.75rem 1.5rem;
+          background: #a89968;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-weight: 600;
+          transition: background 0.3s;
+        " onmouseover="this.style.background='#8f7959'" onmouseout="this.style.background='#a89968'">
+          Confirmar Devolución
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script is:inline>
+    let pedidoEnDevolucion = null;
+    let accionConfirmar = null;
+    let pedidoAConfirmar = null;
+
+    function mostrarConfirmModal(titulo, mensaje, accion, pedidoId) {
+      document.getElementById('confirmTitle').textContent = titulo;
+      document.getElementById('confirmMessage').textContent = mensaje;
+      accionConfirmar = accion;
+      pedidoAConfirmar = pedidoId;
+      document.getElementById('confirmModal').style.display = 'flex';
+    }
+
+    function cerrarConfirmModal() {
+      document.getElementById('confirmModal').style.display = 'none';
+      accionConfirmar = null;
+      pedidoAConfirmar = null;
+    }
+
+    function confirmarAccion() {
+      console.log('🟡 Confirmar acción:', { accionConfirmar, pedidoAConfirmar });
+      const accion = accionConfirmar;
+      const pedidoId = pedidoAConfirmar;
+      cerrarConfirmModal();
+      
+      if (accion === 'cancelar') {
+        console.log('🟡 Llamando cancelarPedidoConfirmado con:', pedidoId);
+        cancelarPedidoConfirmado(pedidoId);
+      }
+    }
+
+    function mostrarModalDevolucion(pedidoId) {
+      pedidoEnDevolucion = pedidoId;
+      document.getElementById('returnModal').style.display = 'flex';
+    }
+
+    function cerrarModalDevolucion() {
+      document.getElementById('returnModal').style.display = 'none';
+      pedidoEnDevolucion = null;
+    }
+
+    async function confirmarDevolucion() {
+      if (!pedidoEnDevolucion) return;
+
+      const userId = localStorage.getItem('user_id');
+      try {
+        const response = await fetch('/api/pedidos/solicitar-devolucion', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': userId
+          },
+          body: JSON.stringify({ pedido_id: pedidoEnDevolucion })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          cerrarModalDevolucion();
+          mostrarNotificacion('Solicitud de devolución enviada. Recibirás instrucciones por email.', 'success');
+          cargarPedidos(); // Recargar para actualizar el estado
+        } else {
+          mostrarNotificacion(data.error || 'Error al solicitar devolución', 'error');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        mostrarNotificacion('Error al solicitar devolución', 'error');
+      }
+    }
+
+    async function cancelarPedido(pedidoId) {
+      mostrarConfirmModal(
+        'Cancelar Pedido',
+        '¿Estás seguro de que deseas cancelar este pedido? Se restaurará el stock y recibirás un reembolso.',
+        'cancelar',
+        pedidoId
+      );
+    }
+
+    async function cancelarPedidoConfirmado(pedidoId) {
+      const userId = localStorage.getItem('user_id');
+      console.log('🔵 Iniciando cancelación:', { pedidoId, userId });
+      
+      try {
+        const response = await fetch('/api/pedidos/cancelar', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': userId
+          },
+          body: JSON.stringify({ pedido_id: pedidoId })
+        });
+
+        console.log('🔵 Response status:', response.status);
+        const data = await response.json();
+        console.log('🔵 Response data:', data);
+
+        if (response.ok && data.success) {
+          mostrarNotificacion('Pedido cancelado exitosamente. El reembolso será procesado en breve.', 'success');
+          cargarPedidos(); // Recargar para actualizar el estado
+        } else {
+          mostrarNotificacion(data.error || 'Error al cancelar pedido', 'error');
+        }
+      } catch (error) {
+        console.error('🔴 Error:', error);
+        mostrarNotificacion('Error al cancelar pedido', 'error');
+      }
+    }
+
+    function mostrarNotificacion(mensaje, tipo) {
+      const notificacion = document.createElement('div');
+      notificacion.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${tipo === 'success' ? '#28a745' : '#f5576c'};
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 4px;
+        z-index: 2000;
+        animation: slideInRight 0.3s ease;
+        max-width: 400px;
+      `;
+      notificacion.textContent = mensaje;
+      document.body.appendChild(notificacion);
+
+      setTimeout(() => {
+        notificacion.style.animation = 'slideOutRight 0.3s ease';
+        setTimeout(() => notificacion.remove(), 300);
+      }, 4000);
+    }
+
     async function cargarPedidos() {
       try {
         // Pequeño delay para asegurar que localStorage está disponible
@@ -82,14 +279,64 @@ import Layout from '../layouts/Layout.astro';
 
         let html = '<div style="display: grid; gap: 1.5rem;">';
 
-        pedidos.forEach(pedido => {
+        pedidos.forEach((pedido, index) => {
           const estadoColor = {
             'pagado': '#28a745',
             'preparando': '#ffc107',
             'enviado': '#17a2b8',
             'entregado': '#6c757d',
-            'cancelado': '#dc3545'
+            'cancelado': '#dc3545',
+            'devolucion_solicitada': '#ff9800'
           };
+
+          const estadoTexto = {
+            'pagado': 'Pagado',
+            'preparando': 'Preparando',
+            'enviado': 'Enviado',
+            'entregado': 'Entregado',
+            'cancelado': 'Cancelado',
+            'devolucion_solicitada': 'Devolución Solicitada'
+          };
+
+          console.log('📦 Pedido:', { id: pedido.id, numero: pedido.numero_pedido, estado: pedido.estado });
+
+          // Determinar botones disponibles
+          let botones = '';
+          if (pedido.estado === 'pagado') {
+            const pedidoId = String(pedido.id);
+            botones = `
+              <button onclick="cancelarPedido('${pedidoId}')" style="
+                padding: 0.6rem 1.2rem;
+                background: #f5576c;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-weight: 600;
+                font-size: 0.9rem;
+                transition: background 0.3s;
+              " onmouseover="this.style.background='#d63447'" onmouseout="this.style.background='#f5576c'">
+                Cancelar Pedido
+              </button>
+            `;
+          } else if (pedido.estado === 'entregado') {
+            const pedidoId = String(pedido.id);
+            botones = `
+              <button onclick="mostrarModalDevolucion('${pedidoId}')" style="
+                padding: 0.6rem 1.2rem;
+                background: #ff9800;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-weight: 600;
+                font-size: 0.9rem;
+                transition: background 0.3s;
+              " onmouseover="this.style.background='#e68900'" onmouseout="this.style.background='#ff9800'">
+                Solicitar Devolución
+              </button>
+            `;
+          }
 
           html += `
             <div style="background: white; border-radius: 8px; overflow: hidden; border: 1px solid #e0d5c7;">
@@ -110,7 +357,7 @@ import Layout from '../layouts/Layout.astro';
                     font-weight: 600;
                     font-size: 0.85rem;
                   ">
-                    ${pedido.estado.charAt(0).toUpperCase() + pedido.estado.slice(1)}
+                    ${estadoTexto[pedido.estado] || pedido.estado.charAt(0).toUpperCase() + pedido.estado.slice(1)}
                   </span>
                 </div>
                 <div style="text-align: right;">
@@ -166,11 +413,23 @@ import Layout from '../layouts/Layout.astro';
                       <span style="color: #001a33; font-weight: 600;">${(pedido.impuestos / 100).toFixed(2)}€</span>
                     </div>
                   ` : ''}
+                  ${pedido.descuento_aplicado > 0 ? `
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; margin-bottom: 0.5rem;">
+                      <span style="color: #28a745;">Descuento</span>
+                      <span style="color: #28a745; font-weight: 600;">-${(pedido.descuento_aplicado / 100).toFixed(2)}€</span>
+                    </div>
+                  ` : ''}
                   <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; border-top: 1px solid #e0d5c7; padding-top: 0.75rem; margin-top: 0.75rem;">
                     <span style="color: #001a33; font-weight: 700;">Total</span>
                     <span style="color: #a89968; font-weight: 700; font-size: 1.1rem;">${(pedido.total / 100).toFixed(2)}€</span>
                   </div>
                 </div>
+
+                ${botones ? `
+                  <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e0d5c7; display: flex; gap: 1rem; justify-content: flex-end;">
+                    ${botones}
+                  </div>
+                ` : ''}
               </div>
             </div>
           `;
@@ -203,6 +462,42 @@ import Layout from '../layouts/Layout.astro';
         `;
       }
     }
+
+    // Estilos para animaciones
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes slideInRight {
+        from {
+          opacity: 0;
+          transform: translateX(100px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+      @keyframes slideOutRight {
+        from {
+          opacity: 1;
+          transform: translateX(0);
+        }
+        to {
+          opacity: 0;
+          transform: translateX(100px);
+        }
+      }
+    `;
+    document.head.appendChild(style);
 
     cargarPedidos();
   </script>

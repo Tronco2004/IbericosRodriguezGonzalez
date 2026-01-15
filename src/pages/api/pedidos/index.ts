@@ -143,6 +143,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     // Crear items del pedido
+    console.log('🔵 cartItems recibidos:', JSON.stringify(cartItems, null, 2));
+    
     const itemsData = cartItems.map((item: any) => ({
       pedido_id: pedido.id,
       producto_id: item.producto_id,
@@ -154,17 +156,21 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       peso_kg: item.peso_kg || null
     }));
 
+    console.log('🔵 itemsData a insertar:', JSON.stringify(itemsData, null, 2));
+
     const { error: errorItems } = await supabaseClient
       .from('pedido_items')
       .insert(itemsData);
 
     if (errorItems) {
-      console.error('Error creando items del pedido:', errorItems);
+      console.error('🔴 ERROR COMPLETO insertando items:', JSON.stringify(errorItems, null, 2));
       return new Response(
-        JSON.stringify({ error: 'Error creando items del pedido' }),
+        JSON.stringify({ error: 'Error creando items del pedido: ' + errorItems.message }),
         { status: 500 }
       );
     }
+
+    console.log('✅ Items insertados exitosamente para pedido:', pedido.id);
 
     const { data: cartData } = await supabaseClient
       .from('carritos')

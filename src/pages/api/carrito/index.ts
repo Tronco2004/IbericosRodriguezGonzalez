@@ -20,14 +20,16 @@ export const GET: APIRoute = async ({ cookies, request }) => {
       );
     }
 
-    // Obtener carrito del usuario
+    // Obtener carrito del usuario (más reciente)
     let { data: carrito, error: carritoError } = await supabaseClient
       .from('carritos')
       .select('*')
       .eq('usuario_id', userId)
-      .single();
+      .order('fecha_creacion', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (carritoError || !carrito) {
+    if (!carrito) {
       console.log('📦 Creando nuevo carrito para usuario:', userId);
       const { data: nuevoCarrito, error: createError } = await supabaseClient
         .from('carritos')
@@ -71,6 +73,7 @@ export const GET: APIRoute = async ({ cookies, request }) => {
     }
 
     console.log('📦 Items obtenidos del carrito:', items?.length ?? 0, 'items');
+    console.log('🔵 Items completos:', JSON.stringify(items, null, 2));
 
     // Verificar si el carrito ha expirado usando el item más reciente como referencia global
     let carritoExpirado = false;
@@ -237,14 +240,16 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    // Obtener o crear carrito
+    // Obtener o crear carrito (más reciente)
     let { data: carrito, error: carritoError } = await supabaseClient
       .from('carritos')
       .select('*')
       .eq('usuario_id', user_id)
-      .single();
+      .order('fecha_creacion', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (carritoError || !carrito) {
+    if (!carrito) {
       console.log('📦 Creando nuevo carrito para usuario:', user_id);
       const { data: nuevoCarrito, error: createError } = await supabaseClient
         .from('carritos')
