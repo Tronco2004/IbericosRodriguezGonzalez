@@ -28,7 +28,7 @@ export const GET: APIRoute = async ({ cookies, request }) => {
     // Obtener datos del usuario desde la BD
     const { data: usuario, error } = await supabaseClient
       .from('usuarios')
-      .select('id, nombre, email, telefono, rol')
+      .select('id, nombre, email, telefono, direccion, rol')
       .eq('id', userId)
       .single();
 
@@ -47,6 +47,7 @@ export const GET: APIRoute = async ({ cookies, request }) => {
           email: usuario.email,
           nombre: usuario.nombre,
           telefono: usuario.telefono,
+          direccion: usuario.direccion,
           rol: usuario.rol
         }
       }),

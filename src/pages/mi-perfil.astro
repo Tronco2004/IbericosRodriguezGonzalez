@@ -1,0 +1,329 @@
+---
+import ProtectedLayout from '../layouts/ProtectedLayout.astro';
+---
+
+<ProtectedLayout>
+  <div style="max-width: 1000px; margin: 0 auto; padding: 2rem 1rem;">
+    <!-- Header -->
+    <div style="margin-bottom: 3rem;">
+      <h1 style="font-size: 3rem; margin: 0 0 0.5rem 0; color: #001a33; font-weight: 800; letter-spacing: -1px;">Mi Perfil</h1>
+      <div style="width: 80px; height: 3px; background: linear-gradient(90deg, #a89968, #d4a574); border-radius: 10px; margin-bottom: 1.5rem;"></div>
+      <p style="color: #666; font-size: 1.05rem; margin: 0;">Gestiona tu información personal y seguridad</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+      <!-- Columna izquierda: Información Personal -->
+      <div>
+        <!-- Tarjeta de Información Personal -->
+        <div style="background: linear-gradient(135deg, #f5f3f0 0%, #faf8f6 100%); border-radius: 12px; padding: 2rem; border: 1px solid #e8e4e0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+          <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+            <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #a89968, #d4a574); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+              <span style="color: white; font-weight: 700; font-size: 1.2rem; font-style: italic;">i</span>
+            </div>
+            <h2 style="margin: 0; font-size: 1.2rem; color: #001a33; font-weight: 700;">Información Personal</h2>
+          </div>
+          
+          <form id="formularioPerfil" style="display: grid; gap: 1.25rem;">
+            <!-- Nombre -->
+            <div style="background: white; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+              <label for="nombreInput" style="display: block; font-size: 0.8rem; font-weight: 700; color: #a89968; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Nombre</label>
+              <input 
+                id="nombreInput"
+                type="text"
+                style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box; transition: all 0.3s; background: white;"
+              />
+            </div>
+            
+            <!-- Email (solo lectura) -->
+            <div style="background: white; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+              <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #a89968; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Email</label>
+              <p id="emailDisplay" style="margin: 0; font-size: 1.1rem; color: #001a33; font-weight: 600;">Cargando...</p>
+            </div>
+            
+            <!-- Teléfono -->
+            <div style="background: white; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+              <label for="telefonoInput" style="display: block; font-size: 0.8rem; font-weight: 700; color: #a89968; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Teléfono</label>
+              <input 
+                id="telefonoInput"
+                type="tel"
+                placeholder="Tu número de teléfono"
+                style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box; transition: all 0.3s; background: white;"
+              />
+            </div>
+            
+            <!-- Dirección -->
+            <div style="background: white; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+              <label for="direccionInput" style="display: block; font-size: 0.8rem; font-weight: 700; color: #a89968; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Dirección</label>
+              <input 
+                id="direccionInput"
+                type="text"
+                placeholder="Tu dirección de envío"
+                style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box; transition: all 0.3s; background: white;"
+              />
+            </div>
+
+            <div id="mensajePerfilEstado" style="display: none; padding: 1rem; border-radius: 8px; font-size: 0.95rem; margin-top: 0.5rem; border-left: 4px solid #a89968;"></div>
+            
+            <button 
+              type="submit"
+              style="width: 100%; padding: 0.85rem; background: linear-gradient(135deg, #a89968, #9a8560); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 1rem; transition: all 0.3s; text-transform: uppercase; letter-spacing: 1px; margin-top: 1rem; box-shadow: 0 4px 12px rgba(168, 153, 104, 0.2);"
+            >
+              Guardar Cambios
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Columna derecha: Cambiar Contraseña -->
+      <div>
+        <!-- Tarjeta de Cambiar Contraseña -->
+        <div style="background: linear-gradient(135deg, #f5f3f0 0%, #faf8f6 100%); border-radius: 12px; padding: 2rem; border: 1px solid #e8e4e0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+          <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+            <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #a89968, #d4a574); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+              <span style="color: white; font-weight: 700; font-size: 1.2rem;">S</span>
+            </div>
+            <h2 style="margin: 0; font-size: 1.2rem; color: #001a33; font-weight: 700;">Seguridad</h2>
+          </div>
+          
+          <form id="cambiarContrasenaForm" style="display: grid; gap: 1rem;">
+            <!-- Contraseña Actual -->
+            <div style="background: white; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+              <label for="contrasenaActual" style="display: block; font-size: 0.8rem; font-weight: 700; color: #a89968; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Contraseña Actual</label>
+              <input 
+                id="contrasenaActual"
+                type="password" 
+                required
+                placeholder="Ingresa tu contraseña actual"
+                style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box; transition: all 0.3s; background: white;"
+              />
+            </div>
+            
+            <!-- Contraseña Nueva -->
+            <div style="background: white; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+              <label for="contrasenaNueva" style="display: block; font-size: 0.8rem; font-weight: 700; color: #a89968; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Contraseña Nueva</label>
+              <input 
+                id="contrasenaNueva"
+                type="password" 
+                required
+                placeholder="Mínimo 6 caracteres"
+                style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box; transition: all 0.3s; background: white;"
+              />
+              <p style="margin: 0.5rem 0 0 0; font-size: 0.8rem; color: #a89968;">Mínimo 6 caracteres</p>
+            </div>
+            
+            <!-- Confirmar Contraseña -->
+            <div style="background: white; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+              <label for="contrasenaConfirm" style="display: block; font-size: 0.8rem; font-weight: 700; color: #a89968; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Confirmar Contraseña</label>
+              <input 
+                id="contrasenaConfirm"
+                type="password" 
+                required
+                placeholder="Confirma tu nueva contraseña"
+                style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box; transition: all 0.3s; background: white;"
+              />
+            </div>
+
+            <div id="mensajeEstado" style="display: none; padding: 1rem; border-radius: 8px; font-size: 0.95rem; margin-top: 0.5rem; border-left: 4px solid #a89968;"></div>
+            
+            <button 
+              type="submit"
+              style="width: 100%; padding: 0.85rem; background: linear-gradient(135deg, #a89968, #9a8560); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 1rem; transition: all 0.3s; text-transform: uppercase; letter-spacing: 1px; margin-top: 1rem; box-shadow: 0 4px 12px rgba(168, 153, 104, 0.2);"
+            >
+              Cambiar Contraseña
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    input:focus {
+      outline: none;
+      border-color: #a89968 !important;
+      box-shadow: 0 0 0 3px rgba(168, 153, 104, 0.1) !important;
+    }
+
+    button:hover:not(:disabled) {
+      background: linear-gradient(135deg, #9a8560, #8a7550) !important;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(168, 153, 104, 0.3) !important;
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  </style>
+
+  <script>
+    async function cargarDatosUsuario() {
+      try {
+        const userId = localStorage.getItem('user_id');
+        console.log('🔍 userId desde localStorage:', userId);
+        
+        const response = await fetch('/api/auth/me', {
+          headers: {
+            'x-user-id': userId || ''
+          }
+        });
+        
+        console.log('📡 Response status:', response.status);
+        const data = await response.json();
+        console.log('📦 Data recibida:', data);
+        
+        if (data.success && data.usuario) {
+          document.getElementById('nombreInput').value = data.usuario.nombre || '';
+          document.getElementById('emailDisplay').textContent = data.usuario.email || '-';
+          document.getElementById('telefonoInput').value = data.usuario.telefono || '';
+          document.getElementById('direccionInput').value = data.usuario.direccion || '';
+          console.log('✅ Datos cargados correctamente');
+        } else {
+          console.error('❌ Error en respuesta:', data.error);
+          document.getElementById('emailDisplay').textContent = 'Error: ' + (data.error || 'No autorizado');
+        }
+      } catch (error) {
+        console.error('❌ Error cargando datos del usuario:', error);
+        document.getElementById('emailDisplay').textContent = 'Error de conexión';
+      }
+    }
+
+    async function guardarPerfil(e) {
+      e.preventDefault();
+      
+      const nombre = document.getElementById('nombreInput').value;
+      const telefono = document.getElementById('telefonoInput').value;
+      const direccion = document.getElementById('direccionInput').value;
+      const mensajeEstado = document.getElementById('mensajePerfilEstado');
+      const boton = e.target.querySelector('button[type="submit"]');
+
+      // Limpiar mensaje anterior
+      mensajeEstado.style.display = 'none';
+
+      // Validar nombre
+      if (!nombre || nombre.trim().length === 0) {
+        mostrarMensaje('El nombre es requerido', 'error', mensajeEstado, true);
+        return;
+      }
+
+      try {
+        boton.disabled = true;
+        boton.textContent = 'Guardando...';
+
+        const response = await fetch('/api/auth/actualizar-perfil', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': localStorage.getItem('user_id') || ''
+          },
+          body: JSON.stringify({
+            nombre: nombre.trim(),
+            telefono: telefono?.trim() || null,
+            direccion: direccion?.trim() || null
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          mostrarMensaje('✅ Perfil actualizado exitosamente', 'exito', mensajeEstado, true);
+          setTimeout(() => {
+            mensajeEstado.style.display = 'none';
+          }, 5000);
+        } else {
+          mostrarMensaje('❌ ' + (data.message || 'Error al guardar'), 'error', mensajeEstado, true);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        mostrarMensaje('❌ Error de conexión', 'error', mensajeEstado, true);
+      } finally {
+        boton.disabled = false;
+        boton.textContent = 'Guardar Cambios';
+      }
+    }
+
+    async function cambiarContrasena(e) {
+      e.preventDefault();
+      
+      const contrasenaActual = document.getElementById('contrasenaActual').value;
+      const contrasenaNueva = document.getElementById('contrasenaNueva').value;
+      const contrasenaConfirm = document.getElementById('contrasenaConfirm').value;
+      const mensajeEstado = document.getElementById('mensajeEstado');
+      const boton = e.target.querySelector('button[type="submit"]');
+
+      // Limpiar mensaje anterior
+      mensajeEstado.style.display = 'none';
+
+      // Validaciones del lado del cliente
+      if (contrasenaActual.length === 0) {
+        mostrarMensaje('Por favor ingresa tu contraseña actual', 'error', mensajeEstado);
+        return;
+      }
+
+      if (contrasenaNueva.length < 6) {
+        mostrarMensaje('La contraseña debe tener al menos 6 caracteres', 'error', mensajeEstado);
+        return;
+      }
+
+      if (contrasenaNueva !== contrasenaConfirm) {
+        mostrarMensaje('Las contraseñas nuevas no coinciden', 'error', mensajeEstado);
+        return;
+      }
+
+      try {
+        boton.disabled = true;
+        boton.textContent = 'Cambiando contraseña...';
+
+        const response = await fetch('/api/auth/cambiar-contrasena', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': localStorage.getItem('user_id') || ''
+          },
+          body: JSON.stringify({
+            contrasenaActual,
+            contrasenaNueva,
+            contrasenaConfirm
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          mostrarMensaje('✅ Contraseña cambiada exitosamente', 'exito', mensajeEstado);
+          document.getElementById('cambiarContrasenaForm').reset();
+          setTimeout(() => {
+            mensajeEstado.style.display = 'none';
+          }, 5000);
+        } else {
+          mostrarMensaje('❌ ' + (data.message || 'Error al cambiar la contraseña'), 'error', mensajeEstado);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        mostrarMensaje('❌ Error de conexión', 'error', mensajeEstado);
+      } finally {
+        boton.disabled = false;
+        boton.textContent = 'Cambiar Contraseña';
+      }
+    }
+
+    function mostrarMensaje(texto, tipo, elemento, separado = false) {
+      elemento.textContent = texto;
+      elemento.style.display = 'block';
+      elemento.style.background = tipo === 'exito' ? '#d1fae5' : '#fee2e2';
+      elemento.style.color = tipo === 'exito' ? '#065f46' : '#991b1b';
+      elemento.style.borderLeftColor = tipo === 'exito' ? '#10b981' : '#ef4444';
+    }
+
+    // Cargar datos del usuario cuando carga la página
+    document.addEventListener('DOMContentLoaded', () => {
+      cargarDatosUsuario();
+      document.getElementById('formularioPerfil').addEventListener('submit', guardarPerfil);
+      document.getElementById('cambiarContrasenaForm').addEventListener('submit', cambiarContrasena);
+    });
+  </script>
+</ProtectedLayout>
