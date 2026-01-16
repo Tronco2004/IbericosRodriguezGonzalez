@@ -56,7 +56,7 @@ const description = "Descubre nuestra colección de productos ibéricos de la m�
       top: 0;
       z-index: 100;
     ">
-      <div style="max-width: 1400px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center;">
+      <div style="max-width: 1400px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; gap: 2rem;">
         <a href="/" style="
           font-size: 1.8rem;
           background: linear-gradient(135deg, #001a33, #5c4a3d);
@@ -66,17 +66,60 @@ const description = "Descubre nuestra colección de productos ibéricos de la m�
           font-weight: 700;
           font-family: 'Playfair Display', serif;
           text-decoration: none;
+          flex-shrink: 0;
         ">Ibéricos RG</a>
         
-        <nav style="display: flex; gap: 3rem; align-items: center;">
-          <a href="/" style="font-size: 0.95rem; font-weight: 500; color: #001a33; padding-bottom: 0.5rem; border-bottom: 2px solid transparent; transition: border-color 0.3s ease;" onmouseover="this.style.borderColor='#000'" onmouseout="this.style.borderColor='transparent'">Inicio</a>
-          <a href="/productos" style="font-size: 0.95rem; font-weight: 500; color: #001a33; padding-bottom: 0.5rem; border-bottom: 2px solid transparent; transition: border-color 0.3s ease;" onmouseover="this.style.borderColor='#000'" onmouseout="this.style.borderColor='transparent'">Catálogo</a>
-          <a href="/categoria/jamones" style="font-size: 0.95rem; font-weight: 500; color: #001a33; padding-bottom: 0.5rem; border-bottom: 2px solid transparent; transition: border-color 0.3s ease;" onmouseover="this.style.borderColor='#000'" onmouseout="this.style.borderColor='transparent'">Jamones</a>
-          <a href="/categoria/quesos" style="font-size: 0.95rem; font-weight: 500; color: #001a33; padding-bottom: 0.5rem; border-bottom: 2px solid transparent; transition: border-color 0.3s ease;" onmouseover="this.style.borderColor='#000'" onmouseout="this.style.borderColor='transparent'">Quesos</a>
-          <a href="/categoria/embutidos" style="font-size: 0.95rem; font-weight: 500; color: #001a33; padding-bottom: 0.5rem; border-bottom: 2px solid transparent; transition: border-color 0.3s ease;" onmouseover="this.style.borderColor='#000'" onmouseout="this.style.borderColor='transparent'">Embutidos</a>
+        <nav style="display: flex; gap: 2rem; align-items: center;">
+          <a href="/" style="font-size: 0.95rem; font-weight: 500; color: #001a33; padding-bottom: 0.5rem; border-bottom: 2px solid transparent; transition: border-color 0.3s ease; white-space: nowrap;" onmouseover="this.style.borderColor='#000'" onmouseout="this.style.borderColor='transparent'">Inicio</a>
+          <a href="/productos" style="font-size: 0.95rem; font-weight: 500; color: #001a33; padding-bottom: 0.5rem; border-bottom: 2px solid transparent; transition: border-color 0.3s ease; white-space: nowrap;" onmouseover="this.style.borderColor='#000'" onmouseout="this.style.borderColor='transparent'">Catálogo</a>
+          <a href="/categoria/jamones" style="font-size: 0.95rem; font-weight: 500; color: #001a33; padding-bottom: 0.5rem; border-bottom: 2px solid transparent; transition: border-color 0.3s ease; white-space: nowrap;" onmouseover="this.style.borderColor='#000'" onmouseout="this.style.borderColor='transparent'">Jamones</a>
+          <a href="/categoria/quesos" style="font-size: 0.95rem; font-weight: 500; color: #001a33; padding-bottom: 0.5rem; border-bottom: 2px solid transparent; transition: border-color 0.3s ease; white-space: nowrap;" onmouseover="this.style.borderColor='#000'" onmouseout="this.style.borderColor='transparent'">Quesos</a>
+          <a href="/categoria/embutidos" style="font-size: 0.95rem; font-weight: 500; color: #001a33; padding-bottom: 0.5rem; border-bottom: 2px solid transparent; transition: border-color 0.3s ease; white-space: nowrap;" onmouseover="this.style.borderColor='#000'" onmouseout="this.style.borderColor='transparent'">Embutidos</a>
+        </nav>
 
-          <!-- Carrito Badge con Timer -->
-          <div style="position: relative; display: inline-block;">
+        <!-- Barra de Búsqueda -->
+        <div style="position: relative; width: 280px; flex-shrink: 0;">
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="Buscar productos..." 
+            style="
+              width: 100%;
+              padding: 0.6rem 1rem;
+              border: 1px solid #e0d5c7;
+              border-radius: 6px;
+              font-size: 0.9rem;
+              transition: all 0.3s;
+            "
+            onmouseover="this.style.borderColor='#a89968'"
+            onmouseout="this.style.borderColor='#e0d5c7'"
+            onfocus="this.style.borderColor='#a89968'; this.style.boxShadow='0 0 8px rgba(168, 153, 104, 0.2)'"
+            onblur="this.style.borderColor='#e0d5c7'; this.style.boxShadow='none'"
+          >
+          
+          <!-- Dropdown de Resultados -->
+          <div 
+            id="searchResults" 
+            style="
+              display: none;
+              position: absolute;
+              top: 100%;
+              left: 0;
+              right: 0;
+              background: white;
+              border: 1px solid #e0d5c7;
+              border-top: none;
+              border-radius: 0 0 6px 6px;
+              max-height: 400px;
+              overflow-y: auto;
+              box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+              z-index: 1001;
+            "
+          ></div>
+        </div>
+
+        <!-- Contenedor de acciones (Carrito + Usuario) -->
+        <div style="display: flex; gap: 1.5rem; align-items: center; flex-shrink: 0;">
             <a href="/carrito" style="
               position: relative;
               font-size: 0.95rem;
@@ -119,7 +162,7 @@ const description = "Descubre nuestra colección de productos ibéricos de la m�
           </div>
 
           <div id="authContainer"></div>
-        </nav>
+        </div>
       </div>
     </header>
 
@@ -364,6 +407,227 @@ const description = "Descubre nuestra colección de productos ibéricos de la m�
           " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(168, 153, 104, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(168, 153, 104, 0.3)'">Iniciar Sesión</a>
         `;
       }
+    </script>
+
+    <!-- Modal de Código de Promoción para Nuevos Usuarios -->
+    <div id="promoModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 2000; align-items: center; justify-content: center;">
+      <div style="background: white; border-radius: 12px; padding: 2.5rem; max-width: 500px; animation: slideInScale 0.4s ease; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);">
+        <button onclick="cerrarPromoModal()" style="
+          position: absolute;
+          top: 15px;
+          right: 15px;
+          background: transparent;
+          border: none;
+          font-size: 1.5rem;
+          cursor: pointer;
+          color: #666;
+        ">×</button>
+        
+        <div style="text-align: center; margin-bottom: 2rem;">
+          <h2 style="color: #001a33; font-size: 1.8rem; margin: 0 0 0.5rem 0; font-family: 'Playfair Display', Georgia, serif;">¡Bienvenido!</h2>
+          <p style="color: #5c4a3d; font-size: 0.95rem; margin: 0;">Tenemos un regalo especial para ti</p>
+        </div>
+
+        <div style="background: linear-gradient(135deg, #a89968, #8b6f47); padding: 2rem; border-radius: 8px; margin-bottom: 2rem; color: white; text-align: center;">
+          <p style="font-size: 0.9rem; margin: 0 0 0.5rem 0; text-transform: uppercase; letter-spacing: 1px;">Tu Código de Descuento:</p>
+          <div style="background: rgba(255, 255, 255, 0.15); padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem;">
+            <p id="promoCode" style="font-size: 2rem; font-weight: 700; margin: 0; font-family: 'Courier New', monospace; letter-spacing: 2px;">BIENVENIDA2026</p>
+          </div>
+          <p style="font-size: 0.85rem; margin: 0;">10% de descuento en tu primera compra</p>
+        </div>
+
+        <div style="background: #e8f5e9; border-left: 4px solid #4caf50; padding: 1rem; border-radius: 4px; margin-bottom: 2rem;">
+          <p style="color: #2e7d32; margin: 0; font-size: 0.9rem;">
+            <strong>Cómo usar:</strong> Copia el código y úsalo en tu carrito al momento de checkout.
+          </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <button onclick="copiarPromo()" style="
+            padding: 0.75rem 1.5rem;
+            background: #a89968;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+          " onmouseover="this.style.background='#8f7959'" onmouseout="this.style.background='#a89968'">
+            📋 Copiar Código
+          </button>
+          <button onclick="cerrarPromoModal()" style="
+            padding: 0.75rem 1.5rem;
+            background: transparent;
+            color: #a89968;
+            border: 2px solid #a89968;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+          " onmouseover="this.style.background='#f8f4f0'" onmouseout="this.style.background='transparent'">
+            Entendido
+          </button>
+        </div>
+
+        <p style="color: #999; font-size: 0.8rem; text-align: center; margin-top: 1.5rem;">Este código solo aparece una vez. ¡No lo olvides!</p>
+      </div>
+    </div>
+
+    <style>
+      @keyframes slideInScale {
+        from {
+          transform: scale(0.9);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+    </style>
+
+    <script is:inline>
+      // Live Search - Búsqueda en tiempo real
+      function inicializarBuscador() {
+        const searchInput = document.getElementById('searchInput');
+        const searchResults = document.getElementById('searchResults');
+        let timeoutId = null;
+
+        if (!searchInput || !searchResults) {
+          console.log('Elementos de búsqueda no encontrados');
+          return;
+        }
+
+        console.log('Buscador inicializado');
+
+        searchInput.addEventListener('input', (e) => {
+          const query = e.target.value.trim();
+          console.log('Búsqueda:', query);
+
+          // Limpiar timeout anterior
+          clearTimeout(timeoutId);
+
+          // Si menos de 2 caracteres, ocultar resultados
+          if (query.length < 2) {
+            searchResults.style.display = 'none';
+            searchResults.innerHTML = '';
+            return;
+          }
+
+          // Esperar 300ms antes de buscar
+          timeoutId = setTimeout(async () => {
+            try {
+              console.log('Haciendo búsqueda de:', query);
+              const response = await fetch(`/api/productos/buscar?q=${encodeURIComponent(query)}`);
+              const data = await response.json();
+
+              console.log('Resultados recibidos:', data);
+
+              if (data.success && data.resultados.length > 0) {
+                // Mostrar resultados
+                searchResults.innerHTML = data.resultados.map(producto => `
+                  <a href="/productos/${producto.id}" style="
+                    display: flex;
+                    align-items: center;
+                    padding: 1rem;
+                    border-bottom: 1px solid #f0ede9;
+                    text-decoration: none;
+                    color: inherit;
+                    transition: background 0.2s;
+                  " onmouseover="this.style.background='#f8f4f0'" onmouseout="this.style.background='transparent'">
+                    <img src="${producto.imagen}" alt="${producto.nombre}" style="
+                      width: 50px;
+                      height: 50px;
+                      object-fit: cover;
+                      border-radius: 4px;
+                      margin-right: 1rem;
+                    ">
+                    <div style="flex: 1;">
+                      <div style="font-weight: 600; color: #001a33; margin-bottom: 0.25rem;">${producto.nombre}</div>
+                      <div style="font-size: 0.85rem; color: #a89968;">€${producto.precio}</div>
+                    </div>
+                  </a>
+                `).join('');
+                searchResults.style.display = 'block';
+              } else {
+                // No hay resultados
+                searchResults.innerHTML = `
+                  <div style="padding: 1.5rem; text-align: center; color: #94a3b8; font-size: 0.9rem;">
+                    No se encontraron productos
+                  </div>
+                `;
+                searchResults.style.display = 'block';
+              }
+            } catch (error) {
+              console.error('Error en búsqueda:', error);
+              searchResults.innerHTML = `
+                <div style="padding: 1.5rem; text-align: center; color: #f5576c; font-size: 0.9rem;">
+                  Error al buscar
+                </div>
+              `;
+              searchResults.style.display = 'block';
+            }
+          }, 300);
+        });
+
+        // Cerrar resultados al hacer clic fuera
+        document.addEventListener('click', (e) => {
+          if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+            searchResults.style.display = 'none';
+          }
+        });
+      }
+
+      // Ejecutar cuando el DOM esté listo
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', inicializarBuscador);
+      } else {
+        inicializarBuscador();
+      }
+
+      // Mostrar modal de promoción solo para nuevos usuarios
+      function mostrarPromocionSiEsNuevo() {
+        const promoMostrado = localStorage.getItem('promo_mostrado');
+        
+        if (!promoMostrado) {
+          console.log('Usuario nuevo detectado, mostrando promoción');
+          const modal = document.getElementById('promoModal');
+          if (modal) {
+            modal.style.display = 'flex';
+          }
+        }
+      }
+
+      function cerrarPromoModal() {
+        const modal = document.getElementById('promoModal');
+        if (modal) {
+          modal.style.display = 'none';
+          localStorage.setItem('promo_mostrado', 'true');
+          console.log('Promoción marcada como mostrada');
+        }
+      }
+
+      function copiarPromo() {
+        const code = document.getElementById('promoCode').textContent;
+        navigator.clipboard.writeText(code).then(() => {
+          alert('Código copiado: ' + code);
+          cerrarPromoModal();
+        });
+      }
+
+      // Mostrar la promoción cuando carga la página
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', mostrarPromocionSiEsNuevo);
+      } else {
+        mostrarPromocionSiEsNuevo();
+      }
+
+      // Cerrar modal si hace clic fuera
+      document.getElementById('promoModal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'promoModal') {
+          cerrarPromoModal();
+        }
+      });
     </script>
   </body>
 </html>

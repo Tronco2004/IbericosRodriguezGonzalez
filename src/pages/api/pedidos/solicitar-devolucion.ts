@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { supabaseClient } from '../../../lib/supabase';
-import { enviarEmailDevolucion } from '../../../lib/email';
+import { enviarEmailDevolucion, notificarDevolucionAlAdmin } from '../../../lib/email';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -64,6 +64,25 @@ export const POST: APIRoute = async ({ request }) => {
     } catch (emailError) {
       console.error('Error enviando email de devolución:', emailError);
       // No fallar si el email no se envía
+    }
+
+    // Notificar al admin sobre la devolución
+    try {
+      const { data: usuario } = await supabaseClient
+        .from('usuarios')
+        .select('nombre')
+        .eq('id', userId)
+        .single();
+      
+      await notificarDevolucionAlAdmin(
+        pedido.numero_pedido,
+        pedido.email_cliente,
+        usuario?.nombre
+      );
+      console.log('✅ Admin notificado sobre la devolución');
+    } catch (adminEmailError) {
+      console.error('⚠️ Error notificando al admin:', adminEmailError);
+      // No fallar si no se puede notificar al admin
     }
 
     return new Response(
