@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import PDFDocument from 'pdfkit';
 
 // Configuración del transporte de email
 const transporter = nodemailer.createTransport({
@@ -22,6 +23,117 @@ export interface EmailPedido {
   subtotal: number;
   envio: number;
   total: number;
+}
+
+/**
+ * Generar PDF de factura
+ */
+function generarPDFFactura(datos: EmailPedido): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: 'A4',
+        margin: 50
+      });
+
+      const buffers: Buffer[] = [];
+
+      doc.on('data', (buffer) => {
+        buffers.push(buffer);
+      });
+
+      doc.on('end', () => {
+        resolve(Buffer.concat(buffers));
+      });
+
+      doc.on('error', reject);
+
+      // Header
+      doc.fontSize(24).font('Helvetica-Bold').text('FACTURA', { align: 'center' });
+      doc.moveDown(0.5);
+      doc.fontSize(10).font('Helvetica').text('Ibéricos Rodríguez González', { align: 'center' });
+      doc.text('Calle de la Moda 123, Polígono Industrial, 28001 Madrid', { align: 'center' });
+      doc.text('NIF: XX-XXX-XXX', { align: 'center' });
+      doc.moveDown(1);
+
+      // Información del pedido
+      doc.fontSize(11).font('Helvetica-Bold').text('INFORMACIÓN DEL PEDIDO', { underline: true });
+      doc.moveDown(0.3);
+      doc.fontSize(10).font('Helvetica');
+      doc.text(`Número de Pedido: ${datos.numero_pedido}`, { width: 250 });
+      doc.text(`Fecha: ${new Date(datos.fecha).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}`, { width: 250 });
+      doc.text(`Email Cliente: ${datos.email_cliente}`, { width: 250 });
+      doc.moveDown(1);
+
+      // Tabla de productos
+      doc.fontSize(11).font('Helvetica-Bold').text('PRODUCTOS PEDIDOS', { underline: true });
+      doc.moveDown(0.3);
+
+      // Headers de tabla
+      const tableTop = doc.y;
+      const col1 = 50;
+      const col2 = 320;
+      const col3 = 380;
+      const col4 = 480;
+
+      doc.fontSize(10).font('Helvetica-Bold');
+      doc.text('Producto', col1, tableTop);
+      doc.text('Cantidad', col2, tableTop);
+      doc.text('P. Unitario', col3, tableTop);
+      doc.text('Subtotal', col4, tableTop);
+
+      // Línea divisoria
+      doc.moveTo(col1, tableTop + 15).lineTo(550, tableTop + 15).stroke();
+      doc.moveDown(0.5);
+
+      // Productos
+      doc.font('Helvetica').fontSize(9);
+      let yPosition = doc.y;
+
+      datos.items.forEach((item) => {
+        const subtotal = (item.precio * item.cantidad) / 100;
+        const precioUnitario = item.precio / 100;
+
+        const productText = item.peso_kg
+          ? `${item.nombre} (${item.peso_kg.toFixed(3)} kg)`
+          : item.nombre;
+
+        doc.text(productText, col1, yPosition, { width: 200, height: 30 });
+        doc.text(item.cantidad.toString(), col2, yPosition, { width: 40, align: 'center' });
+        doc.text(`€${precioUnitario.toFixed(2)}`, col3, yPosition, { width: 60, align: 'right' });
+        doc.text(`€${subtotal.toFixed(2)}`, col4, yPosition, { width: 60, align: 'right' });
+
+        yPosition += 30;
+      });
+
+      // Línea divisoria final
+      doc.moveTo(col1, yPosition).lineTo(550, yPosition).stroke();
+      yPosition += 10;
+
+      // Totales
+      doc.fontSize(10).font('Helvetica');
+      doc.text('Subtotal:', col3 - 20, yPosition, { width: 100, align: 'right' });
+      doc.text(`€${(datos.subtotal / 100).toFixed(2)}`, col4, yPosition, { width: 60, align: 'right' });
+
+      yPosition += 20;
+      doc.text('Envío:', col3 - 20, yPosition, { width: 100, align: 'right' });
+      doc.text(`€${(datos.envio / 100).toFixed(2)}`, col4, yPosition, { width: 60, align: 'right' });
+
+      yPosition += 25;
+      doc.font('Helvetica-Bold').fontSize(12);
+      doc.text('TOTAL:', col3 - 20, yPosition, { width: 100, align: 'right' });
+      doc.text(`€${(datos.total / 100).toFixed(2)}`, col4, yPosition, { width: 60, align: 'right' });
+
+      // Footer
+      doc.moveDown(2);
+      doc.fontSize(9).font('Helvetica').text('Gracias por tu compra en Ibéricos Rodríguez González', { align: 'center' });
+      doc.text('Este documento es una factura oficial de compra', { align: 'center' });
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
 }
 
 /**
@@ -74,6 +186,7 @@ export async function enviarConfirmacionPedido(datos: EmailPedido) {
             .total-row { background: #e0d5c7; font-weight: bold; }
             .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; }
             .badge { display: inline-block; background: #a89968; color: white; padding: 5px 10px; border-radius: 20px; font-size: 12px; }
+            .info-box { background: white; padding: 15px; border-left: 4px solid #a89968; border-radius: 4px; margin: 15px 0; }
           </style>
         </head>
         <body>
@@ -122,6 +235,11 @@ export async function enviarConfirmacionPedido(datos: EmailPedido) {
                 </table>
               </div>
 
+              <div class="info-box">
+                <h3 style="margin-top: 0; color: #a89968;">📎 Factura Adjunta</h3>
+                <p>Adjunto a este correo encontrarás tu factura en PDF. Guárdala para tus registros.</p>
+              </div>
+
               <div class="section">
                 <h2>Próximos Pasos</h2>
                 <p>Tu pedido está siendo preparado. Recibirás un correo con el número de seguimiento cuando tu paquete esté en camino.</p>
@@ -141,12 +259,24 @@ export async function enviarConfirmacionPedido(datos: EmailPedido) {
       </html>
     `;
 
-    // Enviar correo al cliente
+    // Generar PDF de factura
+    console.log('📄 Generando PDF de factura...');
+    const pdfBuffer = await generarPDFFactura(datos);
+    console.log('✅ PDF generado, tamaño:', pdfBuffer.length, 'bytes');
+
+    // Enviar correo al cliente con el PDF adjunto
     await transporter.sendMail({
       from: import.meta.env.GMAIL_USER,
       to: datos.email_cliente,
       subject: `Pedido confirmado - ${datos.numero_pedido}`,
-      html: htmlContent
+      html: htmlContent,
+      attachments: [
+        {
+          filename: `factura_${datos.numero_pedido}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf'
+        }
+      ]
     });
 
     console.log('✅ Correo enviado al cliente:', datos.email_cliente);
@@ -431,6 +561,329 @@ export async function notificarDevolucionAlAdmin(
     return true;
   } catch (error) {
     console.error('❌ Error enviando notificación de devolución al admin:', error);
+    throw error;
+  }
+}
+
+/**
+ * Enviar correo de cancelación de pedido al cliente
+ */
+export async function enviarEmailCancelacion(
+  emailCliente: string,
+  numeroPedido: string,
+  nombreCliente?: string,
+  totalReembolso?: number
+) {
+  try {
+    console.log('📧 Preparando email de cancelación para:', emailCliente);
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: 'Inter', Arial, sans-serif; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #a89968, #8b6f47); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+          .content { background: white; padding: 20px; border: 1px solid #e0d5c7; }
+          .section { margin: 20px 0; }
+          .section h3 { color: #001a33; margin-top: 0; }
+          .info-box { background: #f8f7f4; padding: 15px; border-left: 4px solid #a89968; border-radius: 4px; margin: 15px 0; }
+          .success-box { background: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 4px; color: #155724; margin: 15px 0; }
+          .footer { background: #f8f7f4; padding: 15px; text-align: center; font-size: 0.85rem; color: #666; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1 style="margin: 0; font-size: 1.8rem;">✅ Pedido Cancelado</h1>
+            <p style="margin: 5px 0 0 0;">Número de Pedido: ${numeroPedido}</p>
+          </div>
+          
+          <div class="content">
+            <div class="section">
+              <p>Hola${nombreCliente ? ' ' + nombreCliente : ''},</p>
+              <p>Tu pedido ha sido cancelado exitosamente.</p>
+            </div>
+
+            <div class="success-box">
+              <strong>✅ Estado: Cancelado</strong><br>
+              <strong>📦 Número de Pedido:</strong> ${numeroPedido}<br>
+              ${totalReembolso ? `<strong>💰 Reembolso:</strong> €${(totalReembolso / 100).toFixed(2)}<br>` : ''}
+              <strong>📅 Fecha de Cancelación:</strong> ${new Date().toLocaleDateString('es-ES', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </div>
+
+            <div class="section">
+              <h3>Información del Reembolso</h3>
+              <p>El importe del pedido se reembolsará a tu método de pago original en un plazo de <strong>3 a 5 días hábiles</strong>. Ten en cuenta que algunos bancos pueden tardar más tiempo en procesar el reembolso.</p>
+              <p>Si no ves el reembolso dentro de este tiempo, ponte en contacto con nosotros para investigar.</p>
+            </div>
+
+            <div class="info-box">
+              <h3 style="margin-top: 0; color: #001a33;">Próximos Pasos</h3>
+              <ul style="margin: 10px 0;">
+                <li>El stock ha sido restaurado automáticamente</li>
+                <li>Tu cuenta refleja la cancelación</li>
+                <li>Monitorea tu cuenta bancaria para el reembolso</li>
+              </ul>
+            </div>
+
+            <div class="section">
+              <h3>¿Tenías algún problema?</h3>
+              <p>Si cancelaste por algún problema o si podemos ayudarte de otra manera, no dudes en contactarnos. Nos gustaría escuchar tu feedback.</p>
+            </div>
+          </div>
+
+          <div class="footer">
+            <p>© 2026 Ibéricos Rodríguez González. Todos los derechos reservados.</p>
+            <p>Este es un correo automático. Por favor, no respondas directamente.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    await transporter.sendMail({
+      from: import.meta.env.GMAIL_USER,
+      to: emailCliente,
+      subject: `Confirmación de Cancelación - ${numeroPedido}`,
+      html: htmlContent
+    });
+
+    console.log('✅ Email de cancelación enviado a:', emailCliente);
+    return true;
+  } catch (error) {
+    console.error('❌ Error enviando email de cancelación:', error);
+    throw error;
+  }
+}
+
+/**
+ * Notificar al admin sobre una cancelación de pedido
+ */
+export async function notificarCancelacionAlAdmin(
+  numeroPedido: string,
+  emailCliente: string,
+  nombreCliente?: string,
+  totalPedido?: number
+) {
+  try {
+    console.log('📧 Preparando notificación de cancelación para admin:', import.meta.env.ADMIN_EMAIL);
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: 'Inter', Arial, sans-serif; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #dc3545, #c82333); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+          .content { background: white; padding: 20px; border: 1px solid #e0d5c7; }
+          .alert { background: #f8d7da; border: 1px solid #f5c6cb; border-left: 4px solid #dc3545; padding: 15px; border-radius: 4px; color: #721c24; margin: 15px 0; }
+          .info-box { background: #f8f7f4; padding: 15px; border-left: 4px solid #a89968; border-radius: 4px; margin: 15px 0; }
+          .footer { background: #f8f7f4; padding: 15px; text-align: center; font-size: 0.85rem; color: #666; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1 style="margin: 0; font-size: 1.8rem;">❌ PEDIDO CANCELADO</h1>
+            <p style="margin: 5px 0 0 0;">Acción completada</p>
+          </div>
+          
+          <div class="content">
+            <div class="alert">
+              <strong>🚨 Un cliente ha cancelado su pedido</strong>
+            </div>
+
+            <div class="info-box">
+              <h3 style="color: #001a33; margin-top: 0;">Detalles de la Cancelación</h3>
+              <p style="margin: 5px 0;"><strong>Número de Pedido:</strong> ${numeroPedido}</p>
+              <p style="margin: 5px 0;"><strong>Email del Cliente:</strong> ${emailCliente}</p>
+              ${nombreCliente ? `<p style="margin: 5px 0;"><strong>Cliente:</strong> ${nombreCliente}</p>` : ''}
+              ${totalPedido ? `<p style="margin: 5px 0;"><strong>Total Reembolsado:</strong> €${(totalPedido / 100).toFixed(2)}</p>` : ''}
+              <p style="margin: 5px 0;"><strong>Fecha de Cancelación:</strong> ${new Date().toLocaleDateString('es-ES', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}</p>
+            </div>
+
+            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 4px; margin: 15px 0;">
+              <h3 style="color: #856404; margin-top: 0;">Acciones Completadas Automáticamente</h3>
+              <ul style="color: #856404; margin: 0;">
+                <li>✅ Pedido marcado como cancelado</li>
+                <li>✅ Stock restaurado al inventario</li>
+                <li>✅ Reembolso procesado</li>
+                <li>✅ Cliente notificado por email</li>
+              </ul>
+            </div>
+
+            <div class="info-box">
+              <h3 style="color: #001a33; margin-top: 0;">Información Adicional</h3>
+              <p style="margin: 5px 0; color: #5c4a3d;">Accede al panel de administración para revisar los detalles completos del pedido y el historial del cliente.</p>
+            </div>
+
+            <p style="color: #666; font-size: 0.9rem; margin: 20px 0 0 0;">
+              Este es un correo automático del sistema de gestión de pedidos.
+            </p>
+          </div>
+
+          <div class="footer">
+            <p>© 2026 Ibéricos Rodríguez González. Sistema de Gestión.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    await transporter.sendMail({
+      from: import.meta.env.GMAIL_USER,
+      to: import.meta.env.ADMIN_EMAIL,
+      subject: `[CANCELACIÓN] Pedido cancelado - ${numeroPedido}`,
+      html: htmlContent
+    });
+
+    console.log('✅ Notificación de cancelación enviada al admin');
+    return true;
+  } catch (error) {
+    console.error('❌ Error enviando notificación de cancelación al admin:', error);
+    throw error;
+  }
+}
+
+/**
+ * Notificar al cliente que su devolución fue recibida y validada
+ */
+export async function notificarDevolucionValidada(
+  emailCliente: string,
+  numeroPedido: string,
+  nombreCliente?: string,
+  totalReembolso?: number
+) {
+  try {
+    console.log('📧 Preparando email de devolución validada para:', emailCliente);
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: 'Inter', Arial, sans-serif; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+          .content { background: white; padding: 20px; border: 1px solid #e0d5c7; }
+          .section { margin: 20px 0; }
+          .section h3 { color: #001a33; margin-top: 0; }
+          .success-box { background: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 4px; color: #155724; margin: 15px 0; }
+          .info-box { background: #f8f7f4; padding: 15px; border-left: 4px solid #28a745; border-radius: 4px; margin: 15px 0; }
+          .timeline { margin: 15px 0; }
+          .timeline-item { display: flex; gap: 15px; margin: 10px 0; }
+          .timeline-dot { width: 24px; height: 24px; background: #28a745; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; margin-top: 2px; }
+          .timeline-content { flex: 1; }
+          .footer { background: #f8f7f4; padding: 15px; text-align: center; font-size: 0.85rem; color: #666; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1 style="margin: 0; font-size: 1.8rem;">✅ Devolución Recibida y Validada</h1>
+            <p style="margin: 5px 0 0 0;">Pedido: ${numeroPedido}</p>
+          </div>
+          
+          <div class="content">
+            <div class="section">
+              <p>Hola${nombreCliente ? ' ' + nombreCliente : ''},</p>
+              <p>¡Buenas noticias! Hemos recibido tu devolución y la hemos validado correctamente.</p>
+            </div>
+
+            <div class="success-box">
+              <strong>✅ Estado: Devolución Validada</strong><br>
+              <strong>📦 Número de Pedido:</strong> ${numeroPedido}<br>
+              ${totalReembolso ? `<strong>💰 Reembolso Autorizado:</strong> €${(totalReembolso / 100).toFixed(2)}<br>` : ''}
+              <strong>📅 Fecha de Validación:</strong> ${new Date().toLocaleDateString('es-ES', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </div>
+
+            <div class="section">
+              <h3>Cronograma de Reembolso</h3>
+              <div class="timeline">
+                <div class="timeline-item">
+                  <div class="timeline-dot">✓</div>
+                  <div class="timeline-content">
+                    <strong style="color: #001a33;">Devolución Recibida</strong><br>
+                    <span style="color: #5c4a3d; font-size: 0.9rem;">Hoy</span>
+                  </div>
+                </div>
+                <div class="timeline-item">
+                  <div class="timeline-dot">✓</div>
+                  <div class="timeline-content">
+                    <strong style="color: #001a33;">Devolución Validada</strong><br>
+                    <span style="color: #5c4a3d; font-size: 0.9rem;">Hoy</span>
+                  </div>
+                </div>
+                <div class="timeline-item">
+                  <div style="width: 24px; height: 24px; background: #ccc; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; margin-top: 2px;">→</div>
+                  <div class="timeline-content">
+                    <strong style="color: #5c4a3d;">Reembolso Procesado</strong><br>
+                    <span style="color: #5c4a3d; font-size: 0.9rem;">En 3 a 5 días hábiles</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="info-box">
+              <h3 style="margin-top: 0; color: #001a33;">Importante</h3>
+              <ul style="margin: 10px 0; color: #155724;">
+                <li>El reembolso se procesará a tu método de pago original</li>
+                <li>Puede tardar 3 a 5 días hábiles en aparecer en tu cuenta bancaria</li>
+                <li>Algunos bancos pueden tardar más en procesar la transacción</li>
+                <li>Se te enviará una confirmación cuando se procese el reembolso</li>
+              </ul>
+            </div>
+
+            <div class="section">
+              <h3>¿Preguntas?</h3>
+              <p>Si tienes alguna duda sobre tu reembolso, no dudes en contactarnos. Estamos aquí para ayudarte.</p>
+            </div>
+          </div>
+
+          <div class="footer">
+            <p>© 2026 Ibéricos Rodríguez González. Todos los derechos reservados.</p>
+            <p>Este es un correo automático. Por favor, no respondas directamente.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    await transporter.sendMail({
+      from: import.meta.env.GMAIL_USER,
+      to: emailCliente,
+      subject: `Devolución Validada - Reembolso Autorizado - ${numeroPedido}`,
+      html: htmlContent
+    });
+
+    console.log('✅ Email de devolución validada enviado a:', emailCliente);
+    return true;
+  } catch (error) {
+    console.error('❌ Error enviando email de devolución validada:', error);
     throw error;
   }
 }

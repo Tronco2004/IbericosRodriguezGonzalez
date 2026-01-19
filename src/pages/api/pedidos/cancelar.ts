@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { supabaseClient } from '../../../lib/supabase';
+import { enviarEmailCancelacion, notificarCancelacionAlAdmin } from '../../../lib/email';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -199,6 +200,47 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     console.log('✅ Pedido cancelado exitosamente');
+
+    // Enviar correos de cancelación (sin bloquear la respuesta)
+    try {
+      // Obtener datos completos del pedido y usuario para los correos
+      const { data: pedidoCompleto } = await supabaseClient
+        .from('pedidos')
+        .select('numero_pedido, total, fecha_pago')
+        .eq('id', pedido.id)
+        .single();
+
+      const { data: usuario } = await supabaseClient
+        .from('usuarios')
+        .select('email, nombre')
+        .eq('id', userId)
+        .single();
+
+      if (pedidoCompleto && usuario) {
+        console.log('📧 Enviando correos de cancelación...');
+        
+        // Enviar correo al cliente
+        await enviarEmailCancelacion(
+          usuario.email,
+          pedidoCompleto.numero_pedido,
+          usuario.nombre,
+          pedidoCompleto.total
+        );
+
+        // Enviar notificación al admin
+        await notificarCancelacionAlAdmin(
+          pedidoCompleto.numero_pedido,
+          usuario.email,
+          usuario.nombre,
+          pedidoCompleto.total
+        );
+        
+        console.log('✅ Correos de cancelación enviados exitosamente');
+      }
+    } catch (emailError) {
+      console.error('⚠️ Error enviando correos, pero pedido fue cancelado:', emailError);
+      // No bloqueamos la respuesta si falla el envío de emails
+    }
 
     return new Response(
       JSON.stringify({

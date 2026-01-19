@@ -233,7 +233,9 @@ import Layout from '../../layouts/Layout.astro';
             'preparando': '#ffc107',
             'enviado': '#17a2b8',
             'entregado': '#6c757d',
-            'cancelado': '#dc3545'
+            'cancelado': '#dc3545',
+            'devolucion_solicitada': '#ff9800',
+            'devolucion_recibida': '#9c27b0'
           };
 
           html += `
@@ -249,7 +251,7 @@ import Layout from '../../layouts/Layout.astro';
                   <p style="color: #5c4a3d; margin: 0; font-size: 0.9rem;">📧 ${pedido.email_cliente || 'N/A'}</p>
                   <p style="color: #5c4a3d; margin: 0; font-size: 0.9rem;">📱 ${pedido.telefono_cliente || 'N/A'}</p>
                 </div>
-                <div style="text-align: right;">
+                <div style="display: flex; gap: 0.75rem; align-items: center;">
                   <select class="cambiar-estado" data-pedido-id="${pedido.id}" style="
                     background: ${estadoColor[pedido.estado] || '#6c757d'};
                     color: white;
@@ -266,7 +268,25 @@ import Layout from '../../layouts/Layout.astro';
                     <option value="enviado" ${pedido.estado === 'enviado' ? 'selected' : ''}>Enviado</option>
                     <option value="entregado" ${pedido.estado === 'entregado' ? 'selected' : ''}>Entregado</option>
                     <option value="cancelado" ${pedido.estado === 'cancelado' ? 'selected' : ''}>Cancelado</option>
+                    <option value="devolucion_solicitada" ${pedido.estado === 'devolucion_solicitada' ? 'selected' : ''}>Devolución Solicitada</option>
+                    <option value="devolucion_recibida" ${pedido.estado === 'devolucion_recibida' ? 'selected' : ''}>Devolución Recibida</option>
                   </select>
+                  ${pedido.estado === 'devolucion_solicitada' ? `
+                    <button class="validar-devolucion" data-pedido-id="${pedido.id}" style="
+                      padding: 0.5rem 1rem;
+                      background: linear-gradient(135deg, #28a745, #20c997);
+                      color: white;
+                      border: none;
+                      border-radius: 4px;
+                      font-weight: 600;
+                      font-size: 0.85rem;
+                      cursor: pointer;
+                      transition: all 0.3s;
+                      box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
+                    " onmouseover="this.style.boxShadow='0 8px 16px rgba(40, 167, 69, 0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='0 2px 8px rgba(40, 167, 69, 0.2)'; this.style.transform='translateY(0)'">
+                      ✓ Validar
+                    </button>
+                  ` : ''}
                 </div>
                 <div style="text-align: right;">
                   <p style="color: #a89968; font-weight: 700; font-size: 1.2rem; margin: 0;">
@@ -353,6 +373,51 @@ import Layout from '../../layouts/Layout.astro';
     document.getElementById('filtro-dia').addEventListener('click', () => cargarPedidos('dia'));
     document.getElementById('filtro-semana').addEventListener('click', () => cargarPedidos('semana'));
     document.getElementById('filtro-mes').addEventListener('click', () => cargarPedidos('mes'));
+
+    // Event listeners para validar devolución
+    document.addEventListener('click', async (e) => {
+      if (e.target.classList.contains('validar-devolucion')) {
+        const pedidoId = e.target.dataset.pedidoId;
+        const userRole = localStorage.getItem('user_role');
+
+        if (!confirm('¿Confirmar que la devolución ha llegado correctamente? Se notificará al cliente y se procesará el reembolso.')) {
+          return;
+        }
+
+        try {
+          e.target.disabled = true;
+          e.target.textContent = '⏳ Procesando...';
+
+          const response = await fetch('/api/pedidos/validar-devolucion', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-user-role': userRole || 'admin'
+            },
+            body: JSON.stringify({
+              pedido_id: pedidoId
+            })
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            mostrarNotificacion('error', 'Error al validar', error.error || 'No se pudo validar la devolución');
+            e.target.disabled = false;
+            e.target.textContent = '✓ Validar';
+            return;
+          }
+
+          mostrarNotificacion('success', '✓ Devolución Validada', 'El cliente ha sido notificado. Reembolso autorizado.');
+          // Recargar los pedidos
+          cargarPedidos(filtroActual);
+        } catch (error) {
+          console.error('Error:', error);
+          mostrarNotificacion('error', 'Error', 'No se pudo validar la devolución');
+          e.target.disabled = false;
+          e.target.textContent = '✓ Validar';
+        }
+      }
+    });
 
     // Event listeners para cambiar estado
     document.addEventListener('change', async (e) => {
