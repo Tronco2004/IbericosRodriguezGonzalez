@@ -531,10 +531,6 @@ import Layout from '../../layouts/Layout.astro';
         if (result.success) {
           console.log('✅ Producto agregado exitosamente');
           mostrarNotificacion(`Jamón de ${peso.toFixed(3)} kg agregado al carrito`, 'exito');
-          // Recargar página para reiniciar contador global
-          setTimeout(() => {
-            window.location.href = '/carrito';
-          }, 1500);
         }
       } catch (error) {
         console.error('❌ Error en agregarAlCarritoConVariante:', error);
@@ -674,10 +670,6 @@ import Layout from '../../layouts/Layout.astro';
         if (result.success) {
           console.log('✅ Producto agregado exitosamente');
           mostrarNotificacion('Producto agregado al carrito', 'exito');
-          // Recargar página para reiniciar contador global y actualizar todo
-          setTimeout(() => {
-            window.location.href = '/carrito';
-          }, 1500);
         }
       } catch (error) {
         console.error('❌ Error en agregarAlCarrito:', error);
