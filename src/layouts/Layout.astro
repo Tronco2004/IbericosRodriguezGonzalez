@@ -91,9 +91,14 @@ const description = "Descubre nuestra colección de productos ibéricos de la m�
         header div {
           padding: 0 0.75rem !important;
           gap: 0.75rem !important;
-          flex-wrap: wrap !important;
+          flex-wrap: nowrap !important;
         }
         nav {
+          display: none !important;
+        }
+        header div > div:nth-child(3) {
+          width: 100% !important;
+          max-width: 100% !important;
           display: none !important;
         }
         main {
