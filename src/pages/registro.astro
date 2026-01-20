@@ -151,6 +151,32 @@ import Layout from '../layouts/Layout.astro';
           />
         </div>
 
+        <div style="margin-bottom: 1.5rem;">
+          <label style="display: block; margin-bottom: 0.5rem; color: #001a33; font-weight: 600;">
+            Teléfono
+          </label>
+          <input 
+            id="telefono"
+            name="telefono"
+            type="tel" 
+            placeholder="+34 666 777 888"
+            style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; box-sizing: border-box;"
+          />
+        </div>
+
+        <div style="margin-bottom: 2rem;">
+          <label style="display: block; margin-bottom: 0.5rem; color: #001a33; font-weight: 600;">
+            Dirección
+          </label>
+          <input 
+            id="direccion"
+            name="direccion"
+            type="text" 
+            placeholder="Calle, número, ciudad"
+            style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; box-sizing: border-box;"
+          />
+        </div>
+
         <button 
           type="submit"
           id="submitBtn"
@@ -211,6 +237,8 @@ import Layout from '../layouts/Layout.astro';
       const nombre = (document.getElementById('nombre') as HTMLInputElement).value;
       const email = (document.getElementById('email') as HTMLInputElement).value;
       const password = (document.getElementById('password') as HTMLInputElement).value;
+      const telefono = (document.getElementById('telefono') as HTMLInputElement).value;
+      const direccion = (document.getElementById('direccion') as HTMLInputElement).value;
 
       if (password.length < 6) {
         messageContainer.innerHTML = '<div style="padding: 1rem; background: #fee; border: 1px solid #fcc; color: #c33; border-radius: 4px; font-size: 0.9rem;">La contraseña debe tener al menos 6 caracteres</div>';
@@ -224,17 +252,18 @@ import Layout from '../layouts/Layout.astro';
         const response = await fetch('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nombre, email, password })
+          body: JSON.stringify({ nombre, email, password, telefono, direccion })
         });
 
         const data = await response.json();
 
         if (data.success) {
-          messageContainer.innerHTML = '<div style="padding: 1rem; background: #efe; border: 1px solid #cfc; color: #3c3; border-radius: 4px; font-size: 0.9rem;">Registro exitoso! Redirigiendo al login...</div>';
+          messageContainer.innerHTML = '<div style="padding: 1rem; background: #efe; border: 1px solid #cfc; color: #3c3; border-radius: 4px; font-size: 0.9rem;">✅ Registro exitoso! Iniciando sesión automáticamente...</div>';
           console.log('✅ Registro exitoso:', data.userId);
           setTimeout(() => {
-            window.location.href = '/login';
-          }, 2000);
+            // Siempre redirigir a /productos después del registro
+            window.location.href = '/productos';
+          }, 1500);
         } else {
           messageContainer.innerHTML = `<div style="padding: 1rem; background: #fee; border: 1px solid #fcc; color: #c33; border-radius: 4px; font-size: 0.9rem;">${data.message}</div>`;
         }

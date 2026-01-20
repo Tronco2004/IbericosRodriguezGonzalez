@@ -9,7 +9,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     // Obtener el carrito del cliente
     const { cartItems, codigoDescuento, descuentoAplicado } = await request.json();
 
+    console.log('📦 Creando sesión Stripe...');
+    console.log('Carrito items:', cartItems);
+    console.log('Descuento aplicado:', descuentoAplicado);
+
     if (!cartItems || cartItems.length === 0) {
+      console.error('❌ Carrito vacío');
       return new Response(
         JSON.stringify({ error: 'Carrito vacío' }),
         { status: 400 }
@@ -43,21 +48,31 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       quantity: 1,
     });
 
+    console.log('📋 Line items para Stripe:', JSON.stringify(lineItems, null, 2));
+
     // Agregar descuento si existe
     let discounts = [];
     if (descuentoAplicado && descuentoAplicado > 0) {
-      // Crear un cupón en Stripe para aplicar el descuento
-      const coupon = await stripe.coupons.create({
-        duration: 'once',
-        amount_off: Math.round(descuentoAplicado * 100), // Convertir a centimos
-        currency: 'eur',
-        name: codigoDescuento || 'Descuento'
-      });
+      try {
+        // Crear un cupón en Stripe para aplicar el descuento
+        console.log('🎁 Creando cupón con descuento:', descuentoAplicado);
+        const coupon = await stripe.coupons.create({
+          duration: 'once',
+          amount_off: Math.round(descuentoAplicado * 100), // Convertir a centimos
+          currency: 'eur',
+          name: codigoDescuento || 'Descuento'
+        });
 
-      discounts = [{ coupon: coupon.id }];
+        console.log('✅ Cupón creado:', coupon.id);
+        discounts = [{ coupon: coupon.id }];
+      } catch (couponError: any) {
+        console.error('❌ Error creando cupón:', couponError.message);
+        // Continuar sin descuento
+      }
     }
 
     // Crear sesión de Stripe
+    console.log('🔗 Creando sesión Stripe...');
     const session = await stripe.checkout.sessions.create({
       line_items: lineItems,
       mode: 'payment',
@@ -66,6 +81,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       customer_email: cookies.get('user_email')?.value,
       ...(discounts.length > 0 && { discounts })
     });
+
+    console.log('✅ Sesión creada exitosamente:', session.id);
+    console.log('🔗 URL de Stripe:', session.url);
 
     return new Response(
       JSON.stringify({ 
@@ -79,7 +97,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
     );
   } catch (error: any) {
-    console.error('Error creando sesión Stripe:', error);
+    console.error('❌ Error creando sesión Stripe:', error.message || error);
+    console.error('Detalles del error:', error);
     return new Response(
       JSON.stringify({ error: error.message || 'Error creando sesión de pago' }),
       { status: 500 }
