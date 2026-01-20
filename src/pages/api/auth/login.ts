@@ -2,7 +2,19 @@ import type { APIRoute } from 'astro';
 import { supabaseClient } from '../../../lib/supabase';
 
 export const POST: APIRoute = async ({ request, cookies }) => {
-  const { email, password } = await request.json();
+  let email: string;
+  let password: string;
+  
+  try {
+    const body = await request.json();
+    email = body.email;
+    password = body.password;
+  } catch {
+    return new Response(
+      JSON.stringify({ success: false, message: 'Datos de solicitud inválidos' }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
 
   if (!email || !password) {
     return new Response(

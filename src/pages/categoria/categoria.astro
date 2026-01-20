@@ -1,15 +1,9 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 
-export function getStaticPaths() {
-  return [
-    { params: { slug: 'jamones' } },
-    { params: { slug: 'quesos' } },
-    { params: { slug: 'embutidos' } }
-  ];
-}
+export const prerender = false;
 
-const { slug } = Astro.params;
+const { slug } = Astro.params || { slug: 'jamones' };
 
 const categoryTitles = {
   jamones: { title: 'Jamones Premium', subtitle: 'Nuestros mejores jamones ibéricos' },
