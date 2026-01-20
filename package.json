@@ -4,9 +4,9 @@
   "description": "IbericosRG - Tienda online de moda masculina premium",
   "type": "module",
   "scripts": {
-    "dev": "npx astro dev",
-    "build": "npx astro build",
-    "preview": "npx astro preview",
+    "dev": "node ./node_modules/astro/astro.js dev",
+    "build": "node ./node_modules/astro/astro.js build",
+    "preview": "node ./node_modules/astro/astro.js preview",
     "start": "node ./dist/server/entry.mjs"
   },
   "dependencies": {
