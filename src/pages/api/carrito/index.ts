@@ -302,7 +302,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
 
       // Validar que hay suficiente stock disponible
-      const stockDisponible = variante.cantidad_disponible || 0;
+      // Si cantidad_disponible es null/undefined, asumir que es disponible (compatibilidad con variantes creadas sin cantidad_disponible)
+      const stockDisponible = variante.cantidad_disponible ?? 999; // Si no existe, asumir stock ilimitado
       if (cantidad > stockDisponible) {
         console.log('❌ Stock insuficiente para variante:', { variante_id: producto_variante_id, solicitado: cantidad, disponible: stockDisponible });
         return new Response(
