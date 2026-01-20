@@ -1060,24 +1060,28 @@ export const prerender = false;
         const cantidad = parseInt(document.getElementById('cantidad').value) || 1;
         const corte = document.querySelector('input[name="corte"]:checked').value;
 
-        const response = await fetch('/api/carrito/agregar', {
+        const response = await fetch('/api/carrito', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'x-user-id': userId
           },
           body: JSON.stringify({
-            productoId: productoId,
+            producto_id: productoId,
             cantidad: cantidad,
-            opciones: { corte: corte }
+            user_id: userId,
+            producto_variante_id: null,
+            peso_kg: null
           })
         });
 
         const data = await response.json();
-        if (data.success) {
+        if (data.success || response.ok) {
           mostrarNotificacion('✓ Producto agregado al carrito');
+          // Disparar evento para actualizar el carrito
+          window.dispatchEvent(new CustomEvent('carritoActualizado'));
         } else {
-          mostrarNotificacion('❌ Error: ' + data.message, true);
+          mostrarNotificacion('❌ Error: ' + (data.message || data.error), true);
         }
       } catch (error) {
         console.error('Error:', error);

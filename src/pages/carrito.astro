@@ -6,10 +6,10 @@ import Layout from '../layouts/Layout.astro';
 ---
 
 <Layout title="Mi Carrito">
-  <div style="min-height: 100vh; background: #f8f4f0; padding: 2rem 0;">
-    <div style="max-width: 1200px; margin: 0 auto; padding: 0 1rem;">
+  <div style="min-height: 100vh; background: #f8f4f0; padding: 2rem 0; width: 100%; overflow-x: hidden;">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 0 1rem; width: 100%; box-sizing: border-box;">
       <p id="loadingMessage" style="color: #5c4a3d; font-size: 1.1rem; text-align: center;">Cargando tu carrito...</p>
-      <div id="carritoContent"></div>
+      <div id="carritoContent" style="width: 100%; box-sizing: border-box;"></div>
     </div>
   </div>
 
@@ -156,8 +156,8 @@ import Layout from '../layouts/Layout.astro';
         }
 
         htmlContent += `
-          <div style="display: grid; grid-template-columns: 1fr 350px; gap: 2rem; align-items: start;">
-            <div style="background: white; border-radius: 8px; overflow: hidden; border: 1px solid #e0d5c7;">
+          <div class="carrito-grid-layout" style="display: grid; grid-template-columns: 1fr 350px; gap: 2rem; align-items: start; width: 100%; box-sizing: border-box;">
+            <div style="background: white; border-radius: 8px; overflow: hidden; border: 1px solid #e0d5c7; width: 100%; box-sizing: border-box;">
               <div style="padding: 1.5rem; background: #f8f4f0; border-bottom: 1px solid #e0d5c7; display: flex; justify-content: space-between; align-items: center;">
                 <h2 style="color: #001a33; margin: 0;">Carrito (${totalItems} ${totalItems === 1 ? 'producto' : 'productos'})</h2>
                 <div style="text-align: right;">
@@ -173,10 +173,12 @@ import Layout from '../layouts/Layout.astro';
             <div class="cart-item" data-item-id="${item.id}" style="
               padding: 1.5rem;
               border-bottom: 1px solid #e0d5c7;
-              display: grid;
-              grid-template-columns: 180px 1fr auto;
+              display: flex;
+              flex-wrap: wrap;
               gap: 1.5rem;
               align-items: flex-start;
+              width: 100%;
+              box-sizing: border-box;
             ">
               <div style="
                 width: 180px;
@@ -188,6 +190,7 @@ import Layout from '../layouts/Layout.astro';
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                min-width: 180px;
               ">
                 <img 
                   src="${item.productos?.imagen_url || ''}" 
@@ -199,7 +202,7 @@ import Layout from '../layouts/Layout.astro';
                   "
                 />
               </div>
-              <div>
+              <div style="flex: 1; min-width: 200px; width: 100%; box-sizing: border-box;">
                 <h3 style="color: #001a33; margin: 0 0 0.5rem 0; font-size: 1rem;">
                   ${item.productos?.nombre || 'Producto'}
                   ${item.peso_kg ? ` <span style="color: #a89968; font-weight: 500; font-size: 0.85rem;">(${item.peso_kg.toFixed(3)} kg)</span>` : ''}
@@ -235,7 +238,7 @@ import Layout from '../layouts/Layout.astro';
                   ">+</button>
                 </div>
               </div>
-              <div style="display: flex; flex-direction: column; gap: 1rem; align-items: flex-end;">
+              <div style="display: flex; flex-direction: column; gap: 1rem; align-items: flex-end; flex-shrink: 0; width: auto; white-space: nowrap;">
                 <div style="text-align: right;">
                   <p style="color: #001a33; font-weight: 600; margin: 0;">
                     ${((item.precio_unitario * item.cantidad) / 100).toFixed(2)}€
@@ -262,7 +265,7 @@ import Layout from '../layouts/Layout.astro';
         htmlContent += `
               </div>
             </div>
-            <div style="background: white; border-radius: 8px; padding: 1.5rem; border: 1px solid #e0d5c7; position: sticky; top: 1rem;">
+            <div style="background: white; border-radius: 8px; padding: 1.5rem; border: 1px solid #e0d5c7; position: sticky; top: 1rem; width: 100%; box-sizing: border-box;">
               <h3 style="color: #001a33; margin: 0 0 1.5rem 0; font-size: 1.2rem;">Resumen</h3>
               <div style="margin-bottom: 1rem;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; color: #5c4a3d;">
@@ -883,73 +886,61 @@ import Layout from '../layouts/Layout.astro';
   </script>
 
   <style>
-    @media (max-width: 1024px) {
-      div[style*="display: grid; grid-template-columns: 1fr 350px"] {
-        grid-template-columns: 1fr 320px !important;
-        gap: 1.5rem !important;
-      }
-    }
-
+    /* Mobile-first approach */
     @media (max-width: 768px) {
-      div[style*="display: grid; grid-template-columns: 1fr 350px"] {
+      /* Grid principal pasa a columna única */
+      .carrito-grid-layout {
         display: flex !important;
         flex-direction: column !important;
         gap: 1.5rem !important;
       }
 
-      div[style*="display: grid; grid-template-columns: 1fr 350px"] > div:first-child {
-        order: 1 !important;
-        width: 100% !important;
-      }
-
-      div[style*="display: grid; grid-template-columns: 1fr 350px"] > div:last-child {
-        order: 2 !important;
-        width: 100% !important;
-      }
-
+      /* Items del carrito en fila flexible */
       .cart-item {
         display: flex !important;
         flex-direction: row !important;
         gap: 1rem !important;
         padding: 1rem !important;
+        flex-wrap: wrap !important;
       }
 
-      .cart-item > div:first-child {
+      /* Imagen del producto más pequeña en móvil */
+      .cart-item > div:nth-child(1) {
         width: 100px !important;
         height: 100px !important;
         min-width: 100px !important;
         flex-shrink: 0 !important;
       }
 
-      .cart-item > div:first-child img {
+      .cart-item > div:nth-child(1) img {
         width: 100% !important;
         height: 100% !important;
         object-fit: cover !important;
       }
 
+      /* Información del producto ocupa el espacio restante */
       .cart-item > div:nth-child(2) {
         flex: 1 !important;
+        min-width: 150px !important;
+        width: auto !important;
       }
 
+      /* Botones de precio y eliminar */
       .cart-item > div:nth-child(3) {
         display: flex !important;
         flex-direction: column !important;
-        align-items: flex-end !important;
         gap: 0.5rem !important;
+        align-items: flex-end !important;
+        flex-shrink: 0 !important;
       }
 
-      div[style*="position: sticky; top: 1rem"] {
+      /* Resumen sticky en móvil se vuelve static */
+      .carrito-grid-layout > div:last-child {
         position: static !important;
       }
     }
 
     @media (max-width: 480px) {
-      div[style*="display: grid; grid-template-columns: 1fr 350px"] {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 1rem !important;
-      }
-
       .cart-item {
         display: flex !important;
         flex-direction: row !important;
@@ -957,7 +948,7 @@ import Layout from '../layouts/Layout.astro';
         padding: 0.75rem !important;
       }
 
-      .cart-item > div:first-child {
+      .cart-item > div:nth-child(1) {
         width: 80px !important;
         height: 80px !important;
         min-width: 80px !important;
@@ -971,26 +962,26 @@ import Layout from '../layouts/Layout.astro';
       .cart-item > div:nth-child(2) p {
         font-size: 0.8rem !important;
       }
+    }
 
-      .cart-item > div:nth-child(3) {
-        font-size: 0.85rem !important;
+    /* Desktop: mantener grid de 2 columnas */
+    @media (min-width: 769px) {
+      .carrito-grid-layout {
+        display: grid !important;
+        grid-template-columns: 1fr 350px !important;
       }
 
-      h2 {
-        font-size: 1.1rem !important;
+      .cart-item {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 1.5rem !important;
       }
 
-      div[style*="background: white; border-radius: 8px"] {
-        padding: 0.75rem !important;
-      }
-
-      div[style*="padding: 1.5rem; background: #f8f4f0"] {
-        padding: 0.5rem !important;
-      }
-
-      button {
-        padding: 0.4rem 0.6rem !important;
-        font-size: 0.75rem !important;
+      .cart-item > div:nth-child(1) {
+        width: 180px !important;
+        height: 180px !important;
+        min-width: 180px !important;
+        flex-shrink: 0 !important;
       }
     }
   </style>
