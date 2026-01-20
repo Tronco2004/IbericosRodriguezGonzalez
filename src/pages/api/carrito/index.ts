@@ -59,7 +59,7 @@ export const GET: APIRoute = async ({ cookies, request }) => {
       .from('carrito_items')
       .select(`
         *,
-        productos:producto_id(id, nombre, precio_centimos)
+        productos:producto_id(id, nombre, precio_centimos, imagen_url)
       `)
       .eq('carrito_id', carrito.id)
       .order('fecha_agregado', { ascending: false });
