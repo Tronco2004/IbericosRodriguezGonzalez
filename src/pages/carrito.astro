@@ -749,7 +749,7 @@ import Layout from '../layouts/Layout.astro';
         const items = data.items || [];
 
         if (!items || items.length === 0) {
-          alert('Tu carrito está vacío');
+          // Silenciosamente no hacer nada si el carrito está vacío
           return;
         }
 

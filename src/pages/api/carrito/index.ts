@@ -301,6 +301,16 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         );
       }
 
+      // Validar que hay suficiente stock disponible
+      const stockDisponible = variante.cantidad_disponible || 0;
+      if (cantidad > stockDisponible) {
+        console.log('❌ Stock insuficiente para variante:', { variante_id: producto_variante_id, solicitado: cantidad, disponible: stockDisponible });
+        return new Response(
+          JSON.stringify({ error: 'No hay suficiente stock', success: false }),
+          { status: 400 }
+        );
+      }
+
       precioUnitario = Math.round(variante.precio_total * 100); // Convertir euros a centimos
       console.log('✅ Precio variante:', precioUnitario);
     } else {
@@ -308,7 +318,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       console.log('🔍 Buscando producto:', producto_id);
       const { data: producto, error: productoError } = await supabaseClient
         .from('productos')
-        .select('precio_centimos')
+        .select('precio_centimos, stock')
         .eq('id', producto_id)
         .single();
 
@@ -319,6 +329,17 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           { status: 404 }
         );
       }
+
+      // Validar que hay suficiente stock disponible
+      const stockDisponible = producto.stock || 0;
+      if (cantidad > stockDisponible) {
+        console.log('❌ Stock insuficiente para producto:', { producto_id, solicitado: cantidad, disponible: stockDisponible });
+        return new Response(
+          JSON.stringify({ error: 'No hay suficiente stock', success: false }),
+          { status: 400 }
+        );
+      }
+
       precioUnitario = producto.precio_centimos;
       console.log('✅ Precio producto:', precioUnitario);
     }
@@ -339,12 +360,41 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const { data: existente } = await queryExistente.single();
 
     if (existente) {
-      // Actualizar cantidad
+      // Actualizar cantidad - VALIDAR STOCK DISPONIBLE
       console.log('📝 Item existente, actualizando cantidad:', existente.id);
+      
+      const nuevaCantidad = existente.cantidad + cantidad;
+      
+      // Validar stock disponible para la nueva cantidad total
+      let stockDisponible = 0;
+      if (producto_variante_id) {
+        const { data: variante } = await supabaseClient
+          .from('producto_variantes')
+          .select('cantidad_disponible')
+          .eq('id', producto_variante_id)
+          .single();
+        stockDisponible = (variante?.cantidad_disponible || 0) + existente.cantidad; // Sumar de vuelta lo que ya estaba reservado
+      } else {
+        const { data: producto } = await supabaseClient
+          .from('productos')
+          .select('stock')
+          .eq('id', producto_id)
+          .single();
+        stockDisponible = (producto?.stock || 0) + existente.cantidad; // Sumar de vuelta lo que ya estaba reservado
+      }
+
+      if (nuevaCantidad > stockDisponible) {
+        console.log('❌ Stock insuficiente para incremento:', { solicitado: nuevaCantidad, disponible: stockDisponible });
+        return new Response(
+          JSON.stringify({ error: 'No hay suficiente stock', success: false }),
+          { status: 400 }
+        );
+      }
+
       const { data: actualizado, error: updateError } = await supabaseClient
         .from('carrito_items')
         .update({
-          cantidad: existente.cantidad + cantidad
+          cantidad: nuevaCantidad
           // NO actualizar fecha_agregado - mantener la original
         })
         .eq('id', existente.id)

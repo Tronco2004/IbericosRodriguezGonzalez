@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { supabaseClient } from '../../../lib/supabase';
 
 export const POST: APIRoute = async ({ request, cookies }) => {
-  const { email, password, nombre } = await request.json();
+  const { email, password, nombre, telefono, direccion } = await request.json();
 
   if (!email || !password || !nombre) {
     return new Response(
@@ -46,6 +46,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           id: userId,
           nombre,
           email,
+          telefono: telefono || null,
+          direccion: direccion || null,
           rol: 'cliente',
           activo: true,
         },
@@ -63,11 +65,69 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     console.log('✅ Usuario registrado en tabla usuarios con rol cliente');
 
+    // 3. Iniciar sesión automáticamente
+    const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError || !signInData.session) {
+      console.log('Error iniciando sesión automáticamente:', signInError);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Registro exitoso. Por favor inicia sesión',
+          userId,
+          requireLogin: true
+        }),
+        { status: 201 }
+      );
+    }
+
+    // Obtener datos del usuario
+    const { data: usuarioData } = await supabaseClient
+      .from('usuarios')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    // Establecer cookies
+    cookies.set('auth_token', signInData.session.access_token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7
+    });
+
+    cookies.set('user_id', userId, {
+      httpOnly: false,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7
+    });
+
+    cookies.set('user_role', 'cliente', {
+      httpOnly: false,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7
+    });
+
+    cookies.set('user_name', nombre, {
+      httpOnly: false,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7
+    });
+
+    console.log('🍪 Cookies establecidas para nuevo usuario');
+
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Registro exitoso. Ahora inicia sesión',
+        message: 'Registro y login exitosos',
         userId,
+        redirect_url: '/productos'
       }),
       { status: 201 }
     );

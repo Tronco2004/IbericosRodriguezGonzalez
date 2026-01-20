@@ -6,51 +6,145 @@ const sessionId = params.get('session_id');
 const success = params.get('status') === 'success';
 ---
 
+<style>
+  @keyframes scaleIn {
+    from {
+      transform: scale(0.5);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes progress {
+    0%, 100% {
+      width: 33%;
+    }
+    50% {
+      width: 66%;
+    }
+  }
+</style>
+
 <Layout>
-  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-    <div class="bg-white rounded-lg shadow-xl p-8 max-w-md w-full mx-4">
+  <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background-color: #faf9f7; padding: 2rem;">
+    <div style="width: 100%; max-width: 500px;">
       {success || sessionId ? (
-        <>
-          <div class="text-center">
-            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
-              <svg class="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        <div style="display: flex; flex-direction: column; gap: 2rem;">
+          <!-- Header con ícono animado -->
+          <div style="text-align: center;">
+            <div style="width: 120px; height: 120px; margin: 0 auto 2rem; border-radius: 50%; background: linear-gradient(135deg, #a89968 0%, #8b7355 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 32px rgba(168, 153, 104, 0.25); animation: scaleIn 0.6s ease-out;">
+              <svg style="width: 60px; height: 60px; stroke: #faf9f7; stroke-width: 2; fill: none;" viewBox="0 0 24 24">
+                <polyline points="20 6 9 17 4 12"></polyline>
               </svg>
             </div>
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">¡Pago realizado!</h1>
-            <p class="text-gray-600 mb-6">Tu pedido ha sido procesado exitosamente.</p>
-            
-            <p id="mensajeRedireccion" class="text-gray-600 text-sm mb-6">
-              Redireccionando a tus pedidos en unos segundos...
+            <h1 style="font-family: 'Playfair Display', serif; font-size: 3rem; font-weight: 700; color: #001a33; margin: 0 0 0.75rem 0;">¡Pedido Confirmado!</h1>
+            <p style="font-size: 1.125rem; color: #5c4a3d; margin: 0; font-weight: 500;">Tu compra ha sido procesada exitosamente</p>
+          </div>
+
+          <!-- Tarjeta principal -->
+          <div style="background: white; border-radius: 12px; padding: 2rem; border: 1px solid #e0d5c7; box-shadow: 0 2px 8px rgba(0, 26, 51, 0.08);">
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+              <!-- Paso 1 -->
+              <div style="display: flex; gap: 1rem;">
+                <div style="width: 40px; height: 40px; min-width: 40px; border-radius: 50%; background: #a89968; color: #faf9f7; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.25rem;">✓</div>
+                <div>
+                  <p style="color: #001a33; font-weight: 600; font-size: 1.125rem; margin: 0 0 0.25rem 0;">Pago confirmado</p>
+                  <p style="color: #5c4a3d; font-size: 0.875rem; margin: 0;">Tu transacción ha sido procesada exitosamente</p>
+                </div>
+              </div>
+
+              <!-- Divisor -->
+              <div style="height: 1px; background: #e0d5c7;"></div>
+
+              <!-- Paso 2 -->
+              <div style="display: flex; gap: 1rem;">
+                <div style="width: 40px; height: 40px; min-width: 40px; border-radius: 50%; background: #a89968; color: #faf9f7; display: flex; align-items: center; justify-content: center; font-weight: bold; animation: spin 2s linear infinite;">⚙</div>
+                <div>
+                  <p style="color: #001a33; font-weight: 600; font-size: 1.125rem; margin: 0 0 0.25rem 0;">Preparando tu pedido</p>
+                  <p style="color: #5c4a3d; font-size: 0.875rem; margin: 0;">Estamos organizando tu compra</p>
+                </div>
+              </div>
+
+              <!-- Divisor -->
+              <div style="height: 1px; background: #e0d5c7;"></div>
+
+              <!-- Paso 3 -->
+              <div style="display: flex; gap: 1rem;">
+                <div style="width: 40px; height: 40px; min-width: 40px; border-radius: 50%; background: #d4ccc0; color: #5c4a3d; display: flex; align-items: center; justify-content: center; font-weight: bold;">3</div>
+                <div>
+                  <p style="color: #5c4a3d; font-weight: 600; font-size: 1.125rem; margin: 0 0 0.25rem 0;">Envío en camino</p>
+                  <p style="color: #666; font-size: 0.875rem; margin: 0;">Pronto recibirás tu pedido</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Botones -->
+          <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <a href="/mis-pedidos" style="display: block; text-align: center; padding: 1rem 1.5rem; background: linear-gradient(135deg, #a89968 0%, #8b7355 100%); color: #faf9f7; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 1.125rem; transition: all 0.3s ease; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(168, 153, 104, 0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(168, 153, 104, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(168, 153, 104, 0.3)'">
+              Ver mis pedidos
+            </a>
+
+            <a href="/productos" style="display: block; text-align: center; padding: 1rem 1.5rem; background: white; color: #001a33; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 1rem; transition: all 0.3s ease; border: 1px solid #e0d5c7; cursor: pointer;" onmouseover="this.style.background='#faf9f7'" onmouseout="this.style.background='white'">
+              Continuar comprando
+            </a>
+          </div>
+
+          <!-- Info de ayuda -->
+          <div style="background: #e0d5c7; border: 1px solid #d4ccc0; border-radius: 8px; padding: 1rem; text-align: center;">
+            <p style="color: #5c4a3d; font-size: 0.875rem; margin: 0;">
+              <strong>¿Necesitas ayuda?</strong><br/>
+              Contáctanos en <a href="mailto:ibericosrg@gmail.com" style="color: #a89968; text-decoration: none; font-weight: 600;">ibericosrg@gmail.com</a>
             </p>
-
-            <a 
-              href="/mis-pedidos" 
-              class="inline-block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition"
-            >
-              Ver Mis Pedidos
-            </a>
           </div>
-        </>
+
+          <!-- Countdown -->
+          <div style="text-align: center; color: #5c4a3d; font-size: 0.875rem;">
+            Redirigiendo en <span id="countdown" style="font-weight: bold; color: #a89968;">5</span> segundos...
+          </div>
+        </div>
       ) : (
-        <>
-          <div class="text-center">
-            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
-              <svg class="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
-            </div>
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">Pago cancelado</h1>
-            <p class="text-gray-600 mb-6">Tu pago no se completó. Puedes volver al carrito e intentar nuevamente.</p>
+        <div style="background: white; border-radius: 12px; padding: 2rem; border: 1px solid #e0d5c7; box-shadow: 0 2px 8px rgba(0, 26, 51, 0.08); text-align: center;">
+          <div style="width: 100px; height: 100px; margin: 0 auto 1.5rem; border-radius: 50%; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 32px rgba(220, 38, 38, 0.3);">
+            <svg style="width: 50px; height: 50px; stroke: white; stroke-width: 2; fill: none;" viewBox="0 0 24 24">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </div>
+          <h1 style="font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 800; color: #001a33; margin: 0 0 0.5rem 0;">Pago Cancelado</h1>
+          <p style="font-size: 1rem; color: #5c4a3d; margin: 0 0 2rem 0;">Tu pago no se pudo completar</p>
 
-            <a 
-              href="/carrito" 
-              class="inline-block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition"
-            >
-              Volver al carrito
+          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 1rem; margin-bottom: 2rem; text-align: left;">
+            <p style="color: #dc2626; font-size: 0.875rem; margin: 0 0 0.75rem 0; font-weight: 600;">Posibles razones:</p>
+            <ul style="color: #5c4a3d; font-size: 0.875rem; margin: 0; padding-left: 1.5rem;">
+              <li>Fondos insuficientes</li>
+              <li>Tarjeta expirada o bloqueada</li>
+              <li>Información incorrecta</li>
+              <li>Problemas de conexión</li>
+            </ul>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <a href="/carrito" style="display: block; text-align: center; padding: 1rem; background: linear-gradient(135deg, #a89968 0%, #8b7355 100%); color: #faf9f7; text-decoration: none; border-radius: 8px; font-weight: 600; transition: all 0.3s ease;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+              Volver al Carrito
+            </a>
+            <a href="/productos" style="display: block; text-align: center; padding: 1rem; background: white; color: #001a33; text-decoration: none; border-radius: 8px; font-weight: 600; border: 1px solid #e0d5c7;" onmouseover="this.style.background='#faf9f7'" onmouseout="this.style.background='white'">
+              Continuar Comprando
             </a>
           </div>
-        </>
+        </div>
       )}
     </div>
   </div>
@@ -91,7 +185,7 @@ const success = params.get('status') === 'success';
 
         if (!items.length) {
           console.error('Carrito vacío');
-          alert('El carrito está vacío');
+          // No mostrar alerta, simplemente no crear el pedido
           return;
         }
 
@@ -243,6 +337,22 @@ const success = params.get('status') === 'success';
     const sessionId = new URLSearchParams(window.location.search).get('session_id');
     if (sessionId) {
       crearPedidoDesdeStripe();
+    } else {
+      // Si no hay session_id pero hay status=success, actualizar contador
+      if (location.search.includes('status=success')) {
+        let seconds = 5;
+        const countdownEl = document.getElementById('countdown');
+        
+        const interval = setInterval(() => {
+          seconds--;
+          if (countdownEl) countdownEl.textContent = seconds.toString();
+          
+          if (seconds <= 0) {
+            clearInterval(interval);
+            window.location.href = '/mis-pedidos';
+          }
+        }, 1000);
+      }
     }
   </script>
 </Layout>

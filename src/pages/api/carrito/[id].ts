@@ -89,7 +89,39 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    // Actualizar cantidad
+    // Actualizar cantidad - VALIDAR STOCK
+    if (cantidad > 0) {
+      // Si estamos incrementando, validar stock disponible
+      if (cantidad > itemAnterior.cantidad) {
+        const incremento = cantidad - itemAnterior.cantidad;
+        
+        let stockDisponible = 0;
+        if (itemAnterior.producto_variante_id) {
+          const { data: variante } = await supabaseClient
+            .from('producto_variantes')
+            .select('cantidad_disponible')
+            .eq('id', itemAnterior.producto_variante_id)
+            .single();
+          stockDisponible = variante?.cantidad_disponible || 0;
+        } else {
+          const { data: producto } = await supabaseClient
+            .from('productos')
+            .select('stock')
+            .eq('id', itemAnterior.producto_id)
+            .single();
+          stockDisponible = producto?.stock || 0;
+        }
+
+        if (incremento > stockDisponible) {
+          console.log('❌ Stock insuficiente para incremento:', { solicitado: incremento, disponible: stockDisponible });
+          return new Response(
+            JSON.stringify({ error: 'No hay suficiente stock', success: false }),
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     const { data: actualizado, error: updateError } = await supabaseClient
       .from('carrito_items')
       .update({ cantidad })

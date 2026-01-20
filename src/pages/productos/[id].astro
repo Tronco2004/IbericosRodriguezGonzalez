@@ -577,6 +577,55 @@ export const prerender = false;
       thumbElement.style.borderColor = '#a89968';
     }
 
+    function mostrarNotificacion(mensaje, esError = false) {
+      const notificacion = document.createElement('div');
+      notificacion.textContent = mensaje;
+      notificacion.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${esError ? '#dc2626' : '#16a34a'};
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        z-index: 9999;
+        animation: slideIn 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      `;
+      document.body.appendChild(notificacion);
+      setTimeout(() => {
+        notificacion.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => notificacion.remove(), 300);
+      }, 3000);
+    }
+
+    // Agregar estilos para animaciones
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideIn {
+        from {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      @keyframes slideOut {
+        from {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+
     function mostrarError(mensaje) {
       document.getElementById('loadingMessage').innerHTML = `
         <h2 style="color: #dc2626; margin: 0 0 1rem 0;">${mensaje}</h2>
@@ -619,14 +668,13 @@ export const prerender = false;
 
         const data = await response.json();
         if (data.success) {
-          alert('Producto agregado al carrito');
-          window.location.href = '/carrito';
+          mostrarNotificacion('✓ Producto agregado al carrito');
         } else {
-          alert('Error: ' + data.message);
+          mostrarNotificacion('❌ Error: ' + data.message, true);
         }
       } catch (error) {
         console.error('Error:', error);
-        alert('Error al agregar al carrito');
+        mostrarNotificacion('❌ Error al agregar al carrito', true);
       }
     }
 
