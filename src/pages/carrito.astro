@@ -917,6 +917,11 @@ import Layout from '../layouts/Layout.astro';
     }
 
     @media (max-width: 480px) {
+      div[style*="display: grid; grid-template-columns: 1fr 350px"] {
+        grid-template-columns: 1fr !important;
+        gap: 1.5rem !important;
+      }
+
       .cart-item {
         grid-template-columns: 150px 1fr auto !important;
         gap: 1rem !important;
