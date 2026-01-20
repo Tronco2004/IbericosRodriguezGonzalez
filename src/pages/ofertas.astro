@@ -24,16 +24,35 @@ import Layout from '../layouts/Layout.astro';
       </div>
 
       <!-- Contenedor de ofertas -->
-      <div id="ofertasContainer" style="
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 2rem;
-        min-height: 300px;
-      ">
+      <div id="ofertasContainer" class="ofertas-grid">
         <p style="grid-column: 1 / -1; text-align: center; color: #64748b;">Cargando ofertas...</p>
       </div>
     </div>
   </div>
+
+  <style>
+    .ofertas-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 2rem;
+      min-height: 300px;
+    }
+
+    @media (max-width: 768px) {
+      .ofertas-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1.5rem !important;
+        padding: 0 !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .ofertas-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1.25rem !important;
+      }
+    }
+  </style>
 
   <script>
     async function cargarOfertas() {

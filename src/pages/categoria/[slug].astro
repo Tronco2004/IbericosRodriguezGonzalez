@@ -104,21 +104,54 @@ const info = categoryTitles[slug] || {
   </div>
 
   <!-- GRID MEJORADO -->
-  <div style="max-width: 1300px; margin: 0 auto; padding: 0 2rem; margin-bottom: 4rem;">
+  <div class="categoria-container">
     <div
       id="productosGrid"
       data-categoria={slug}
-      style="
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 2.5rem;
-        padding: 0;
-      ">
+      class="categoria-grid">
     </div>
   </div>
 
   <!-- ESTILOS -->
   <style>
+    .categoria-container {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      margin-bottom: 4rem;
+    }
+
+    .categoria-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 2.5rem;
+      padding: 0;
+    }
+
+    @media (max-width: 768px) {
+      .categoria-container {
+        padding: 0 1rem !important;
+      }
+      
+      .categoria-grid,
+      #productosGrid {
+        grid-template-columns: 1fr !important;
+        gap: 1.5rem !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .categoria-container {
+        padding: 0 0.75rem !important;
+      }
+      
+      .categoria-grid,
+      #productosGrid {
+        grid-template-columns: 1fr !important;
+        gap: 1.25rem !important;
+      }
+    }
+
     article {
       background: white;
       border-radius: 16px;
