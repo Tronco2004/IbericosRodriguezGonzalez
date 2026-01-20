@@ -12,6 +12,33 @@ import Layout from '../../layouts/Layout.astro';
     <p style="opacity: 0.6; font-size: 1.1rem; max-width: 700px; margin: 1.5rem auto 0; font-weight: 500; letter-spacing: 0.3px;">Descubre nuestra colección completa de productos ibéricos premium</p>
   </div>
   
+  <style>
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 2.2rem !important;
+        margin: 0.8rem 0 0.6rem 0 !important;
+      }
+      p {
+        font-size: 0.95rem !important;
+      }
+    }
+
+    @media (max-width: 640px) {
+      h1 {
+        font-size: 1.8rem !important;
+        margin: 0.6rem 0 0.5rem 0 !important;
+      }
+      p {
+        font-size: 0.9rem !important;
+        margin: 1rem auto 0 !important;
+      }
+      span {
+        font-size: 0.65rem !important;
+        padding: 0.4rem 1rem !important;
+      }
+    }
+  </style>
+  
   <div id="productosGrid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-top: 3rem; padding: 0 1rem; max-width: 100%; auto-rows: max-content;">
     <!-- Cargará con JavaScript -->
   </div>
@@ -158,52 +185,88 @@ import Layout from '../../layouts/Layout.astro';
       }
 
       .product-image-wrapper {
-        height: 250px;
-        min-height: 250px;
-        max-height: 250px;
-      }
-
-      article {
-        min-height: 380px;
-      }
-
-      .product-name {
-        font-size: 0.85rem;
-      }
-    }
-
-    @media (max-width: 640px) {
-      #productosGrid {
-        grid-template-columns: 1fr;
-        gap: 0.75rem;
-        padding: 0;
-      }
-
-      .product-image-wrapper {
         height: 280px;
         min-height: 280px;
         max-height: 280px;
       }
 
       article {
-        min-height: 360px;
-      }
-
-      .product-info {
-        padding: 0.75rem 0;
+        min-height: 400px;
       }
 
       .product-name {
         font-size: 0.9rem;
-        margin: 0.35rem 0 0 0;
+        margin: 0.5rem 0 0 0;
       }
 
       .product-price {
-        font-size: 0.9rem;
+        font-size: 1rem;
+        font-weight: 800;
+      }
+
+      .product-info {
+        padding: 0.9rem 0;
+      }
+    }
+
+    @media (max-width: 640px) {
+      #productosGrid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+        padding: 0 0.25rem;
+      }
+
+      .product-image-wrapper {
+        height: 320px;
+        min-height: 320px;
+        max-height: 320px;
+      }
+
+      article {
+        min-height: 420px;
+      }
+
+      .product-info {
+        padding: 0.85rem 0;
+      }
+
+      .product-name {
+        font-size: 0.95rem;
+        margin: 0.4rem 0 0 0;
+        font-weight: 600;
+      }
+
+      .product-price {
+        font-size: 1.1rem;
+        font-weight: 800;
       }
 
       .product-price-original {
-        font-size: 0.75rem;
+        font-size: 0.8rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      #productosGrid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.6rem;
+        padding: 0;
+      }
+
+      .product-image-wrapper {
+        height: 300px;
+      }
+
+      article {
+        min-height: 400px;
+      }
+
+      .product-name {
+        font-size: 0.9rem;
+      }
+
+      .product-price {
+        font-size: 1rem;
       }
     }
   </style>
