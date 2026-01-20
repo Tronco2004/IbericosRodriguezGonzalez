@@ -156,102 +156,46 @@ import Layout from '../layouts/Layout.astro';
         }
 
         htmlContent += `
-          <div style="display: grid; grid-template-columns: 1fr 350px; gap: 2rem; align-items: start;">
-            <div style="background: white; border-radius: 8px; overflow: hidden; border: 1px solid #e0d5c7;">
-              <div style="padding: 1.5rem; background: #f8f4f0; border-bottom: 1px solid #e0d5c7; display: flex; justify-content: space-between; align-items: center;">
-                <h2 style="color: #001a33; margin: 0;">Carrito (${totalItems} ${totalItems === 1 ? 'producto' : 'productos'})</h2>
-                <div style="text-align: right;">
-                  <div style="font-size: 0.9rem; color: #5c4a3d; margin-bottom: 0.25rem;">Expira en:</div>
-                  <span id="countdownGlobal" class="countdown-global" style="font-size: 1.3rem; font-weight: 600; color: #d97706;">cargando...</span>
+          <div class="carrito-layout">
+            <div class="carrito-productos">
+              <div class="carrito-header">
+                <h2>Carrito (${totalItems} ${totalItems === 1 ? 'producto' : 'productos'})</h2>
+                <div class="carrito-expira">
+                  <div>Expira en:</div>
+                  <span id="countdownGlobal" class="countdown-global">cargando...</span>
                 </div>
               </div>
-              <div>
+              <div class="carrito-items">
         `;
 
         items.forEach(item => {
           htmlContent += `
-            <div class="cart-item" data-item-id="${item.id}" style="
-              padding: 1.5rem;
-              border-bottom: 1px solid #e0d5c7;
-              display: grid;
-              grid-template-columns: 180px 1fr auto;
-              gap: 1.5rem;
-              align-items: flex-start;
-            ">
-              <div style="
-                width: 180px;
-                height: 180px;
-                background: #f8f4f0;
-                border-radius: 8px;
-                overflow: hidden;
-                flex-shrink: 0;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-              ">
+            <div class="cart-item" data-item-id="${item.id}">
+              <div class="cart-item-imagen">
                 <img 
                   src="${item.productos?.imagen_url || ''}" 
                   alt="${item.productos?.nombre || 'Producto'}"
-                  style="
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                  "
                 />
               </div>
-              <div>
-                <h3 style="color: #001a33; margin: 0 0 0.5rem 0; font-size: 1rem;">
+              <div class="cart-item-info">
+                <h3>
                   ${item.productos?.nombre || 'Producto'}
-                  ${item.peso_kg ? ` <span style="color: #a89968; font-weight: 500; font-size: 0.85rem;">(${item.peso_kg.toFixed(3)} kg)</span>` : ''}
+                  ${item.peso_kg ? ` <span class="peso">(${item.peso_kg.toFixed(3)} kg)</span>` : ''}
                 </h3>
-                <p style="color: #a89968; margin: 0 0 1rem 0; font-weight: 600; font-size: 0.95rem;">
+                <p class="precio-unitario">
                   ${(item.precio_unitario / 100).toFixed(2)}€ x ${item.cantidad}
                 </p>
-                <div style="display: flex; align-items: center; gap: 0.5rem; border: 1px solid #e0d5c7; border-radius: 4px; width: fit-content;">
-                  <button class="btn-cantidad" data-item-id="${item.id}" data-action="decrease" style="
-                    background: none;
-                    border: none;
-                    color: #5c4a3d;
-                    padding: 0.25rem 0.5rem;
-                    cursor: pointer;
-                    font-size: 1.2rem;
-                    transition: color 0.2s;
-                  ">−</button>
-                  <span style="
-                    width: 40px;
-                    text-align: center;
-                    color: #001a33;
-                    font-weight: 600;
-                    font-size: 0.9rem;
-                  ">${item.cantidad}</span>
-                  <button class="btn-cantidad" data-item-id="${item.id}" data-action="increase" style="
-                    background: none;
-                    border: none;
-                    color: #5c4a3d;
-                    padding: 0.25rem 0.5rem;
-                    cursor: pointer;
-                    font-size: 1.2rem;
-                    transition: color 0.2s;
-                  ">+</button>
+                <div class="cantidad-control">
+                  <button class="btn-cantidad" data-item-id="${item.id}" data-action="decrease">−</button>
+                  <span>${item.cantidad}</span>
+                  <button class="btn-cantidad" data-item-id="${item.id}" data-action="increase">+</button>
                 </div>
               </div>
-              <div style="display: flex; flex-direction: column; gap: 1rem; align-items: flex-end;">
-                <div style="text-align: right;">
-                  <p style="color: #001a33; font-weight: 600; margin: 0;">
-                    ${((item.precio_unitario * item.cantidad) / 100).toFixed(2)}€
-                  </p>
-                </div>
-                <button class="btn-eliminar" data-item-id="${item.id}" style="
-                  background: #f5576c;
-                  color: white;
-                  border: none;
-                  padding: 0.5rem 0.75rem;
-                  border-radius: 4px;
-                  cursor: pointer;
-                  font-size: 0.85rem;
-                  transition: background 0.2s;
-                  white-space: nowrap;
-                ">
+              <div class="cart-item-acciones">
+                <p class="precio-total">
+                  ${((item.precio_unitario * item.cantidad) / 100).toFixed(2)}€
+                </p>
+                <button class="btn-eliminar" data-item-id="${item.id}">
                   Eliminar
                 </button>
               </div>
@@ -262,118 +206,53 @@ import Layout from '../layouts/Layout.astro';
         htmlContent += `
               </div>
             </div>
-            <div style="background: white; border-radius: 8px; padding: 1.5rem; border: 1px solid #e0d5c7; position: sticky; top: 1rem;">
-              <h3 style="color: #001a33; margin: 0 0 1.5rem 0; font-size: 1.2rem;">Resumen</h3>
-              <div style="margin-bottom: 1rem;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; color: #5c4a3d;">
+            <div class="carrito-resumen">
+              <h3>Resumen</h3>
+              <div class="resumen-lineas">
+                <div class="resumen-linea">
                   <span>Subtotal (${totalItems} ${totalItems === 1 ? 'producto' : 'productos'})</span>
                   <span id="subtotalDisplay">${(subtotal / 100).toFixed(2)}€</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; color: #5c4a3d;">
+                <div class="resumen-linea">
                   <span>Envío</span>
-                  <span style="color: #a89968; font-weight: 600;">${(envio / 100).toFixed(2)}€</span>
+                  <span class="precio-envio">${(envio / 100).toFixed(2)}€</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; color: #5c4a3d;">
+                <div class="resumen-linea">
                   <span>Impuestos</span>
-                  <span style="color: #a89968; font-weight: 600;">Incluidos</span>
+                  <span class="precio-envio">Incluidos</span>
                 </div>
               </div>
 
               <!-- Campo de Código de Descuento -->
-              <div style="margin-bottom: 1.5rem; padding: 1rem; background: #f8f7f4; border-radius: 6px; border: 1px solid #e0d5c7;">
-                <label style="display: block; font-weight: 600; color: #001a33; margin-bottom: 0.75rem; font-size: 0.95rem;">Código de Descuento</label>
-                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+              <div class="codigo-descuento-box">
+                <label>Código de Descuento</label>
+                <div class="codigo-input-group">
                   <input 
                     id="inputCodigo"
                     type="text"
                     placeholder="Ingresa tu código"
-                    style="
-                      flex: 1;
-                      padding: 0.65rem 0.75rem;
-                      border: 1px solid #d1d5db;
-                      border-radius: 4px;
-                      font-size: 0.95rem;
-                      box-sizing: border-box;
-                      text-transform: uppercase;
-                      background: white;
-                    "
                   />
-                  <button 
-                    id="btnValidarCodigo"
-                    style="
-                      padding: 0.65rem 1.25rem;
-                      background: #a89968;
-                      color: white;
-                      border: none;
-                      border-radius: 4px;
-                      font-weight: 600;
-                      cursor: pointer;
-                      font-size: 0.9rem;
-                      white-space: nowrap;
-                      transition: all 0.2s;
-                      text-transform: uppercase;
-                      letter-spacing: 0.5px;
-                    "
-                  >
-                    Validar
-                  </button>
+                  <button id="btnValidarCodigo">Validar</button>
                 </div>
-                <div id="mensajeCodigoStatus" style="display: none; margin-top: 0.75rem; padding: 0.65rem; border-radius: 4px; font-size: 0.85rem; text-align: center; font-weight: 600;"></div>
+                <div id="mensajeCodigoStatus" class="codigo-status"></div>
               </div>
 
               <!-- Descuento aplicado -->
-              <div id="descuentoInfo" style="display: none; margin-bottom: 1rem; padding: 0.75rem; background: #d1fae5; border: 1px solid #a7f3d0; border-radius: 4px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span style="color: #065f46; font-weight: 600;">Descuento aplicado</span>
-                  <span id="descuentoAmount" style="color: #065f46; font-weight: 700; font-size: 1.1rem;">-0.00€</span>
+              <div id="descuentoInfo" class="descuento-info">
+                <div class="descuento-linea">
+                  <span>Descuento aplicado</span>
+                  <span id="descuentoAmount">-0.00€</span>
                 </div>
               </div>
 
-              <div style="
-                padding: 1rem 0;
-                border-top: 2px solid #e0d5c7;
-                border-bottom: 2px solid #e0d5c7;
-                margin-bottom: 1.5rem;
-              ">
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="color: #001a33; font-weight: 700;">Total</span>
-                  <span id="totalDisplay" style="color: #a89968; font-weight: 700; font-size: 1.3rem;">
-                    ${(total / 100).toFixed(2)}€
-                  </span>
+              <div class="resumen-total">
+                <div class="total-linea">
+                  <span>Total</span>
+                  <span id="totalDisplay">${(total / 100).toFixed(2)}€</span>
                 </div>
               </div>
-              <button id="btnCheckout" style="
-                display: block;
-                width: 100%;
-                background: #a89968;
-                color: white;
-                padding: 1rem;
-                border-radius: 4px;
-                text-align: center;
-                text-decoration: none;
-                font-weight: 600;
-                transition: background 0.3s;
-                margin-bottom: 0.75rem;
-                border: none;
-                cursor: pointer;
-                font-size: 1rem;
-              ">
-                Proceder al Checkout
-              </button>
-              <a href="/productos" style="
-                display: block;
-                background: transparent;
-                color: #a89968;
-                padding: 0.75rem 1rem;
-                border: 2px solid #a89968;
-                border-radius: 4px;
-                text-align: center;
-                text-decoration: none;
-                font-weight: 600;
-                transition: all 0.3s;
-              ">
-                Seguir Comprando
-              </a>
+              <button id="btnCheckout" class="btn-checkout">Proceder al Checkout</button>
+              <a href="/productos" class="btn-seguir">Seguir Comprando</a>
             </div>
           </div>
         `;
@@ -388,16 +267,9 @@ import Layout from '../layouts/Layout.astro';
             const action = btn.getAttribute('data-action');
             const cartItem = btn.closest('.cart-item');
             
-            // Buscar el span de cantidad que está entre los dos botones (no el countdown)
-            const cantidadSpans = cartItem.querySelectorAll('span');
-            let cantidadSpan = null;
-            for (const span of cantidadSpans) {
-              // El span de cantidad tiene width: 40px
-              if (span.style.width === '40px') {
-                cantidadSpan = span;
-                break;
-              }
-            }
+            // Buscar el span de cantidad dentro del control de cantidad
+            const cantidadControl = cartItem.querySelector('.cantidad-control');
+            const cantidadSpan = cantidadControl ? cantidadControl.querySelector('span') : null;
             
             if (!cantidadSpan) {
               console.error('No se encontró el span de cantidad');
@@ -883,114 +755,393 @@ import Layout from '../layouts/Layout.astro';
   </script>
 
   <style>
-    @media (max-width: 1024px) {
-      div[style*="display: grid; grid-template-columns: 1fr 350px"] {
-        grid-template-columns: 1fr 320px !important;
-        gap: 1.5rem !important;
+    /* === LAYOUT PRINCIPAL === */
+    .carrito-layout {
+      display: grid;
+      grid-template-columns: 1fr 350px;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    .carrito-productos {
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #e0d5c7;
+    }
+
+    .carrito-header {
+      padding: 1rem;
+      background: #f8f4f0;
+      border-bottom: 1px solid #e0d5c7;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .carrito-header h2 {
+      color: #001a33;
+      margin: 0;
+      font-size: 1.1rem;
+    }
+
+    .carrito-expira {
+      text-align: right;
+      font-size: 0.8rem;
+      color: #5c4a3d;
+    }
+
+    .carrito-expira span {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #d97706;
+    }
+
+    /* === ITEMS DEL CARRITO === */
+    .cart-item {
+      padding: 1rem;
+      border-bottom: 1px solid #e0d5c7;
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+
+    .cart-item-imagen {
+      width: 100px;
+      height: 100px;
+      min-width: 100px;
+      background: #f8f4f0;
+      border-radius: 8px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .cart-item-imagen img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .cart-item-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .cart-item-info h3 {
+      color: #001a33;
+      margin: 0 0 0.3rem 0;
+      font-size: 0.9rem;
+    }
+
+    .cart-item-info .peso {
+      color: #a89968;
+      font-weight: 500;
+      font-size: 0.8rem;
+    }
+
+    .cart-item-info .precio-unitario {
+      color: #a89968;
+      margin: 0 0 0.5rem 0;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .cantidad-control {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      border: 1px solid #e0d5c7;
+      border-radius: 4px;
+      width: fit-content;
+    }
+
+    .cantidad-control button {
+      background: none;
+      border: none;
+      color: #5c4a3d;
+      padding: 0.2rem 0.4rem;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    .cantidad-control span {
+      width: 30px;
+      text-align: center;
+      color: #001a33;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .cart-item-acciones {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      align-items: flex-end;
+      flex-shrink: 0;
+    }
+
+    .cart-item-acciones .precio-total {
+      color: #001a33;
+      font-weight: 600;
+      margin: 0;
+      font-size: 0.95rem;
+    }
+
+    .btn-eliminar {
+      background: #f5576c;
+      color: white;
+      border: none;
+      padding: 0.4rem 0.6rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      white-space: nowrap;
+    }
+
+    /* === RESUMEN === */
+    .carrito-resumen {
+      background: white;
+      border-radius: 8px;
+      padding: 1rem;
+      border: 1px solid #e0d5c7;
+      position: sticky;
+      top: 1rem;
+    }
+
+    .carrito-resumen h3 {
+      color: #001a33;
+      margin: 0 0 1rem 0;
+      font-size: 1.1rem;
+    }
+
+    .resumen-lineas {
+      margin-bottom: 0.75rem;
+    }
+
+    .resumen-linea {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+      color: #5c4a3d;
+      font-size: 0.85rem;
+    }
+
+    .precio-envio {
+      color: #a89968;
+      font-weight: 600;
+    }
+
+    .codigo-descuento-box {
+      margin-bottom: 1rem;
+      padding: 0.75rem;
+      background: #f8f7f4;
+      border-radius: 6px;
+      border: 1px solid #e0d5c7;
+    }
+
+    .codigo-descuento-box label {
+      display: block;
+      font-weight: 600;
+      color: #001a33;
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+    }
+
+    .codigo-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .codigo-input-group input {
+      padding: 0.5rem;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+    }
+
+    .codigo-input-group button {
+      padding: 0.5rem;
+      background: #a89968;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+    }
+
+    .codigo-status {
+      display: none;
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .descuento-info {
+      display: none;
+      margin-bottom: 0.75rem;
+      padding: 0.5rem;
+      background: #d1fae5;
+      border: 1px solid #a7f3d0;
+      border-radius: 4px;
+    }
+
+    .descuento-linea {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #065f46;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .resumen-total {
+      padding: 0.75rem 0;
+      border-top: 2px solid #e0d5c7;
+      border-bottom: 2px solid #e0d5c7;
+      margin-bottom: 1rem;
+    }
+
+    .total-linea {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .total-linea span:first-child {
+      color: #001a33;
+      font-weight: 700;
+    }
+
+    .total-linea #totalDisplay {
+      color: #a89968;
+      font-weight: 700;
+      font-size: 1.2rem;
+    }
+
+    .btn-checkout {
+      display: block;
+      width: 100%;
+      background: #a89968;
+      color: white;
+      padding: 0.75rem;
+      border-radius: 4px;
+      text-align: center;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .btn-seguir {
+      display: block;
+      background: transparent;
+      color: #a89968;
+      padding: 0.6rem;
+      border: 2px solid #a89968;
+      border-radius: 4px;
+      text-align: center;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    /* === RESPONSIVE TABLET === */
+    @media (max-width: 900px) {
+      .carrito-layout {
+        grid-template-columns: 1fr 280px;
+        gap: 1rem;
       }
     }
 
+    /* === RESPONSIVE MÓVIL === */
     @media (max-width: 768px) {
-      div[style*="display: grid; grid-template-columns: 1fr 350px"] {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 1.5rem !important;
+      .carrito-layout {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
       }
 
-      div[style*="display: grid; grid-template-columns: 1fr 350px"] > div:first-child {
-        order: 1 !important;
-        width: 100% !important;
+      .carrito-productos {
+        order: 1;
       }
 
-      div[style*="display: grid; grid-template-columns: 1fr 350px"] > div:last-child {
-        order: 2 !important;
-        width: 100% !important;
+      .carrito-resumen {
+        order: 2;
+        position: static;
       }
 
-      .cart-item {
-        display: flex !important;
-        flex-direction: row !important;
-        gap: 1rem !important;
-        padding: 1rem !important;
-      }
-
-      .cart-item > div:first-child {
-        width: 100px !important;
-        height: 100px !important;
-        min-width: 100px !important;
-        flex-shrink: 0 !important;
-      }
-
-      .cart-item > div:first-child img {
-        width: 100% !important;
-        height: 100% !important;
-        object-fit: cover !important;
-      }
-
-      .cart-item > div:nth-child(2) {
-        flex: 1 !important;
-      }
-
-      .cart-item > div:nth-child(3) {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: flex-end !important;
-        gap: 0.5rem !important;
-      }
-
-      div[style*="position: sticky; top: 1rem"] {
-        position: static !important;
+      .cart-item-imagen {
+        width: 80px;
+        height: 80px;
+        min-width: 80px;
       }
     }
 
+    /* === RESPONSIVE MÓVIL PEQUEÑO === */
     @media (max-width: 480px) {
-      div[style*="display: grid; grid-template-columns: 1fr 350px"] {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 1rem !important;
+      .carrito-header {
+        padding: 0.75rem;
+      }
+
+      .carrito-header h2 {
+        font-size: 1rem;
       }
 
       .cart-item {
-        display: flex !important;
-        flex-direction: row !important;
-        gap: 0.75rem !important;
-        padding: 0.75rem !important;
+        padding: 0.75rem;
+        gap: 0.75rem;
       }
 
-      .cart-item > div:first-child {
-        width: 80px !important;
-        height: 80px !important;
-        min-width: 80px !important;
-        flex-shrink: 0 !important;
+      .cart-item-imagen {
+        width: 70px;
+        height: 70px;
+        min-width: 70px;
       }
 
-      .cart-item > div:nth-child(2) h3 {
-        font-size: 0.85rem !important;
+      .cart-item-info h3 {
+        font-size: 0.85rem;
       }
 
-      .cart-item > div:nth-child(2) p {
-        font-size: 0.8rem !important;
+      .cart-item-info .precio-unitario {
+        font-size: 0.8rem;
       }
 
-      .cart-item > div:nth-child(3) {
-        font-size: 0.85rem !important;
+      .carrito-resumen {
+        padding: 0.75rem;
       }
 
-      h2 {
-        font-size: 1.1rem !important;
+      .carrito-resumen h3 {
+        font-size: 1rem;
+        margin-bottom: 0.75rem;
       }
 
-      div[style*="background: white; border-radius: 8px"] {
-        padding: 0.75rem !important;
+      .resumen-linea {
+        font-size: 0.8rem;
       }
 
-      div[style*="padding: 1.5rem; background: #f8f4f0"] {
-        padding: 0.5rem !important;
+      .codigo-descuento-box {
+        padding: 0.5rem;
       }
 
-      button {
-        padding: 0.4rem 0.6rem !important;
-        font-size: 0.75rem !important;
+      .codigo-descuento-box label {
+        font-size: 0.8rem;
+      }
+
+      .btn-checkout {
+        padding: 0.65rem;
+        font-size: 0.85rem;
+      }
+
+      .btn-seguir {
+        padding: 0.5rem;
+        font-size: 0.8rem;
       }
     }
   </style>
