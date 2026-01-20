@@ -545,6 +545,11 @@ const productos = [
       width: 100%;
     }
 
+    .productos-grid {
+      grid-template-columns: 1fr !important;
+      gap: 1.5rem !important;
+    }
+
     .product-footer {
       flex-direction: column;
       align-items: flex-start;
@@ -557,17 +562,26 @@ const productos = [
     }
 
     .beneficios-grid {
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    .product-image {
+      height: 280px !important;
     }
   }
 
   @media (max-width: 480px) {
     .beneficios-grid {
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr !important;
     }
 
     .productos-grid {
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr !important;
+      gap: 1.25rem !important;
+    }
+
+    .product-image {
+      height: 250px !important;
     }
 
     .btn {
