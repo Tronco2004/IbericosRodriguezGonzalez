@@ -67,10 +67,39 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         peso_kg: parseFloat(peso_kg),
         precio_total: parseFloat(precio_total),
         sku_variante: sku,
-        disponible: true
+        disponible: true,
+        cantidad_disponible: 1
       })
       .select()
       .single();
+
+    // Si falla porque el campo no existe, reintentar sin cantidad_disponible
+    if (error && error.message.includes('cantidad_disponible')) {
+      const { data: varianteRetry, error: errorRetry } = await supabaseClient
+        .from('producto_variantes')
+        .insert({
+          producto_id: parseInt(producto_id),
+          peso_kg: parseFloat(peso_kg),
+          precio_total: parseFloat(precio_total),
+          sku_variante: sku,
+          disponible: true
+        })
+        .select()
+        .single();
+
+      if (errorRetry) {
+        console.error('Error insertando variante (retry):', errorRetry);
+        return new Response(
+          JSON.stringify({ error: 'Error creando variante: ' + errorRetry.message }),
+          { status: 500 }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, variante: varianteRetry }),
+        { status: 201, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (error) {
       console.error('Error insertando variante:', error);
