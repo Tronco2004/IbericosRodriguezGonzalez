@@ -1,0 +1,96 @@
+---
+import { construirArbolCategorias, type CategoriaConSubcategorias } from '../lib/categorias-hierarchy';
+
+interface Props {
+  categorias: any[];
+  valorSeleccionado?: number | null;
+  nombre?: string;
+  id?: string;
+}
+
+const { 
+  categorias, 
+  valorSeleccionado = null,
+  nombre = 'categoria_padre',
+  id = 'categoria-padre-select'
+} = Astro.props;
+
+// Construir árbol jerárquico
+const arbol = construirArbolCategorias(categorias);
+
+// Función para generar opciones con indentación
+const generarOpciones = (items: CategoriaConSubcategorias[], nivel = 0): Array<{id: number, nombre: string, indentacion: string}> => {
+  let opciones: Array<{id: number, nombre: string, indentacion: string}> = [];
+  
+  items.forEach(item => {
+    const indentacion = '   '.repeat(nivel);
+    opciones.push({
+      id: item.id,
+      nombre: `${indentacion}${item.nombre}`,
+      indentacion
+    });
+    
+    if (item.subcategorias && item.subcategorias.length > 0) {
+      opciones = opciones.concat(generarOpciones(item.subcategorias, nivel + 1));
+    }
+  });
+  
+  return opciones;
+};
+
+const opciones = generarOpciones(arbol);
+---
+
+<div class="categoria-selector">
+  <label for={id}>Categoría Padre (Opcional):</label>
+  <select id={id} name={nombre} value={valorSeleccionado || ''}>
+    <option value="">-- Sin categoría padre (es principal) --</option>
+    {opciones.map(opcion => (
+      <option value={opcion.id} selected={valorSeleccionado === opcion.id}>
+        {opcion.nombre}
+      </option>
+    ))}
+  </select>
+</div>
+
+<style>
+  .categoria-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .categoria-selector label {
+    font-weight: 600;
+    color: #2d2d2d;
+    font-size: 0.95rem;
+  }
+
+  .categoria-selector select {
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 0.375rem;
+    font-size: 0.95rem;
+    background-color: white;
+    color: #2d2d2d;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+  }
+
+  .categoria-selector select:hover,
+  .categoria-selector select:focus {
+    border-color: #8b4513;
+    outline: none;
+  }
+
+  .categoria-selector option {
+    padding: 0.5rem;
+    background-color: white;
+    color: #2d2d2d;
+  }
+
+  /* Monospace para la indentación */
+  .categoria-selector select {
+    font-family: 'Courier New', monospace;
+  }
+</style>

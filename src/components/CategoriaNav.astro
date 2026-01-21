@@ -1,0 +1,204 @@
+---
+import { construirArbolCategorias, type CategoriaConSubcategorias } from '../lib/categorias-hierarchy';
+
+interface Props {
+  categorias: any[];
+  categoriaActiva?: number | null;
+  mostrarSubcategorias?: boolean;
+}
+
+const { categorias, categoriaActiva, mostrarSubcategorias = true } = Astro.props;
+
+// Construir árbol jerárquico
+const arbol = construirArbolCategorias(categorias);
+---
+
+{arbol.map((categoria) => (
+  <div class="categoria-item">
+    <a 
+      href={`/categoria/${categoria.slug}`}
+      class={`categoria-link ${categoriaActiva === categoria.id ? 'activa' : ''}`}
+    >
+      {categoria.nombre}
+      {categoria.subcategorias && categoria.subcategorias.length > 0 && (
+        <span class="chevron">▼</span>
+      )}
+    </a>
+    
+    {mostrarSubcategorias && categoria.subcategorias && categoria.subcategorias.length > 0 && (
+      <div class="subcategorias">
+        {categoria.subcategorias.map((subcat) => (
+          <a 
+            href={`/categoria/${subcat.slug}`}
+            class={`subcategoria-link ${categoriaActiva === subcat.id ? 'activa' : ''}`}
+          >
+            {subcat.nombre}
+          </a>
+        ))}
+      </div>
+    )}
+  </div>
+))}
+
+<style>
+  .categoria-item {
+    position: relative;
+    display: inline-block;
+  }
+
+  .categoria-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #001a33;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid transparent;
+    transition: border-color 0.3s ease;
+    white-space: nowrap;
+  }
+
+  .categoria-link:hover,
+  .categoria-link.activa {
+    border-color: #000;
+  }
+
+  .chevron {
+    font-size: 0.6rem;
+    transition: transform 0.3s ease;
+  }
+
+  .categoria-item:hover .chevron {
+    transform: rotate(180deg);
+  }
+
+  /* Subcategorías Dropdown */
+  .subcategorias {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    border: 1px solid #e0d5c7;
+    border-radius: 0.5rem;
+    min-width: 180px;
+    display: none;
+    flex-direction: column;
+    padding: 0.5rem 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    margin-top: 0.25rem;
+  }
+
+  .categoria-item:hover .subcategorias {
+    display: flex;
+  }
+
+  .subcategoria-link {
+    display: block;
+    padding: 0.6rem 1rem;
+    color: #001a33;
+    font-size: 0.9rem;
+    font-weight: 400;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .subcategoria-link:hover,
+  .subcategoria-link.activa {
+    background-color: #faf9f7;
+    color: #8b4513;
+    padding-left: 1.2rem;
+  }
+
+  /* ========== RESPONSIVE ========== */
+
+  /* Tablet (1024px) */
+  @media (max-width: 1024px) {
+    .categoria-link {
+      font-size: 0.9rem;
+    }
+  }
+
+  /* Tablet pequeña (900px) */
+  @media (max-width: 900px) {
+    .categoria-link {
+      font-size: 0.85rem;
+    }
+  }
+
+  /* Móvil (768px) - Dentro del menú lateral */
+  @media (max-width: 768px) {
+    .categoria-item {
+      display: block;
+      width: 100%;
+      border-bottom: 1px solid #eee;
+    }
+
+    .categoria-link {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      padding: 1rem 0;
+      font-size: 1.1rem;
+      border-bottom: none;
+    }
+
+    .chevron {
+      font-size: 0.7rem;
+    }
+
+    /* Subcategorías en móvil - siempre visibles bajo el padre */
+    .subcategorias {
+      position: static;
+      display: none;
+      background: #f9f9f9;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      margin: 0;
+      padding: 0 0 0.5rem 1rem;
+      min-width: auto;
+    }
+
+    .categoria-item:hover .subcategorias,
+    .categoria-item.open .subcategorias {
+      display: flex;
+    }
+
+    .subcategoria-link {
+      padding: 0.75rem 0;
+      font-size: 1rem;
+      border-bottom: 1px solid #eee;
+    }
+
+    .subcategoria-link:hover,
+    .subcategoria-link.activa {
+      padding-left: 0.5rem;
+    }
+
+    .subcategoria-link:last-child {
+      border-bottom: none;
+    }
+  }
+</style>
+
+<script>
+  // Toggle subcategorías en móvil con click
+  document.querySelectorAll('.categoria-item').forEach(item => {
+    const link = item.querySelector('.categoria-link');
+    const chevron = item.querySelector('.chevron');
+    
+    if (chevron && link) {
+      link.addEventListener('click', (e) => {
+        if (window.innerWidth <= 768) {
+          const subcategorias = item.querySelector('.subcategorias');
+          if (subcategorias) {
+            e.preventDefault();
+            item.classList.toggle('open');
+          }
+        }
+      });
+    }
+  });
+</script>
