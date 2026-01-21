@@ -1,6 +1,16 @@
 ---
+import MegaMenu from '../components/MegaMenu.astro';
+import { supabaseClient } from '../lib/supabase';
+
 const title = "IbericosRG - Surtidos Ibéricos Premium";
 const description = "Descubre nuestra colección de productos ibéricos de la más alta calidad";
+
+// Obtener categorías para el menú
+const { data: categorias } = await supabaseClient
+  .from('categorias')
+  .select('*')
+  .eq('activa', true)
+  .order('orden', { ascending: true });
 ---
 
 <!DOCTYPE html>
@@ -115,123 +125,407 @@ const description = "Descubre nuestra colección de productos ibéricos de la m�
   </head>
   <body>
     <!-- Navbar -->
-    <header style="
-      background: #fff;
-      padding: 1.2rem 0;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    ">
-      <div style="max-width: 1400px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; gap: 2rem;">
-        <a href="/" style="
-          font-size: 1.8rem;
-          background: linear-gradient(135deg, #001a33, #5c4a3d);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          font-weight: 700;
-          font-family: 'Playfair Display', serif;
-          text-decoration: none;
-          flex-shrink: 0;
-        ">Ibéricos RG</a>
+    <header class="main-header">
+      <div class="header-container">
+        <a href="/" class="logo">Ibéricos RG</a>
         
-        <nav style="display: flex; gap: 2rem; align-items: center;">
-          <a href="/" style="font-size: 0.95rem; font-weight: 500; color: #001a33; padding-bottom: 0.5rem; border-bottom: 2px solid transparent; transition: border-color 0.3s ease; white-space: nowrap;" onmouseover="this.style.borderColor='#000'" onmouseout="this.style.borderColor='transparent'">Inicio</a>
-          <a href="/productos" style="font-size: 0.95rem; font-weight: 500; color: #001a33; padding-bottom: 0.5rem; border-bottom: 2px solid transparent; transition: border-color 0.3s ease; white-space: nowrap;" onmouseover="this.style.borderColor='#000'" onmouseout="this.style.borderColor='transparent'">Catálogo</a>
-          <a href="/categoria/jamones" style="font-size: 0.95rem; font-weight: 500; color: #001a33; padding-bottom: 0.5rem; border-bottom: 2px solid transparent; transition: border-color 0.3s ease; white-space: nowrap;" onmouseover="this.style.borderColor='#000'" onmouseout="this.style.borderColor='transparent'">Jamones</a>
-          <a href="/categoria/quesos" style="font-size: 0.95rem; font-weight: 500; color: #001a33; padding-bottom: 0.5rem; border-bottom: 2px solid transparent; transition: border-color 0.3s ease; white-space: nowrap;" onmouseover="this.style.borderColor='#000'" onmouseout="this.style.borderColor='transparent'">Quesos</a>
-          <a href="/categoria/embutidos" style="font-size: 0.95rem; font-weight: 500; color: #001a33; padding-bottom: 0.5rem; border-bottom: 2px solid transparent; transition: border-color 0.3s ease; white-space: nowrap;" onmouseover="this.style.borderColor='#000'" onmouseout="this.style.borderColor='transparent'">Embutidos</a>
+        <!-- Botón Hamburguesa para móvil -->
+        <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+        </button>
+        
+        <!-- Menú de Navegación con Subcategorías -->
+        <nav class="main-nav" id="mainNav">
+          <a href="/" class="nav-link">Inicio</a>
+          <MegaMenu categorias={categorias || []} />
         </nav>
 
         <!-- Barra de Búsqueda -->
-        <div style="position: relative; width: 280px; flex-shrink: 0;">
+        <div class="search-container">
           <input 
             type="text" 
             id="searchInput" 
             placeholder="Buscar productos..." 
-            style="
-              width: 100%;
-              padding: 0.6rem 1rem;
-              border: 1px solid #e0d5c7;
-              border-radius: 6px;
-              font-size: 0.9rem;
-              transition: all 0.3s;
-            "
-            onmouseover="this.style.borderColor='#a89968'"
-            onmouseout="this.style.borderColor='#e0d5c7'"
-            onfocus="this.style.borderColor='#a89968'; this.style.boxShadow='0 0 8px rgba(168, 153, 104, 0.2)'"
-            onblur="this.style.borderColor='#e0d5c7'; this.style.boxShadow='none'"
+            class="search-input"
           >
           
           <!-- Dropdown de Resultados -->
-          <div 
-            id="searchResults" 
-            style="
-              display: none;
-              position: absolute;
-              top: 100%;
-              left: 0;
-              right: 0;
-              background: white;
-              border: 1px solid #e0d5c7;
-              border-top: none;
-              border-radius: 0 0 6px 6px;
-              max-height: 400px;
-              overflow-y: auto;
-              box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-              z-index: 1001;
-            "
-          ></div>
+          <div id="searchResults" class="search-results"></div>
         </div>
 
         <!-- Contenedor de acciones (Carrito + Usuario) -->
-        <div style="display: flex; gap: 1.5rem; align-items: center; flex-shrink: 0;">
-            <a href="/carrito" style="
-              position: relative;
-              font-size: 0.95rem;
-              font-weight: 500;
-              color: #001a33;
-              padding-bottom: 0.5rem;
-              border-bottom: 2px solid transparent;
-              transition: border-color 0.3s ease;
-              display: inline-block;
-            " onmouseover="this.style.borderColor='#000'" onmouseout="this.style.borderColor='transparent'">
-              Carrito
-              <span id="carritoCount" style="
-                display: none;
-                position: absolute;
-                top: -8px;
-                right: -12px;
-                background: #f5576c;
-                color: white;
-                border-radius: 50%;
-                width: 20px;
-                height: 20px;
-                font-size: 0.7rem;
-                font-weight: 700;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-              ">0</span>
-            </a>
-            <div id="carritoTimer" style="
-              position: absolute;
-              top: 100%;
-              left: 0;
-              font-size: 0.75rem;
-              color: #d97706;
-              font-weight: 600;
-              display: none;
-              white-space: nowrap;
-              margin-top: 0.2rem;
-            ">cargando...</div>
-          </div>
+        <div class="actions-container">
+          <a href="/carrito" class="cart-link">
+            Carrito
+            <span id="carritoCount" class="cart-count">0</span>
+          </a>
+          <div id="carritoTimer" class="cart-timer">cargando...</div>
 
           <div id="authContainer"></div>
         </div>
       </div>
+      
+      <!-- Menú móvil overlay -->
+      <div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
     </header>
+
+    <style>
+      /* Header Principal */
+      .main-header {
+        background: #fff;
+        padding: 1.2rem 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .header-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 3rem;
+      }
+
+      /* Logo */
+      .logo {
+        font-size: 1.8rem;
+        background: linear-gradient(135deg, #001a33, #5c4a3d);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: 700;
+        font-family: 'Playfair Display', serif;
+        text-decoration: none;
+        flex-shrink: 0;
+      }
+
+      /* Navegación */
+      .main-nav {
+        display: flex;
+        gap: 2rem;
+        align-items: center;
+      }
+
+      .nav-link {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #001a33;
+        padding: 0.5rem 0;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid transparent;
+        transition: border-color 0.3s ease;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+      }
+
+      .nav-link:hover {
+        border-color: #000;
+      }
+
+      /* Botón hamburguesa */
+      .menu-toggle {
+        display: none;
+        flex-direction: column;
+        justify-content: center;
+        gap: 5px;
+        width: 30px;
+        height: 30px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        z-index: 1001;
+      }
+
+      .hamburger-line {
+        width: 100%;
+        height: 3px;
+        background-color: #001a33;
+        border-radius: 2px;
+        transition: all 0.3s ease;
+      }
+
+      .menu-toggle.active .hamburger-line:nth-child(1) {
+        transform: rotate(45deg) translate(6px, 6px);
+      }
+
+      .menu-toggle.active .hamburger-line:nth-child(2) {
+        opacity: 0;
+      }
+
+      .menu-toggle.active .hamburger-line:nth-child(3) {
+        transform: rotate(-45deg) translate(6px, -6px);
+      }
+
+      /* Búsqueda */
+      .search-container {
+        position: relative;
+        width: 280px;
+        flex-shrink: 0;
+      }
+
+      .search-input {
+        width: 100%;
+        padding: 0.6rem 1rem;
+        border: 1px solid #e0d5c7;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        transition: all 0.3s;
+      }
+
+      .search-input:hover,
+      .search-input:focus {
+        border-color: #a89968;
+        outline: none;
+      }
+
+      .search-input:focus {
+        box-shadow: 0 0 8px rgba(168, 153, 104, 0.2);
+      }
+
+      .search-results {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #e0d5c7;
+        border-top: none;
+        border-radius: 0 0 6px 6px;
+        max-height: 400px;
+        overflow-y: auto;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        z-index: 1001;
+      }
+
+      /* Acciones */
+      .actions-container {
+        display: flex;
+        gap: 1.5rem;
+        align-items: center;
+        flex-shrink: 0;
+      }
+
+      .cart-link {
+        position: relative;
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: #001a33;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid transparent;
+        transition: border-color 0.3s ease;
+      }
+
+      .cart-link:hover {
+        border-color: #000;
+      }
+
+      .cart-count {
+        display: none;
+        position: absolute;
+        top: -8px;
+        right: -12px;
+        background: #f5576c;
+        color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .cart-timer {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        font-size: 0.75rem;
+        color: #d97706;
+        font-weight: 600;
+        display: none;
+        white-space: nowrap;
+        margin-top: 0.2rem;
+      }
+
+      /* Overlay móvil */
+      .mobile-menu-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 99;
+      }
+
+      .mobile-menu-overlay.active {
+        display: block;
+      }
+
+      /* ========== RESPONSIVE ========== */
+
+      /* Tablet grande (1200px) */
+      @media (max-width: 1200px) {
+        .header-container {
+          gap: 1.5rem;
+        }
+
+        .main-nav {
+          gap: 1.5rem;
+        }
+
+        .search-container {
+          width: 220px;
+        }
+      }
+
+      /* Tablet (1024px) */
+      @media (max-width: 1024px) {
+        .header-container {
+          padding: 0 1.5rem;
+          gap: 1rem;
+        }
+
+        .main-nav {
+          gap: 1rem;
+        }
+
+        .nav-link {
+          font-size: 0.9rem;
+        }
+
+        .search-container {
+          width: 180px;
+        }
+
+        .logo {
+          font-size: 1.5rem;
+        }
+      }
+
+      /* Tablet pequeña (900px) */
+      @media (max-width: 900px) {
+        .search-container {
+          width: 150px;
+        }
+
+        .main-nav {
+          gap: 0.75rem;
+        }
+
+        .nav-link {
+          font-size: 0.85rem;
+        }
+      }
+
+      /* Móvil grande (768px) */
+      @media (max-width: 768px) {
+        .main-header {
+          padding: 1rem 0;
+        }
+
+        .header-container {
+          flex-wrap: wrap;
+          gap: 1rem;
+        }
+
+        .menu-toggle {
+          display: flex;
+          order: 3;
+        }
+
+        .main-nav {
+          display: none;
+          position: fixed;
+          top: 0;
+          right: -100%;
+          width: 280px;
+          height: 100vh;
+          background: white;
+          flex-direction: column;
+          align-items: flex-start;
+          padding: 5rem 2rem 2rem;
+          gap: 0;
+          box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+          transition: right 0.3s ease;
+          z-index: 100;
+          overflow-y: auto;
+        }
+
+        .main-nav.active {
+          display: flex;
+          right: 0;
+        }
+
+        .main-nav .nav-link {
+          padding: 1rem 0;
+          font-size: 1.1rem;
+          width: 100%;
+          border-bottom: 1px solid #eee;
+        }
+
+        .logo {
+          order: 1;
+        }
+
+        .search-container {
+          order: 4;
+          width: 100%;
+          margin-top: 0.5rem;
+        }
+
+        .actions-container {
+          order: 2;
+          gap: 1rem;
+        }
+
+        .cart-link {
+          font-size: 0.9rem;
+        }
+      }
+
+      /* Móvil (480px) */
+      @media (max-width: 480px) {
+        .main-header {
+          padding: 0.75rem 0;
+        }
+
+        .header-container {
+          padding: 0 1rem;
+        }
+
+        .logo {
+          font-size: 1.3rem;
+        }
+
+        .main-nav {
+          width: 100%;
+          right: -100%;
+        }
+
+        .main-nav.active {
+          right: 0;
+        }
+
+        .actions-container {
+          gap: 0.75rem;
+        }
+
+        .cart-link {
+          font-size: 0.85rem;
+        }
+      }
+    </style>
 
     <main style="min-height: calc(100vh - 200px);">
       <slot />
@@ -272,6 +566,40 @@ const description = "Descubre nuestra colección de productos ibéricos de la m�
     </footer>
 
     <script>
+      // ========== MENÚ HAMBURGUESA MÓVIL ==========
+      const menuToggle = document.getElementById('menuToggle');
+      const mainNav = document.getElementById('mainNav');
+      const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+
+      if (menuToggle && mainNav && mobileMenuOverlay) {
+        menuToggle.addEventListener('click', () => {
+          menuToggle.classList.toggle('active');
+          mainNav.classList.toggle('active');
+          mobileMenuOverlay.classList.toggle('active');
+          document.body.style.overflow = mainNav.classList.contains('active') ? 'hidden' : '';
+        });
+
+        mobileMenuOverlay.addEventListener('click', () => {
+          menuToggle.classList.remove('active');
+          mainNav.classList.remove('active');
+          mobileMenuOverlay.classList.remove('active');
+          document.body.style.overflow = '';
+        });
+
+        // Cerrar menú al hacer click en un enlace
+        const navLinks = mainNav.querySelectorAll('a');
+        navLinks.forEach(link => {
+          link.addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+              menuToggle.classList.remove('active');
+              mainNav.classList.remove('active');
+              mobileMenuOverlay.classList.remove('active');
+              document.body.style.overflow = '';
+            }
+          });
+        });
+      }
+
       // Función para actualizar el contador del carrito
       async function actualizarContadorCarrito() {
         try {

@@ -1,0 +1,65 @@
+---
+import { obtenerRutaCategoria } from '../lib/categorias-hierarchy';
+
+interface Props {
+  categoriaId: number;
+  categorias: any[];
+}
+
+const { categoriaId, categorias } = Astro.props;
+const ruta = obtenerRutaCategoria(categoriaId, categorias);
+---
+
+{ruta.length > 0 && (
+  <nav class="breadcrumb">
+    <a href="/" class="breadcrumb-link">Inicio</a>
+    {ruta.map((categoria, index) => (
+      <>
+        <span class="separator">/</span>
+        <a 
+          href={`/categoria/${categoria.slug}`}
+          class={`breadcrumb-link ${index === ruta.length - 1 ? 'actual' : ''}`}
+        >
+          {categoria.nombre}
+        </a>
+      </>
+    ))}
+  </nav>
+)}
+
+<style>
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 0;
+    font-size: 0.9rem;
+    color: #666;
+  }
+
+  .breadcrumb-link {
+    color: #8b4513;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .breadcrumb-link:hover {
+    color: #6b3410;
+    text-decoration: underline;
+  }
+
+  .breadcrumb-link.actual {
+    color: #2d2d2d;
+    font-weight: 600;
+    cursor: default;
+  }
+
+  .breadcrumb-link.actual:hover {
+    text-decoration: none;
+    color: #2d2d2d;
+  }
+
+  .separator {
+    color: #ccc;
+  }
+</style>

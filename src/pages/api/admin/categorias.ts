@@ -3,9 +3,9 @@ import { supabaseClient } from '../../../lib/supabase';
 export async function POST(context: any) {
   try {
     const body = await context.request.json();
-    const { nombre, slug, descripcion, imagen_url } = body;
+    const { nombre, slug, descripcion, imagen_url, categoria_padre, orden } = body;
 
-    console.log('Insertando categoría:', { nombre, slug, descripcion, imagen_url });
+    console.log('Insertando categoría:', { nombre, slug, descripcion, imagen_url, categoria_padre, orden });
 
     // Insertar en Supabase
     const { data, error } = await supabaseClient
@@ -17,6 +17,8 @@ export async function POST(context: any) {
           descripcion: descripcion || '',
           imagen_url: imagen_url || 'https://via.placeholder.com/500',
           activa: true,
+          categoria_padre: categoria_padre || null,
+          orden: orden || 0,
           fecha_creacion: new Date().toISOString()
         }
       ])
@@ -49,7 +51,9 @@ export async function GET() {
     const { data, error } = await supabaseClient
       .from('categorias')
       .select('*')
-      .order('fecha_creacion', { ascending: false });
+      .eq('activa', true)
+      .order('categoria_padre', { ascending: true })
+      .order('orden', { ascending: true });
 
     if (error) {
       console.error('Error obteniendo categorías:', error);
@@ -75,7 +79,7 @@ export async function GET() {
 export async function PUT(context: any) {
   try {
     const body = await context.request.json();
-    const { id, nombre, slug, descripcion, imagen_url, activa } = body;
+    const { id, nombre, slug, descripcion, imagen_url, activa, categoria_padre, orden } = body;
 
     const { data, error } = await supabaseClient
       .from('categorias')
@@ -84,7 +88,9 @@ export async function PUT(context: any) {
         slug, 
         descripcion, 
         imagen_url: imagen_url || 'https://via.placeholder.com/500',
-        activa: activa !== undefined ? activa : true
+        activa: activa !== undefined ? activa : true,
+        categoria_padre: categoria_padre || null,
+        orden: orden || 0
       })
       .eq('id', id)
       .select();
