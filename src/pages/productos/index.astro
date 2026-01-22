@@ -289,6 +289,7 @@ import Layout from '../../layouts/Layout.astro';
   <script>
     let variantesMap = {}; // Mapeo de producto_id -> variantes
     let productoEnModal = null; // Producto seleccionado para el modal
+    let productosGlobal = []; // Array global de productos para acceso desde funciones invitado
 
     // Cargar productos desde Supabase
     async function cargarProductos() {
@@ -377,6 +378,10 @@ import Layout from '../../layouts/Layout.astro';
           // Cargar variantes para productos variables
           console.log('📦 Total de productos:', productos.length);
           console.log('📦 Productos variables:', productos.filter(p => p.es_variable).length);
+          
+          // Asignar a la variable global para que sea accesible desde funciones invitado
+          productosGlobal = productos;
+          console.log('✅ productosGlobal asignado:', productosGlobal.length, 'productos');
           
           for (const producto of productos) {
             if (producto.es_variable) {
@@ -600,15 +605,15 @@ import Layout from '../../layouts/Layout.astro';
         console.log('🛒 agregarAlCarritoConVariante llamada con:', { productoId, varianteId, peso });
         const userId = localStorage.getItem('user_id');
         console.log('👤 User ID:', userId);
+        
+        // Si es invitado, guardar en localStorage
         if (!userId) {
-          console.log('❌ No hay user_id');
-          mostrarNotificacion('Por favor, inicia sesión para agregar productos al carrito', 'info');
-          setTimeout(() => {
-            window.location.href = '/login';
-          }, 1500);
+          console.log('👻 Invitado detectado - guardando en localStorage');
+          agregarAlCarritoLocal(productoId, varianteId, peso);
           return;
         }
 
+        // Si está logueado, usar API del servidor
         const response = await fetch('/api/carrito', {
           method: 'POST',
           credentials: 'include',
@@ -649,6 +654,97 @@ import Layout from '../../layouts/Layout.astro';
       } catch (error) {
         console.error('❌ Error en agregarAlCarritoConVariante:', error);
         mostrarNotificacion('Error al agregar el producto al carrito', 'error');
+      }
+    }
+
+    // Agregar al carrito local para invitados
+    function agregarAlCarritoLocal(productoId, varianteId, peso) {
+      try {
+        // Buscar el producto en el array global
+        const producto = productosGlobal.find(p => p.id === parseInt(productoId));
+        if (!producto) {
+          mostrarNotificacion('Error: Producto no encontrado', 'error');
+          return;
+        }
+
+        // Buscar la variante
+        const variantes = variantesMap[parseInt(productoId)] || [];
+        const variante = variantes.find(v => v.id === parseInt(varianteId));
+        if (!variante) {
+          mostrarNotificacion('Error: Variante no encontrada', 'error');
+          return;
+        }
+
+        // Reservar stock en la base de datos (para invitados)
+        fetch('/api/carrito/reservar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            producto_id: parseInt(productoId),
+            producto_variante_id: parseInt(varianteId),
+            cantidad: 1
+          })
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (!data.success) {
+              console.error('❌ Error reservando stock:', data.error);
+              mostrarNotificacion(data.error || 'Error al reservar stock', 'error');
+              return;
+            }
+            console.log('✅ Stock reservado:', data);
+          })
+          .catch(err => console.error('❌ Error en fetch reservar:', err));
+
+        // Obtener carrito actual de localStorage
+        let carrito = JSON.parse(localStorage.getItem('carrito_invitado') || '[]');
+
+        // Convertir precio a centimos si es necesario
+        // Si precio < 1000, está en euros → multiplicar por 100
+        // Si precio >= 1000, ya está en centimos → usar tal cual
+        let precioCentimos = variante.precio_total;
+        if (precioCentimos < 1000) {
+          precioCentimos = Math.round(precioCentimos * 100);
+        }
+        
+        console.log('💰 Precio guardado:', {
+          precio_original: variante.precio_total,
+          precio_centimos: precioCentimos,
+          en_carrito_mostrara: (precioCentimos / 100).toFixed(2) + '€'
+        });
+
+        // Crear item
+        const item = {
+          id: Date.now(),
+          producto_id: parseInt(productoId),
+          producto_variante_id: parseInt(varianteId),
+          nombre: producto.nombre,
+          precio_unitario: precioCentimos,
+          cantidad: 1,
+          peso_kg: peso,
+          imagen: producto.imagen,
+          fecha_agregado: new Date().toISOString()
+        };
+
+        // Verificar si ya existe
+        const existe = carrito.find(c => c.producto_variante_id === parseInt(varianteId));
+        if (existe) {
+          existe.cantidad += 1;
+          mostrarNotificacion(`Jamón actualizado en carrito (${existe.cantidad}x)`, 'exito');
+        } else {
+          carrito.push(item);
+          mostrarNotificacion(`Jamón de ${peso.toFixed(3)} kg agregado al carrito`, 'exito');
+        }
+
+        // Guardar en localStorage
+        localStorage.setItem('carrito_invitado', JSON.stringify(carrito));
+        console.log('✅ Carrito invitado actualizado:', carrito.length, 'items');
+        
+        // Disparar evento para actualizar contador
+        window.dispatchEvent(new CustomEvent('carritoActualizado'));
+      } catch (error) {
+        console.error('❌ Error en agregarAlCarritoLocal:', error);
+        mostrarNotificacion('Error al agregar al carrito local', 'error');
       }
     }
 
@@ -745,15 +841,15 @@ import Layout from '../../layouts/Layout.astro';
         // Obtener user_id del localStorage
         const userId = localStorage.getItem('user_id');
         console.log('👤 User ID:', userId);
+        
+        // Si es invitado, guardar en localStorage
         if (!userId) {
-          console.log('❌ No hay user_id, redirigiendo a login');
-          mostrarNotificacion('Por favor, inicia sesión para agregar productos al carrito', 'info');
-          setTimeout(() => {
-            window.location.href = '/login';
-          }, 1500);
+          console.log('👻 Invitado detectado - guardando en localStorage');
+          agregarAlCarritoLocalSimple(productoId, cantidad);
           return;
         }
 
+        // Si está logueado, usar API del servidor
         const response = await fetch('/api/carrito', {
           method: 'POST',
           credentials: 'include',
@@ -788,6 +884,73 @@ import Layout from '../../layouts/Layout.astro';
       } catch (error) {
         console.error('❌ Error en agregarAlCarrito:', error);
         mostrarNotificacion('Error al agregar el producto al carrito', 'error');
+      }
+    }
+
+    // Agregar al carrito local para invitados (productos simples sin variantes)
+    function agregarAlCarritoLocalSimple(productoId: string, cantidad: number = 1) {
+      try {
+        // Buscar el producto en el array de productos cargados
+        const producto = productosGlobal.find(p => p.id === parseInt(productoId));
+        
+        if (!producto) {
+          mostrarNotificacion('Error: Producto no encontrado', 'error');
+          return;
+        }
+
+        // Reservar stock en la base de datos (para invitados)
+        fetch('/api/carrito/reservar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            producto_id: parseInt(productoId),
+            cantidad: cantidad
+          })
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (!data.success) {
+              console.error('❌ Error reservando stock:', data.error);
+              mostrarNotificacion(data.error || 'Error al reservar stock', 'error');
+              return;
+            }
+            console.log('✅ Stock reservado:', data);
+          })
+          .catch(err => console.error('❌ Error en fetch reservar:', err));
+
+        // Obtener carrito actual de localStorage
+        let carrito = JSON.parse(localStorage.getItem('carrito_invitado') || '[]');
+
+        // Crear item
+        const item = {
+          id: Date.now(),
+          producto_id: parseInt(productoId),
+          nombre: producto.nombre,
+          precio_unitario: Math.round(parseFloat(producto.precio) * 100), // Convertir a centimos
+          cantidad,
+          imagen: producto.imagen,
+          fecha_agregado: new Date().toISOString()
+        };
+
+        // Verificar si ya existe
+        const existe = carrito.find(c => c.producto_id === parseInt(productoId) && !c.producto_variante_id);
+        if (existe) {
+          existe.cantidad += cantidad;
+          mostrarNotificacion(`Producto actualizado en carrito (${existe.cantidad}x)`, 'exito');
+        } else {
+          carrito.push(item);
+          mostrarNotificacion('Producto agregado al carrito', 'exito');
+        }
+
+        // Guardar en localStorage
+        localStorage.setItem('carrito_invitado', JSON.stringify(carrito));
+        console.log('✅ Carrito invitado actualizado:', carrito.length, 'items');
+        
+        // Disparar evento para actualizar contador
+        window.dispatchEvent(new CustomEvent('carritoActualizado'));
+      } catch (error) {
+        console.error('❌ Error en agregarAlCarritoLocalSimple:', error);
+        mostrarNotificacion('Error al agregar al carrito local', 'error');
       }
     }
 

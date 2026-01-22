@@ -50,12 +50,37 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     const { producto_id, peso_kg, precio_total } = await request.json();
 
-    if (!producto_id || !peso_kg || !precio_total) {
+    if (!producto_id || !peso_kg) {
       return new Response(
         JSON.stringify({ error: 'Datos incompletos' }),
         { status: 400 }
       );
     }
+
+    // Obtener el producto para calcular el precio correcto
+    const { data: producto, error: productoError } = await supabaseClient
+      .from('productos')
+      .select('precio_por_kg')
+      .eq('id', producto_id)
+      .single();
+
+    if (productoError || !producto) {
+      return new Response(
+        JSON.stringify({ error: 'Producto no encontrado' }),
+        { status: 404 }
+      );
+    }
+
+    // Calcular precio_total como peso * precio_por_kg
+    const precioCalculado = peso_kg * (producto.precio_por_kg || 0);
+    
+    console.log('📦 Creando variante:', { 
+      producto_id, 
+      peso_kg, 
+      precio_por_kg: producto.precio_por_kg, 
+      precio_calculado: precioCalculado,
+      precio_recibido: precio_total
+    });
 
     // Generar SKU automático
     const sku = `VAR-${producto_id}-${peso_kg.toString().replace('.', '')}`;
@@ -65,7 +90,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       .insert({
         producto_id: parseInt(producto_id),
         peso_kg: parseFloat(peso_kg),
-        precio_total: parseFloat(precio_total),
+        precio_total: Math.round(precioCalculado * 100), // Guardar en centimos
         sku_variante: sku,
         disponible: true,
         cantidad_disponible: 1
@@ -80,7 +105,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         .insert({
           producto_id: parseInt(producto_id),
           peso_kg: parseFloat(peso_kg),
-          precio_total: parseFloat(precio_total),
+          precio_total: Math.round(precioCalculado * 100), // Guardar en centimos
           sku_variante: sku,
           disponible: true
         })
@@ -187,7 +212,7 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
     // Construir objeto de actualización solo con campos que vienen
     const updateData: any = {};
     if (peso_kg !== undefined) updateData.peso_kg = parseFloat(peso_kg);
-    if (precio_total !== undefined) updateData.precio_total = parseFloat(precio_total);
+    if (precio_total !== undefined) updateData.precio_total = Math.round(parseFloat(precio_total) * 100); // Guardar en centimos
     if (cantidad_disponible !== undefined) {
       updateData.cantidad_disponible = parseInt(cantidad_disponible);
       updateData.disponible = cantidad_disponible > 0;

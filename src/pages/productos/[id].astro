@@ -1051,9 +1051,10 @@ export const prerender = false;
     async function agregarAlCarrito(productoId) {
       try {
         const userId = localStorage.getItem('user_id');
+        
+        // Si es invitado, guardar en localStorage
         if (!userId) {
-          alert('Debes iniciar sesión para comprar');
-          window.location.href = '/login';
+          agregarAlCarritoLocal(productoId);
           return;
         }
 
@@ -1083,6 +1084,52 @@ export const prerender = false;
         } else {
           mostrarNotificacion('❌ Error: ' + (data.message || data.error), true);
         }
+      } catch (error) {
+        console.error('Error:', error);
+        mostrarNotificacion('❌ Error al agregar al carrito', true);
+      }
+    }
+
+    // Agregar al carrito local para invitados
+    function agregarAlCarritoLocal(productoId) {
+      try {
+        const cantidad = parseInt(document.getElementById('cantidad').value) || 1;
+        const nombre = document.querySelector('h1')?.textContent || 'Producto';
+        const precioElement = document.querySelector('[data-product-price]');
+        const precio = parseInt(precioElement?.getAttribute('data-product-price') || '0');
+        const imagenElement = document.querySelector('img[alt*="Jamón"]');
+        const imagen = imagenElement?.src || '';
+
+        // Obtener carrito actual
+        let carrito = JSON.parse(localStorage.getItem('carrito_invitado') || '[]');
+
+        // Crear item
+        const item = {
+          id: Date.now(),
+          producto_id: parseInt(productoId),
+          nombre,
+          precio_unitario: precio,
+          cantidad,
+          imagen,
+          fecha_agregado: new Date().toISOString()
+        };
+
+        // Verificar si ya existe
+        const existe = carrito.find(c => c.producto_id === parseInt(productoId));
+        if (existe) {
+          existe.cantidad += cantidad;
+          mostrarNotificacion(`✓ Producto actualizado (${existe.cantidad}x)`);
+        } else {
+          carrito.push(item);
+          mostrarNotificacion('✓ Producto agregado al carrito');
+        }
+
+        // Guardar en localStorage
+        localStorage.setItem('carrito_invitado', JSON.stringify(carrito));
+        console.log('✅ Carrito invitado actualizado');
+        
+        // Disparar evento
+        window.dispatchEvent(new CustomEvent('carritoActualizado'));
       } catch (error) {
         console.error('Error:', error);
         mostrarNotificacion('❌ Error al agregar al carrito', true);

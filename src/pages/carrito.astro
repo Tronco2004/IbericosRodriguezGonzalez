@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 
 // No verificar autenticación en el servidor
 // Dejar que sea manejado por el cliente con localStorage
+// Permitimos compra como invitado
 ---
 
 <Layout title="Mi Carrito">
@@ -13,75 +14,127 @@ import Layout from '../layouts/Layout.astro';
     </div>
   </div>
 
+  <!-- Modal para datos de invitado -->
+  <div id="modalInvitado" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; padding: 2rem; max-width: 450px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+      <h2 style="color: #001a33; margin: 0 0 0.5rem 0; font-family: 'Playfair Display', serif;">Datos de envío</h2>
+      <p style="color: #5c4a3d; margin: 0 0 1.5rem 0; font-size: 0.95rem;">Introduce tus datos para completar la compra</p>
+      
+      <form id="formInvitado" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div>
+          <label style="display: block; font-weight: 600; color: #001a33; margin-bottom: 0.5rem; font-size: 0.9rem;">Nombre completo *</label>
+          <input 
+            type="text" 
+            id="guestNombre" 
+            required 
+            placeholder="Tu nombre y apellidos"
+            style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box;"
+          />
+        </div>
+        
+        <div>
+          <label style="display: block; font-weight: 600; color: #001a33; margin-bottom: 0.5rem; font-size: 0.9rem;">Email *</label>
+          <input 
+            type="email" 
+            id="guestEmail" 
+            required 
+            placeholder="tu@email.com"
+            style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box;"
+          />
+          <p style="color: #666; font-size: 0.8rem; margin: 0.25rem 0 0 0;">Recibirás la confirmación del pedido aquí</p>
+        </div>
+        
+        <div>
+          <label style="display: block; font-weight: 600; color: #001a33; margin-bottom: 0.5rem; font-size: 0.9rem;">Teléfono *</label>
+          <input 
+            type="tel" 
+            id="guestTelefono" 
+            required 
+            placeholder="612 345 678"
+            style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box;"
+          />
+        </div>
+
+        <div style="border-top: 1px solid #e0d5c7; padding-top: 1rem; margin-top: 0.5rem;">
+          <p style="color: #5c4a3d; font-size: 0.85rem; margin: 0 0 1rem 0;">
+            <strong>¿Ya tienes cuenta?</strong> 
+            <a href="/login?redirect=/carrito" style="color: #a89968; text-decoration: underline;">Inicia sesión</a> 
+            para guardar tus pedidos.
+          </p>
+        </div>
+        
+        <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+          <button 
+            type="button" 
+            id="btnCancelarModal"
+            style="flex: 1; padding: 0.75rem; background: #f3f4f6; color: #374151; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 1rem;"
+          >
+            Cancelar
+          </button>
+          <button 
+            type="submit" 
+            style="flex: 2; padding: 0.75rem; background: #a89968; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 1rem;"
+          >
+            Continuar al pago
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
+    // ========== GESTIÓN DE CARRITO PARA INVITADOS ==========
+    
+    // Funciones para carrito en localStorage (invitados)
+    function getCarritoLocal() {
+      const carrito = localStorage.getItem('carrito_invitado');
+      return carrito ? JSON.parse(carrito) : [];
+    }
+
+    function setCarritoLocal(items) {
+      localStorage.setItem('carrito_invitado', JSON.stringify(items));
+    }
+
+    function esUsuarioLogueado() {
+      return !!localStorage.getItem('user_id');
+    }
+
     async function cargarCarrito() {
       try {
         const userId = localStorage.getItem('user_id');
         
-        // DEBUG: Mostrar qué hay en localStorage
         console.log('=== DEBUG CARRITO ===');
-        console.log('localStorage.getItem("user_id"):', userId);
-        console.log('Todos los valores en localStorage:');
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          const value = localStorage.getItem(key);
-          console.log(`  ${key}: ${value}`);
-        }
+        console.log('Usuario logueado:', !!userId);
         
-        if (!userId) {
-          document.getElementById('loadingMessage').style.display = 'none';
-          document.getElementById('carritoContent').innerHTML = `
-            <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; border-left: 4px solid #a89968;">
-              <h2 style="color: #001a33; margin: 0 0 1rem 0;">Debes iniciar sesión</h2>
-              <p style="color: #5c4a3d; margin: 0 0 1.5rem 0;">Por favor, inicia sesión para ver y gestionar tu carrito. (localStorage vacío)</p>
-              <a href="/login" style="
-                display: inline-block;
-                background: #a89968;
-                color: white;
-                padding: 0.75rem 2rem;
-                border-radius: 4px;
-                text-decoration: none;
-                font-weight: 600;
-                transition: background 0.3s;
-              ">
-                Ir a Login
-              </a>
-            </div>
-          `;
-          return;
+        let items = [];
+        let itemsExpirados = false;
+
+        if (userId) {
+          // Usuario logueado: cargar desde API
+          const response = await fetch('/api/carrito', {
+            credentials: 'include',
+            headers: { 'x-user-id': userId }
+          });
+
+          if (!response.ok) throw new Error('Error cargando carrito');
+
+          const data = await response.json();
+          items = data.items || [];
+          itemsExpirados = data.itemsExpirados || false;
+        } else {
+          // Invitado: cargar desde localStorage
+          items = getCarritoLocal();
+          console.log('Carrito invitado desde localStorage:', items);
         }
 
-        // Obtener carrito del usuario
-        const response = await fetch('/api/carrito', {
-          credentials: 'include',
-          headers: {
-            'x-user-id': userId
-          }
-        });
-
-        console.log('📡 Response status:', response.status);
-        
-        if (!response.ok) {
-          console.log('❌ Response no OK:', response.statusText);
-          throw new Error('Error cargando carrito');
-        }
-
-        const data = await response.json();
-        console.log('📦 Datos recibidos del API:', JSON.stringify(data));
-        const carrito = data.carrito;
-        const items = data.items || [];
-        const itemsExpirados = data.itemsExpirados || false;
-
-        // Guardar items en variable global para el contador
+        // Guardar items en variable global
         window.carritoItems = items;
-
-        let html = '';
 
         if (!items || items.length === 0) {
           document.getElementById('loadingMessage').style.display = 'none';
           
+          let html = '';
           if (itemsExpirados) {
-            // Notificar que el carrito expiró (devuelve stock)
             window.dispatchEvent(new CustomEvent('carritoActualizado'));
             html += `
               <div style="background: #fef3c7; border: 1px solid #fcd34d; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
@@ -89,17 +142,8 @@ import Layout from '../layouts/Layout.astro';
                   <div style="font-size: 1.5rem; color: #f59e0b; flex-shrink: 0;">⚠</div>
                   <div>
                     <h3 style="color: #92400e; margin: 0 0 0.5rem 0; font-weight: 700;">Tu carrito ha expirado</h3>
-                    <p style="color: #b45309; margin: 0 0 1rem 0;">Algunos productos fueron reservados por 15 minutos y han expirado. Por favor, vuelve a seleccionar los productos que deseas comprar.</p>
-                    <a href="/productos" style="
-                      display: inline-block;
-                      background: #f59e0b;
-                      color: white;
-                      padding: 0.5rem 1.5rem;
-                      border-radius: 4px;
-                      text-decoration: none;
-                      font-weight: 600;
-                      transition: background 0.3s;
-                    " onmouseover="this.style.background='#d97706'" onmouseout="this.style.background='#f59e0b'">
+                    <p style="color: #b45309; margin: 0 0 1rem 0;">Algunos productos fueron reservados por 15 minutos y han expirado.</p>
+                    <a href="/productos" style="display: inline-block; background: #f59e0b; color: white; padding: 0.5rem 1.5rem; border-radius: 4px; text-decoration: none; font-weight: 600;">
                       Volver a Seleccionar
                     </a>
                   </div>
@@ -112,16 +156,7 @@ import Layout from '../layouts/Layout.astro';
             <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; border-left: 4px solid #a89968;">
               <h2 style="color: #001a33; margin: 0 0 1rem 0;">Tu carrito está vacío</h2>
               <p style="color: #5c4a3d; margin: 0 0 1.5rem 0;">Empieza a agregar productos para tu compra.</p>
-              <a href="/productos" style="
-                display: inline-block;
-                background: #a89968;
-                color: white;
-                padding: 0.75rem 2rem;
-                border-radius: 4px;
-                text-decoration: none;
-                font-weight: 600;
-                transition: background 0.3s;
-              ">
+              <a href="/productos" style="display: inline-block; background: #a89968; color: white; padding: 0.75rem 2rem; border-radius: 4px; text-decoration: none; font-weight: 600;">
                 Ver Productos
               </a>
             </div>
@@ -169,6 +204,10 @@ import Layout from '../layouts/Layout.astro';
         `;
 
         items.forEach(item => {
+          // Obtener nombre e imagen - compatible con usuarios (item.productos) e invitados (item directo)
+          const nombre = item.productos?.nombre || item.nombre || 'Producto';
+          const imagen = item.productos?.imagen_url || item.imagen || 'https://images.unsplash.com/photo-1557803104268-0ef0f060e15f?w=500&h=500&fit=crop';
+          
           htmlContent += `
             <div class="cart-item" data-item-id="${item.id}" style="
               padding: 1.5rem;
@@ -193,8 +232,8 @@ import Layout from '../layouts/Layout.astro';
                 min-width: 180px;
               ">
                 <img 
-                  src="${item.productos?.imagen_url || ''}" 
-                  alt="${item.productos?.nombre || 'Producto'}"
+                  src="${imagen}" 
+                  alt="${nombre}"
                   style="
                     width: 100%;
                     height: 100%;
@@ -204,7 +243,7 @@ import Layout from '../layouts/Layout.astro';
               </div>
               <div style="flex: 1; min-width: 200px; width: 100%; box-sizing: border-box;">
                 <h3 style="color: #001a33; margin: 0 0 0.5rem 0; font-size: 1rem;">
-                  ${item.productos?.nombre || 'Producto'}
+                  ${nombre}
                   ${item.peso_kg ? ` <span style="color: #a89968; font-weight: 500; font-size: 0.85rem;">(${item.peso_kg.toFixed(3)} kg)</span>` : ''}
                 </h3>
                 <p style="color: #a89968; margin: 0 0 1rem 0; font-weight: 600; font-size: 0.95rem;">
@@ -414,13 +453,61 @@ import Layout from '../layouts/Layout.astro';
             } else if (action === 'decrease' && cantidad > 1) {
               cantidad--;
             } else if (action === 'decrease' && cantidad === 1) {
-              await eliminarItem(itemId);
-              // Recargar el carrito completo
+              // Si es 1 y decrece, eliminar el item
+              const userId = localStorage.getItem('user_id');
+              if (!userId) {
+                const carrito = getCarritoLocal();
+                const itemAEliminar = carrito.find(item => item.id === parseInt(itemId));
+                if (itemAEliminar) {
+                  // Devolver el stock
+                  fetch('/api/carrito/reservar', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      producto_id: itemAEliminar.producto_id,
+                      producto_variante_id: itemAEliminar.producto_variante_id || undefined,
+                      cantidad: itemAEliminar.cantidad
+                    })
+                  })
+                    .then(res => res.json())
+                    .then(data => {
+                      if (data.success) {
+                        console.log('✅ Stock devuelto al decrementar a 0:', data);
+                      }
+                    })
+                    .catch(err => console.error('❌ Error devolviendo stock:', err));
+                }
+                const carritoActualizado = carrito.filter(item => item.id !== parseInt(itemId));
+                setCarritoLocal(carritoActualizado);
+              } else {
+                await fetch(`/api/carrito/${itemId}`, {
+                  method: 'DELETE',
+                  credentials: 'include',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ user_id: userId })
+                });
+              }
               cargarCarrito();
               return;
             }
 
             try {
+              const userId = localStorage.getItem('user_id');
+              
+              // Si es invitado, actualizar localStorage
+              if (!userId) {
+                const carrito = getCarritoLocal();
+                const item = carrito.find(i => i.id === itemId);
+                if (item) {
+                  item.cantidad = cantidad;
+                  setCarritoLocal(carrito);
+                  console.log('✅ Cantidad actualizada en carrito local (invitado)');
+                  cargarCarrito();
+                  return;
+                }
+              }
+              
+              // Si está logueado, usar API
               const response = await fetch(`/api/carrito/${itemId}`, {
                 method: 'PUT',
                 credentials: 'include',
@@ -428,7 +515,7 @@ import Layout from '../layouts/Layout.astro';
                 body: JSON.stringify({ 
                   item_id: itemId, 
                   cantidad,
-                  user_id: localStorage.getItem('user_id')
+                  user_id: userId
                 })
               });
 
@@ -446,10 +533,64 @@ import Layout from '../layouts/Layout.astro';
         document.querySelectorAll('.btn-eliminar').forEach(btn => {
           btn.addEventListener('click', async () => {
             const itemId = btn.getAttribute('data-item-id');
+            console.log('🗑️ Click en eliminar item:', itemId);
             if (confirm('¿Estás seguro de que deseas eliminar este producto?')) {
-              await eliminarItem(itemId);
+              const userId = localStorage.getItem('user_id');
+              
+              // Si es invitado, eliminar del localStorage y devolver stock
+              if (!userId) {
+                console.log('👻 Eliminando del carrito local (invitado)');
+                const carrito = getCarritoLocal();
+                console.log('📦 Carrito antes:', carrito.length, 'items');
+                
+                // Encontrar el item a eliminar para devolver su stock
+                const itemAEliminar = carrito.find(item => item.id === parseInt(itemId));
+                if (itemAEliminar) {
+                  // Devolver el stock
+                  console.log('↩️ Devolviendo stock para item:', itemAEliminar);
+                  fetch('/api/carrito/reservar', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      producto_id: itemAEliminar.producto_id,
+                      producto_variante_id: itemAEliminar.producto_variante_id || undefined,
+                      cantidad: itemAEliminar.cantidad
+                    })
+                  })
+                    .then(res => res.json())
+                    .then(data => {
+                      if (data.success) {
+                        console.log('✅ Stock devuelto:', data);
+                      } else {
+                        console.error('❌ Error devolviendo stock:', data.error);
+                      }
+                    })
+                    .catch(err => console.error('❌ Error en fetch:', err));
+                }
+                
+                const carritoActualizado = carrito.filter(item => item.id !== parseInt(itemId));
+                console.log('📦 Carrito después:', carritoActualizado.length, 'items');
+                setCarritoLocal(carritoActualizado);
+                console.log('✅ Item eliminado, localStorage actualizado');
+              } else {
+                // Si está logueado, usar API
+                console.log('👤 Eliminando del carrito (usuario logueado)');
+                const response = await fetch(`/api/carrito/${itemId}`, {
+                  method: 'DELETE',
+                  credentials: 'include',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ user_id: userId })
+                });
+                
+                if (!response.ok) {
+                  console.error('❌ Error eliminando:', response.status);
+                }
+              }
+              
               // Recargar el carrito completo
-              cargarCarrito();
+              console.log('🔄 Recargando carrito...');
+              await cargarCarrito();
+              console.log('✅ Carrito recargado');
             }
           });
         });
@@ -535,23 +676,6 @@ import Layout from '../layouts/Layout.astro';
             </a>
           </div>
         `;
-      }
-    }
-
-    async function eliminarItem(itemId) {
-      try {
-        await fetch(`/api/carrito/${itemId}`, {
-          method: 'DELETE',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            user_id: localStorage.getItem('user_id')
-          })
-        });
-        // Disparar evento para que se actualicen los productos
-        window.dispatchEvent(new CustomEvent('carritoActualizado'));
-      } catch (error) {
-        console.error('Error eliminando item:', error);
       }
     }
 
@@ -760,47 +884,81 @@ import Layout from '../layouts/Layout.astro';
     async function irAStripe() {
       try {
         const userId = localStorage.getItem('user_id');
+        
+        // Si no hay usuario logueado, mostrar modal para datos de invitado
         if (!userId) {
-          alert('Por favor inicia sesión primero');
-          window.location.href = '/login';
+          mostrarModalInvitado();
           return;
         }
 
-        // Obtener los items del carrito
-        const response = await fetch('/api/carrito', {
-          credentials: 'include',
-          headers: { 'x-user-id': userId }
-        });
+        // Usuario logueado: flujo normal
+        await procesarCheckout(userId, null);
 
-        const data = await response.json();
-        const items = data.items || [];
+      } catch (error) {
+        console.error('Error en Stripe:', error);
+        alert('Error al procesar el pago. Por favor intenta de nuevo.');
+      }
+    }
+
+    // Mostrar modal para datos de invitado
+    function mostrarModalInvitado() {
+      const modal = document.getElementById('modalInvitado');
+      modal.style.display = 'flex';
+    }
+
+    // Cerrar modal
+    function cerrarModalInvitado() {
+      const modal = document.getElementById('modalInvitado');
+      modal.style.display = 'none';
+    }
+
+    // Procesar checkout (para usuario logueado o invitado)
+    async function procesarCheckout(userId, datosInvitado) {
+      try {
+        let items = [];
+
+        if (userId) {
+          // Usuario logueado: obtener del API
+          const response = await fetch('/api/carrito', {
+            credentials: 'include',
+            headers: { 'x-user-id': userId }
+          });
+          const data = await response.json();
+          items = data.items || [];
+        } else {
+          // Invitado: obtener del localStorage
+          items = getCarritoLocal();
+        }
 
         if (!items || items.length === 0) {
-          // Silenciosamente no hacer nada si el carrito está vacío
           return;
         }
 
         // Formatear items para Stripe
         const cartItems = items.map(item => ({
-          nombre: item.productos?.nombre,
-          imagen: item.productos?.imagen,
+          producto_id: item.producto_id,
+          producto_variante_id: item.producto_variante_id,
+          nombre: userId ? item.productos?.nombre : item.nombre,
+          imagen: userId ? item.productos?.imagen_url : item.imagen,
           precio: item.precio_unitario,
           cantidad: item.cantidad,
           peso_kg: item.peso_kg
         }));
 
-        // Crear sesión de pago con código si existe
+        // Crear sesión de pago
         const checkoutResponse = await fetch('/api/checkout/create-session', {
           method: 'POST',
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            'x-user-id': userId
+            ...(userId && { 'x-user-id': userId })
           },
           body: JSON.stringify({ 
             cartItems,
             codigoDescuento: codigoValidado ? codigoValidado.codigo : null,
-            descuentoAplicado: descuentoAplicado
+            descuentoAplicado: descuentoAplicado,
+            // Datos de invitado si aplica
+            datosInvitado: datosInvitado
           })
         });
 
@@ -811,16 +969,74 @@ import Layout from '../layouts/Layout.astro';
           return;
         }
 
+        // Guardar datos temporales para después del pago
+        if (datosInvitado) {
+          localStorage.setItem('checkout_invitado', JSON.stringify({
+            ...datosInvitado,
+            cartItems,
+            codigoDescuento: codigoValidado ? codigoValidado.codigo : null,
+            descuentoAplicado
+          }));
+        }
+
         // Redirigir a Stripe
         if (checkoutData.url) {
           window.location.href = checkoutData.url;
         }
 
       } catch (error) {
-        console.error('Error en Stripe:', error);
+        console.error('Error en checkout:', error);
         alert('Error al procesar el pago. Por favor intenta de nuevo.');
       }
     }
+
+    // Event listeners del modal
+    document.addEventListener('DOMContentLoaded', () => {
+      const btnCancelar = document.getElementById('btnCancelarModal');
+      const formInvitado = document.getElementById('formInvitado');
+      const modal = document.getElementById('modalInvitado');
+
+      if (btnCancelar) {
+        btnCancelar.addEventListener('click', cerrarModalInvitado);
+      }
+
+      // Cerrar al hacer clic fuera del modal
+      if (modal) {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            cerrarModalInvitado();
+          }
+        });
+      }
+
+      // Enviar formulario de invitado
+      if (formInvitado) {
+        formInvitado.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          
+          const nombre = document.getElementById('guestNombre').value.trim();
+          const email = document.getElementById('guestEmail').value.trim();
+          const telefono = document.getElementById('guestTelefono').value.trim();
+
+          if (!nombre || !email || !telefono) {
+            alert('Por favor completa todos los campos');
+            return;
+          }
+
+          // Validar email
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(email)) {
+            alert('Por favor introduce un email válido');
+            return;
+          }
+
+          cerrarModalInvitado();
+          
+          // Procesar checkout como invitado
+          await procesarCheckout(null, { nombre, email, telefono });
+        });
+      }
+    });
 
     // Asignar evento al botón de checkout
     const btnCheckoutGlobal = document.getElementById('btnCheckout');
