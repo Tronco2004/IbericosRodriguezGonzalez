@@ -59,7 +59,7 @@ export const GET: APIRoute = async ({ cookies, request }) => {
       .from('carrito_items')
       .select(`
         *,
-        productos:producto_id(id, nombre, precio_centimos, imagen_url)
+        productos:producto_id(id, nombre, precio_centimos, imagen_url, categoria_id)
       `)
       .eq('carrito_id', carrito.id)
       .order('fecha_agregado', { ascending: false });
@@ -72,17 +72,36 @@ export const GET: APIRoute = async ({ cookies, request }) => {
       );
     }
 
-    console.log('📦 Items obtenidos del carrito:', items?.length ?? 0, 'items');
-    console.log('🔵 Items completos:', JSON.stringify(items, null, 2));
+    // Obtener categorías para mapear
+    const { data: categorias } = await supabaseClient
+      .from('categorias')
+      .select('id, nombre, slug');
+    
+    const categoriaMap = {};
+    categorias?.forEach((cat) => {
+      categoriaMap[cat.id] = cat.nombre;
+    });
+
+    // Enriquecer items con nombre de categoría
+    const itemsEnriquecidos = items?.map(item => ({
+      ...item,
+      productos: item.productos ? {
+        ...item.productos,
+        categoria: categoriaMap[item.productos.categoria_id] || 'Sin categoría'
+      } : null
+    })) || [];
+
+    console.log('📦 Items obtenidos del carrito:', itemsEnriquecidos?.length ?? 0, 'items');
+    console.log('🔵 Items completos:', JSON.stringify(itemsEnriquecidos, null, 2));
 
     // Verificar si el carrito ha expirado usando el item más reciente como referencia global
     let carritoExpirado = false;
     const ahora = new Date();
 
-    if (items && items.length > 0) {
+    if (itemsEnriquecidos && itemsEnriquecidos.length > 0) {
       // Encontrar el item más reciente
-      let itemMasReciente = items[0];
-      for (const item of items) {
+      let itemMasReciente = itemsEnriquecidos[0];
+      for (const item of itemsEnriquecidos) {
         let fechaStr = item.fecha_agregado;
         if (fechaStr && !fechaStr.endsWith('Z')) {
           fechaStr = fechaStr + 'Z';
@@ -116,9 +135,9 @@ export const GET: APIRoute = async ({ cookies, request }) => {
     }
 
     // Si el carrito expiró, eliminar TODOS los items y devolver stock
-    if (carritoExpirado && items && items.length > 0) {
+    if (carritoExpirado && itemsEnriquecidos && itemsEnriquecidos.length > 0) {
       // Devolver stock de TODOS los items (simples y variantes)
-      for (const item of items) {
+      for (const item of itemsEnriquecidos) {
         // Productos simples
         if (!item.producto_variante_id) {
           console.log('➕ Devolviendo stock del producto simple:', item.producto_id, 'cantidad:', item.cantidad);
@@ -187,7 +206,7 @@ export const GET: APIRoute = async ({ cookies, request }) => {
     }
 
     // Carrito válido - devolver todos los items con fechas formateadas
-    const itemsConFechas = (items || []).map(item => ({
+    const itemsConFechas = (itemsEnriquecidos || []).map(item => ({
       ...item,
       fecha_agregado: item.fecha_agregado && !item.fecha_agregado.endsWith('Z') 
         ? item.fecha_agregado + 'Z'

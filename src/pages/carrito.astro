@@ -167,7 +167,17 @@ import Layout from '../layouts/Layout.astro';
         // Calcular totales
         const totalItems = items.reduce((total, item) => total + item.cantidad, 0);
         const subtotal = items.reduce((total, item) => {
-          return total + (item.precio_unitario * item.cantidad);
+          // FIX: Si el precio es muy grande (> 100000), dividir por 100 automáticamente
+          let precioUnitario = item.precio_unitario;
+          if (precioUnitario > 100000) {
+            precioUnitario = Math.round(precioUnitario / 100);
+          }
+          let precioItem = precioUnitario * item.cantidad;
+          // Agregar 20€ (2000 centimos) si tiene cortado
+          if (item.cortado) {
+            precioItem += 2000;
+          }
+          return total + precioItem;
         }, 0);
         const envio = 500; // 5€ en centimos
         const total = subtotal + envio;
@@ -207,6 +217,23 @@ import Layout from '../layouts/Layout.astro';
           // Obtener nombre e imagen - compatible con usuarios (item.productos) e invitados (item directo)
           const nombre = item.productos?.nombre || item.nombre || 'Producto';
           const imagen = item.productos?.imagen_url || item.imagen || 'https://images.unsplash.com/photo-1557803104268-0ef0f060e15f?w=500&h=500&fit=crop';
+          const categoria = item.productos?.categoria || item.categoria || '';
+          
+          // FIX: Si el precio es muy grande (> 100000), dividir por 100 automáticamente
+          let precioUnitario = item.precio_unitario;
+          if (precioUnitario > 100000) {
+            precioUnitario = Math.round(precioUnitario / 100);
+          }
+          
+          console.log('🔍 Item en carrito:', { 
+            id: item.id, 
+            nombre, 
+            categoria,
+            esJamon: categoria === 'Jamones',
+            cortado: item.cortado,
+            precioOriginal: item.precio_unitario,
+            precioCorregido: precioUnitario
+          });
           
           htmlContent += `
             <div class="cart-item" data-item-id="${item.id}" style="
@@ -247,40 +274,48 @@ import Layout from '../layouts/Layout.astro';
                   ${item.peso_kg ? ` <span style="color: #a89968; font-weight: 500; font-size: 0.85rem;">(${item.peso_kg.toFixed(3)} kg)</span>` : ''}
                 </h3>
                 <p style="color: #a89968; margin: 0 0 1rem 0; font-weight: 600; font-size: 0.95rem;">
-                  ${(item.precio_unitario / 100).toFixed(2)}€ x ${item.cantidad}
+                  ${(precioUnitario / 100).toFixed(2)}€ x ${item.cantidad}
                 </p>
-                <div style="display: flex; align-items: center; gap: 0.5rem; border: 1px solid #e0d5c7; border-radius: 4px; width: fit-content;">
-                  <button class="btn-cantidad" data-item-id="${item.id}" data-action="decrease" style="
-                    background: none;
-                    border: none;
-                    color: #5c4a3d;
-                    padding: 0.25rem 0.5rem;
-                    cursor: pointer;
-                    font-size: 1.2rem;
-                    transition: color 0.2s;
-                  ">−</button>
-                  <span style="
-                    width: 40px;
-                    text-align: center;
-                    color: #001a33;
-                    font-weight: 600;
-                    font-size: 0.9rem;
-                  ">${item.cantidad}</span>
-                  <button class="btn-cantidad" data-item-id="${item.id}" data-action="increase" style="
-                    background: none;
-                    border: none;
-                    color: #5c4a3d;
-                    padding: 0.25rem 0.5rem;
-                    cursor: pointer;
-                    font-size: 1.2rem;
-                    transition: color 0.2s;
-                  ">+</button>
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                  <div style="display: flex; align-items: center; gap: 0.5rem; border: 1px solid #e0d5c7; border-radius: 4px; width: fit-content;">
+                    <button class="btn-cantidad" data-item-id="${item.id}" data-action="decrease" style="
+                      background: none;
+                      border: none;
+                      color: #5c4a3d;
+                      padding: 0.25rem 0.5rem;
+                      cursor: pointer;
+                      font-size: 1.2rem;
+                      transition: color 0.2s;
+                    ">−</button>
+                    <span style="
+                      width: 40px;
+                      text-align: center;
+                      color: #001a33;
+                      font-weight: 600;
+                      font-size: 0.9rem;
+                    ">${item.cantidad}</span>
+                    <button class="btn-cantidad" data-item-id="${item.id}" data-action="increase" style="
+                      background: none;
+                      border: none;
+                      color: #5c4a3d;
+                      padding: 0.25rem 0.5rem;
+                      cursor: pointer;
+                      font-size: 1.2rem;
+                      transition: color 0.2s;
+                    ">+</button>
+                  </div>
+                  ${categoria === 'Jamones' && item.productos ? `
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.9rem;">
+                      <input type="checkbox" class="cortado-checkbox" data-item-id="${item.id}" ${item.cortado ? 'checked' : ''} style="width: 16px; height: 16px; cursor: pointer;">
+                      <span style="color: #5c4a3d;">¿Cortado?</span>
+                    </label>
+                  ` : ''}
                 </div>
               </div>
               <div style="display: flex; flex-direction: column; gap: 1rem; align-items: flex-end; flex-shrink: 0; width: auto; white-space: nowrap;">
                 <div style="text-align: right;">
                   <p style="color: #001a33; font-weight: 600; margin: 0;">
-                    ${((item.precio_unitario * item.cantidad) / 100).toFixed(2)}€
+                    ${((precioUnitario * item.cantidad + (item.cortado ? 2000 : 0)) / 100).toFixed(2)}€
                   </p>
                 </div>
                 <button class="btn-eliminar" data-item-id="${item.id}" style="
@@ -309,7 +344,7 @@ import Layout from '../layouts/Layout.astro';
               <div style="margin-bottom: 1rem;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; color: #5c4a3d;">
                   <span>Subtotal (${totalItems} ${totalItems === 1 ? 'producto' : 'productos'})</span>
-                  <span id="subtotalDisplay">${(subtotal / 100).toFixed(2)}€</span>
+                  <span id="subtotalAmount">${(subtotal / 100).toFixed(2)}€</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; color: #5c4a3d;">
                   <span>Envío</span>
@@ -379,7 +414,7 @@ import Layout from '../layouts/Layout.astro';
               ">
                 <div style="display: flex; justify-content: space-between;">
                   <span style="color: #001a33; font-weight: 700;">Total</span>
-                  <span id="totalDisplay" style="color: #a89968; font-weight: 700; font-size: 1.3rem;">
+                  <span id="totalAmount" style="color: #a89968; font-weight: 700; font-size: 1.3rem;">
                     ${(total / 100).toFixed(2)}€
                   </span>
                 </div>
@@ -677,6 +712,114 @@ import Layout from '../layouts/Layout.astro';
           </div>
         `;
       }
+
+      // ⭐ IMPORTANTE: Inicializar event listeners DENTRO de cargarCarrito()
+      // para que funcionen después de que se renderize el HTML dinámicamente
+      inicializarEventListenersCortado();
+    }
+
+    // Función para inicializar los event listeners del cortado
+    function inicializarEventListenersCortado() {
+      const cortadoCheckboxes = document.querySelectorAll('.cortado-checkbox');
+      console.log('🎯 Inicializando', cortadoCheckboxes.length, 'checkboxes de cortado');
+      
+      cortadoCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', async (e) => {
+          const itemId = parseInt(e.target.dataset.itemId);
+          const cortado = e.target.checked;
+          
+          console.log(`📦 Cortado toggle para item ${itemId}: ${cortado}`);
+          
+          // Actualizar en memoria
+          const carritoItems = window.carritoItems || [];
+          const item = carritoItems.find(i => i.id === itemId);
+          if (item) {
+            item.cortado = cortado;
+            
+            // Actualizar precio en la UI inmediatamente
+            const cartItem = document.querySelector(`.cart-item[data-item-id="${itemId}"]`);
+            if (cartItem) {
+              // Obtener precio unitario (con fix si está mal)
+              let precioUnitario = item.precio_unitario;
+              if (precioUnitario > 100000) {
+                precioUnitario = Math.round(precioUnitario / 100);
+              }
+              // Calcular nuevo total: (precioUnitario * cantidad + (cortado ? 2000 : 0)) / 100
+              const nuevoTotal = ((precioUnitario * item.cantidad + (cortado ? 2000 : 0)) / 100).toFixed(2);
+              
+              console.log(`💵 Item ${itemId} precio nuevo: ${nuevoTotal}€`);
+              
+              // Encontrar el contenedor de precio (última columna del item)
+              const priceContainer = cartItem.querySelector('div:last-child > div:first-child');
+              if (priceContainer) {
+                // El primer <p> es el precio total
+                const priceElement = priceContainer.querySelector('p');
+                if (priceElement) {
+                  priceElement.textContent = nuevoTotal + '€';
+                }
+              }
+            }
+            
+            // Recalcular subtotal global
+            const nuevoSubtotal = carritoItems.reduce((total, i) => {
+              let precioUnitario = i.precio_unitario;
+              if (precioUnitario > 100000) {
+                precioUnitario = Math.round(precioUnitario / 100);
+              }
+              let precioItem = precioUnitario * i.cantidad;
+              if (i.cortado) {
+                precioItem += 2000;
+              }
+              return total + precioItem;
+            }, 0);
+            
+            console.log(`📊 Subtotal nuevo: ${(nuevoSubtotal / 100).toFixed(2)}€`);
+            
+            // Actualizar el subtotal en la UI
+            const subtotalElement = document.getElementById('subtotalAmount');
+            if (subtotalElement) {
+              subtotalElement.textContent = (nuevoSubtotal / 100).toFixed(2) + '€';
+            }
+            
+            // Actualizar total (subtotal + envío)
+            const totalElement = document.getElementById('totalAmount');
+            if (totalElement) {
+              const envio = 500; // 5€ en centimos
+              const nuevoTotal = nuevoSubtotal + envio;
+              console.log(`💰 Total nuevo: ${(nuevoTotal / 100).toFixed(2)}€`);
+              totalElement.textContent = (nuevoTotal / 100).toFixed(2) + '€';
+            }
+            
+            // Si es usuario logueado, actualizar en servidor
+            const userId = localStorage.getItem('user_id');
+            if (userId) {
+              try {
+                await fetch('/api/carrito/actualizar-cortado', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': userId
+                  },
+                  body: JSON.stringify({ item_id: itemId, cortado: cortado })
+                });
+              } catch (error) {
+                console.error('Error actualizando cortado:', error);
+              }
+            } else {
+              // Guardar en localStorage para invitados
+              const carrito = JSON.parse(localStorage.getItem('carrito_invitado') || '[]');
+              const itemLocal = carrito.find(i => i.id === itemId);
+              if (itemLocal) {
+                itemLocal.cortado = cortado;
+                localStorage.setItem('carrito_invitado', JSON.stringify(carrito));
+              }
+            }
+            
+            // Disparar evento para actualizar totales globales
+            document.dispatchEvent(new CustomEvent('carritoActualizado'));
+          }
+        });
+      });
     }
 
     // Variables globales para el descuento
@@ -701,7 +844,13 @@ import Layout from '../layouts/Layout.astro';
       try {
         // Calcular subtotal actual
         const carritoItems = window.carritoItems || [];
-        const subtotal = carritoItems.reduce((total, item) => total + (item.precio_unitario * item.cantidad), 0);
+        const subtotal = carritoItems.reduce((total, item) => {
+          let precioItem = item.precio_unitario * item.cantidad;
+          if (item.cortado) {
+            precioItem += 2000;
+          }
+          return total + precioItem;
+        }, 0);
 
         // Validar código en el servidor
         const response = await fetch('/api/codigos/validar', {
@@ -791,7 +940,7 @@ import Layout from '../layouts/Layout.astro';
     function actualizarDescuentoUI() {
       const descuentoInfo = document.getElementById('descuentoInfo');
       const descuentoAmount = document.getElementById('descuentoAmount');
-      const totalDisplay = document.getElementById('totalDisplay');
+      const totalDisplay = document.getElementById('totalAmount');
 
       if (descuentoAplicado > 0) {
         descuentoInfo.style.display = 'block';
@@ -799,7 +948,13 @@ import Layout from '../layouts/Layout.astro';
 
         // Obtener valores actuales
         const carritoItems = window.carritoItems || [];
-        const subtotal = carritoItems.reduce((total, item) => total + (item.precio_unitario * item.cantidad), 0);
+        const subtotal = carritoItems.reduce((total, item) => {
+          let precioItem = item.precio_unitario * item.cantidad;
+          if (item.cortado) {
+            precioItem += 2000;
+          }
+          return total + precioItem;
+        }, 0);
         const envio = 500; // 5€ en centimos
         const totalConDescuento = (subtotal + envio) / 100 - descuentoAplicado;
 
@@ -809,7 +964,13 @@ import Layout from '../layouts/Layout.astro';
         
         // Restaurar total original
         const carritoItems = window.carritoItems || [];
-        const subtotal = carritoItems.reduce((total, item) => total + (item.precio_unitario * item.cantidad), 0);
+        const subtotal = carritoItems.reduce((total, item) => {
+          let precioItem = item.precio_unitario * item.cantidad;
+          if (item.cortado) {
+            precioItem += 2000;
+          }
+          return total + precioItem;
+        }, 0);
         const envio = 500;
         const total = (subtotal + envio) / 100;
         
