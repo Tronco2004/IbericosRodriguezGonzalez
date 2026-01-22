@@ -140,6 +140,7 @@ const { data: categorias } = await supabaseClient
         <nav class="main-nav" id="mainNav">
           <a href="/" class="nav-link">Inicio</a>
           <MegaMenu categorias={categorias || []} />
+          <a href="/contacto" class="nav-link">Contacto</a>
         </nav>
 
         <!-- Barra de Búsqueda -->
@@ -543,7 +544,7 @@ const { data: categorias } = await supabaseClient
           <div>
             <h4 style="margin-bottom: 1rem;">Empresa</h4>
             <a href="#" style="display: block; margin-bottom: 0.5rem; opacity: 0.8;">Sobre Nosotros</a>
-            <a href="#" style="display: block; margin-bottom: 0.5rem; opacity: 0.8;">Contacto</a>
+            <a href="/contacto" style="display: block; margin-bottom: 0.5rem; opacity: 0.8;">Contacto</a>
             <a href="#" style="display: block; opacity: 0.8;">Términos</a>
           </div>
           <div>
@@ -564,7 +565,7 @@ const { data: categorias } = await supabaseClient
         </div>
       </div>
     </footer>
-
+    
     <script>
       // ========== MENÚ HAMBURGUESA MÓVIL ==========
       const menuToggle = document.getElementById('menuToggle');
