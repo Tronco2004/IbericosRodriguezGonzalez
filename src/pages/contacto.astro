@@ -1,0 +1,188 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout>
+  <div style="max-width: 800px; margin: 4rem auto; padding: 0 2rem;">
+    <!-- Header -->
+    <div style="text-align: center; margin-bottom: 3rem;">
+      <h1 style="font-size: 2.5rem; margin-bottom: 1rem; background: linear-gradient(135deg, #001a33, #a89968); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+        Contáctanos
+      </h1>
+      <p style="color: #666; font-size: 1.1rem;">
+        ¿Tienes dudas o sugerencias? Nos gustaría saber de ti. Completa el formulario y nos pondremos en contacto pronto.
+      </p>
+    </div>
+
+    <!-- Formulario -->
+    <form id="contactForm" style="background: #f8f4f0; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+      <div style="margin-bottom: 1.5rem;">
+        <label for="email" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #001a33;">
+          Email <span style="color: #a89968;">*</span>
+        </label>
+        <input 
+          type="email" 
+          id="email" 
+          name="email" 
+          required
+          placeholder="tu@email.com"
+          style="
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e5e1dd;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+          "
+        >
+      </div>
+
+      <div style="margin-bottom: 1.5rem;">
+        <label for="asunto" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #001a33;">
+          Asunto <span style="color: #a89968;">*</span>
+        </label>
+        <input 
+          type="text" 
+          id="asunto" 
+          name="asunto" 
+          required
+          placeholder="¿Cuál es el tema de tu consulta?"
+          style="
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e5e1dd;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+          "
+        >
+      </div>
+
+      <div style="margin-bottom: 1.5rem;">
+        <label for="mensaje" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #001a33;">
+          Mensaje <span style="color: #a89968;">*</span>
+        </label>
+        <textarea 
+          id="mensaje" 
+          name="mensaje" 
+          required
+          rows="6"
+          placeholder="Cuéntanos en detalle..."
+          style="
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e5e1dd;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            box-sizing: border-box;
+            resize: vertical;
+            min-height: 150px;
+            transition: border-color 0.3s;
+          "
+        ></textarea>
+      </div>
+
+      <button 
+        type="submit" 
+        id="submitBtn"
+        style="
+          width: 100%;
+          padding: 1rem;
+          background: linear-gradient(135deg, #001a33, #2d2d2d);
+          color: white;
+          border: none;
+          border-radius: 6px;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: transform 0.2s, box-shadow 0.2s;
+        "
+        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 12px rgba(0, 26, 51, 0.2)'"
+        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'"
+      >
+        Enviar Mensaje
+      </button>
+
+      <!-- Mensaje de respuesta -->
+      <div id="formMessage" style="margin-top: 1rem; padding: 1rem; border-radius: 6px; display: none; text-align: center; font-weight: 600;"></div>
+    </form>
+
+    <!-- Info de contacto adicional -->
+    <div style="margin-top: 4rem; padding-top: 2rem; border-top: 2px solid #e5e1dd;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem;">
+        <div style="text-align: center;">
+          <h3 style="color: #001a33; margin-bottom: 0.5rem;">Email</h3>
+          <p style="color: #666;">contacto@ibericorg.es</p>
+        </div>
+        <div style="text-align: center;">
+          <h3 style="color: #001a33; margin-bottom: 0.5rem;">Teléfono</h3>
+          <p style="color: #666;">+34 XXX XX XX XX</p>
+        </div>
+        <div style="text-align: center;">
+          <h3 style="color: #001a33; margin-bottom: 0.5rem;">Horario</h3>
+          <p style="color: #666;">L-V: 9:00 - 18:00 CET</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const contactForm = document.getElementById('contactForm');
+    const formMessage = document.getElementById('formMessage');
+    const submitBtn = document.getElementById('submitBtn');
+
+    contactForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById('email').value.trim();
+      const asunto = document.getElementById('asunto').value.trim();
+      const mensaje = document.getElementById('mensaje').value.trim();
+
+      if (!email || !asunto || !mensaje) {
+        formMessage.textContent = '⚠️ Por favor completa todos los campos';
+        formMessage.style.background = '#fef3c7';
+        formMessage.style.color = '#92400e';
+        formMessage.style.display = 'block';
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Enviando...';
+      formMessage.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/contacto', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, asunto, mensaje })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          formMessage.textContent = '✓ ¡Mensaje enviado correctamente! Nos pondremos en contacto pronto.';
+          formMessage.style.background = '#d1fae5';
+          formMessage.style.color = '#065f46';
+          contactForm.reset();
+        } else {
+          formMessage.textContent = `❌ ${data.error || 'Error al enviar el mensaje'}`;
+          formMessage.style.background = '#fee2e2';
+          formMessage.style.color = '#991b1b';
+        }
+      } catch (err) {
+        formMessage.textContent = '❌ Error de conexión. Por favor intenta más tarde.';
+        formMessage.style.background = '#fee2e2';
+        formMessage.style.color = '#991b1b';
+      }
+
+      formMessage.style.display = 'block';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Enviar Mensaje';
+    });
+  </script>
+</Layout>
