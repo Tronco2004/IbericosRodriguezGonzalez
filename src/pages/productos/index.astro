@@ -493,17 +493,20 @@ import Layout from '../../layouts/Layout.astro';
           // Convertir productos de Supabase al formato esperado
           productos = data.productos.map((p) => {
             const oferta = ofertasMap.get(p.id);
-            const precioOriginal = p.precio_centimos / 100;
-            const precioFinal = oferta ? (oferta.precio_descuento_centimos / 100) : precioOriginal;
+            // Los precios en BD están en centimos
+            const precioCentimos = oferta ? oferta.precio_descuento_centimos : p.precio_centimos;
+            const precioOriginalCentimos = p.precio_centimos;
             
             return {
               id: p.id,
               nombre: p.nombre,
-              precio: precioFinal.toFixed(2),
-              precioOriginal: precioOriginal.toFixed(2),
+              precio: (precioCentimos / 100).toFixed(2),  // Para mostrar en euros
+              precioOriginal: (precioOriginalCentimos / 100).toFixed(2),  // Para mostrar en euros
+              precio_centimos: precioCentimos,  // Para guardar en carrito
               tieneOferta: !!oferta,
               oferta: oferta,
-              categoria: p.categorias?.slug || 'desconocida',
+              categoria: p.categorias?.nombre || 'desconocida',
+              categorias: { nombre: p.categorias?.nombre || 'desconocida', slug: p.categorias?.slug || 'desconocida' },
               imagen: p.imagen_url || 'https://images.unsplash.com/photo-1557803104268-0ef0f060e15f?w=500&h=500&fit=crop',
               descripcion: p.descripcion || 'Sin descripción',
               rating: p.rating || 4.8,
@@ -871,9 +874,9 @@ import Layout from '../../layouts/Layout.astro';
           btn.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: linear-gradient(135deg, #faf9f7 0%, #f5f3ef 100%); border: 2px solid #e5e2dd; border-radius: 12px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); width: 100%; font-family: Inter, sans-serif;";
           
           const peso = v.peso_kg.toFixed(3);
-          const precio = v.precio_total.toFixed(2);
+          const precioEnEuros = (v.precio_total / 100).toFixed(2);
           
-          btn.innerHTML = '<div style="display: flex; flex-direction: column; gap: 4px; text-align: left;"><span style="font-size: 0.95rem; font-weight: 700; color: #1a1a1a;">' + peso + ' kg</span><span style="font-size: 0.7rem; color: #888; text-transform: uppercase; letter-spacing: 0.3px; font-weight: 500;">Pieza única</span></div><div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;"><span style="font-size: 1.2rem; font-weight: 800; color: #a89968;">' + precio + '€</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #a89968; margin-top: 2px;"><polyline points="9 18 15 12 9 6"></polyline></svg></div>';
+          btn.innerHTML = '<div style="display: flex; flex-direction: column; gap: 4px; text-align: left;"><span style="font-size: 0.95rem; font-weight: 700; color: #1a1a1a;">' + peso + ' kg</span><span style="font-size: 0.7rem; color: #888; text-transform: uppercase; letter-spacing: 0.3px; font-weight: 500;">Pieza única</span></div><div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;"><span style="font-size: 1.2rem; font-weight: 800; color: #a89968;">' + precioEnEuros + '€</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #a89968; margin-top: 2px;"><polyline points="9 18 15 12 9 6"></polyline></svg></div>';
           
           btn.addEventListener('mouseover', () => {
             btn.style.borderColor = '#a89968';
@@ -1149,9 +1152,9 @@ import Layout from '../../layouts/Layout.astro';
       return container;
     }
 
-    async function agregarAlCarrito(productoId, cantidad = 1) {
+    async function agregarAlCarrito(productoId, cantidad = 1, cortado = false) {
       try {
-        console.log('🛒 agregarAlCarrito llamada con:', { productoId, cantidad });
+        console.log('🛒 agregarAlCarrito llamada con:', { productoId, cantidad, cortado });
         // Obtener user_id del localStorage
         const userId = localStorage.getItem('user_id');
         console.log('👤 User ID:', userId);
@@ -1159,7 +1162,7 @@ import Layout from '../../layouts/Layout.astro';
         // Si es invitado, guardar en localStorage
         if (!userId) {
           console.log('👻 Invitado detectado - guardando en localStorage');
-          agregarAlCarritoLocalSimple(productoId, cantidad);
+          agregarAlCarritoLocalSimple(productoId, cantidad, cortado);
           return;
         }
 
@@ -1171,7 +1174,8 @@ import Layout from '../../layouts/Layout.astro';
           body: JSON.stringify({ 
             producto_id: parseInt(productoId), 
             cantidad,
-            user_id: userId
+            user_id: userId,
+            cortado: cortado
           })
         });
 
@@ -1193,7 +1197,8 @@ import Layout from '../../layouts/Layout.astro';
         console.log('✅ Resultado del API:', result);
         if (result.success) {
           console.log('✅ Producto agregado exitosamente');
-          mostrarNotificacion('Producto agregado al carrito', 'exito');
+          const msg = cortado ? 'Producto agregado al carrito (cortado)' : 'Producto agregado al carrito';
+          mostrarNotificacion(msg, 'exito');
           // Disparar evento para actualizar stock en tiempo real
           window.dispatchEvent(new CustomEvent('carritoActualizado'));
         }
@@ -1204,7 +1209,7 @@ import Layout from '../../layouts/Layout.astro';
     }
 
     // Agregar al carrito local para invitados (productos simples sin variantes)
-    function agregarAlCarritoLocalSimple(productoId, cantidad = 1) {
+    function agregarAlCarritoLocalSimple(productoId, cantidad = 1, cortado = false) {
       try {
         // Buscar el producto en el array de productos cargados
         const producto = productosGlobal.find(p => p.id === parseInt(productoId));
@@ -1230,19 +1235,21 @@ import Layout from '../../layouts/Layout.astro';
               mostrarNotificacion(data.error || 'Error al reservar stock', 'error');
               return;
             }
-            console.log('✅ Stock reservado:', data);
           })
           .catch(err => console.error('❌ Error en fetch reservar:', err));
 
         // Obtener carrito actual de localStorage
         let carrito = JSON.parse(localStorage.getItem('carrito_invitado') || '[]');
 
+        // Usar precio en centimos
+        let precioUnitario = producto.precio_centimos;
+
         // Crear item
         const item = {
           id: Date.now(),
           producto_id: parseInt(productoId),
           nombre: producto.nombre,
-          precio_unitario: Math.round(parseFloat(producto.precio) * 100), // Convertir a centimos
+          precio_unitario: precioUnitario,
           cantidad,
           imagen: producto.imagen,
           fecha_agregado: new Date().toISOString()
@@ -1260,11 +1267,9 @@ import Layout from '../../layouts/Layout.astro';
 
         // Guardar en localStorage
         localStorage.setItem('carrito_invitado', JSON.stringify(carrito));
-        console.log('✅ Carrito invitado actualizado:', carrito.length, 'items');
         
         // Actualizar stock local en productosGlobal
         producto.stock -= cantidad;
-        console.log('📉 Stock actualizado para producto ' + productoId + ':', producto.stock);
         
         // Actualizar stock en el DOM inmediatamente
         const article = document.querySelector(`article[data-id="${productoId}"]`);
@@ -1314,6 +1319,7 @@ import Layout from '../../layouts/Layout.astro';
       productoIdParaCarrito = productoId;
       const modal = document.getElementById('cantidadModal');
       const input = document.getElementById('cantidadInput');
+      
       modal.style.display = 'flex';
       input.value = '1';
       input.focus();
