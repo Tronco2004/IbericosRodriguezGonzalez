@@ -65,17 +65,11 @@ export const GET: APIRoute = async ({ request, cookies }) => {
 };
 
 // POST - Crear un nuevo pedido (después del pago Stripe)
+// Soporta tanto usuarios logueados como invitados
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     const userId = request.headers.get('x-user-id');
-
-    if (!userId) {
-      return new Response(
-        JSON.stringify({ error: 'Usuario no autenticado' }),
-        { status: 401 }
-      );
-    }
-
+    
     const {
       stripe_session_id,
       cartItems,
@@ -83,8 +77,17 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       subtotal,
       email,
       telefono,
-      descuento_aplicado
+      descuento_aplicado,
+      // Datos para invitados
+      es_invitado,
+      nombre_cliente,
+      email_cliente,
+      telefono_cliente
     } = await request.json();
+
+    console.log('📦 Creando pedido...');
+    console.log('Es invitado:', es_invitado);
+    console.log('UserId:', userId);
 
     if (!stripe_session_id || !cartItems || !total) {
       return new Response(
@@ -93,23 +96,50 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    // Obtener email y teléfono del usuario desde la BD
-    const { data: usuario, error: errorUsuario } = await supabaseClient
-      .from('usuarios')
-      .select('email, telefono')
-      .eq('id', userId)
-      .single();
+    let emailFinal = '';
+    let telefonoFinal = '';
+    let nombreFinal = '';
 
-    if (errorUsuario || !usuario) {
-      console.error('Error obteniendo datos del usuario:', errorUsuario);
-      return new Response(
-        JSON.stringify({ error: 'Error obteniendo datos del usuario' }),
-        { status: 500 }
-      );
+    if (es_invitado) {
+      // Pedido de invitado
+      emailFinal = email_cliente || '';
+      telefonoFinal = telefono_cliente || '';
+      nombreFinal = nombre_cliente || '';
+
+      if (!emailFinal) {
+        return new Response(
+          JSON.stringify({ error: 'Email requerido para pedidos de invitados' }),
+          { status: 400 }
+        );
+      }
+    } else {
+      // Pedido de usuario logueado
+      if (!userId) {
+        return new Response(
+          JSON.stringify({ error: 'Usuario no autenticado' }),
+          { status: 401 }
+        );
+      }
+
+      // Obtener email y teléfono del usuario desde la BD
+      const { data: usuario, error: errorUsuario } = await supabaseClient
+        .from('usuarios')
+        .select('nombre, email, telefono')
+        .eq('id', userId)
+        .single();
+
+      if (errorUsuario || !usuario) {
+        console.error('Error obteniendo datos del usuario:', errorUsuario);
+        return new Response(
+          JSON.stringify({ error: 'Error obteniendo datos del usuario' }),
+          { status: 500 }
+        );
+      }
+
+      emailFinal = usuario.email;
+      telefonoFinal = usuario.telefono || telefono || '';
+      nombreFinal = usuario.nombre || '';
     }
-
-    const emailCliente = usuario.email;
-    const telefonoCliente = usuario.telefono || telefono || '';
 
     // Generar número de pedido único
     const timestamp = Date.now();
@@ -120,14 +150,16 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const { data: pedido, error: errorPedido } = await supabaseClient
       .from('pedidos')
       .insert({
-        usuario_id: userId,
+        usuario_id: es_invitado ? null : userId,
         stripe_session_id,
         numero_pedido,
         subtotal: parseFloat(subtotal),
         total: parseFloat(total),
         descuento_aplicado: descuento_aplicado ? parseFloat(descuento_aplicado) : 0,
-        email_cliente: emailCliente,
-        telefono_cliente: telefonoCliente,
+        nombre_cliente: nombreFinal,
+        email_cliente: emailFinal,
+        telefono_cliente: telefonoFinal,
+        es_invitado: es_invitado || false,
         estado: 'pagado',
         fecha_pago: new Date().toISOString()
       })
@@ -137,10 +169,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     if (errorPedido) {
       console.error('Error creando pedido:', errorPedido);
       return new Response(
-        JSON.stringify({ error: 'Error creando pedido' }),
+        JSON.stringify({ error: 'Error creando pedido: ' + errorPedido.message }),
         { status: 500 }
       );
     }
+
+    console.log('✅ Pedido creado:', pedido.id);
 
     // Crear items del pedido
     console.log('🔵 cartItems recibidos:', JSON.stringify(cartItems, null, 2));
@@ -172,27 +206,30 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     console.log('✅ Items insertados exitosamente para pedido:', pedido.id);
 
-    const { data: cartData } = await supabaseClient
-      .from('carritos')
-      .select('id')
-      .eq('usuario_id', userId)
-      .single();
+    // Limpiar carrito del usuario (solo si está logueado)
+    if (userId && !es_invitado) {
+      const { data: cartData } = await supabaseClient
+        .from('carritos')
+        .select('id')
+        .eq('usuario_id', userId)
+        .single();
 
-    if (cartData?.id) {
-      await supabaseClient
-        .from('carrito_items')
-        .delete()
-        .eq('carrito_id', cartData.id);
+      if (cartData?.id) {
+        await supabaseClient
+          .from('carrito_items')
+          .delete()
+          .eq('carrito_id', cartData.id);
+      }
     }
 
     // Enviar correo de confirmación
     try {
       console.log('📧 Enviando correo de confirmación...');
-      console.log('📧 Email del cliente:', emailCliente);
+      console.log('📧 Email del cliente:', emailFinal);
       console.log('📧 Items a enviar:', cartItems.length);
       
       await enviarConfirmacionPedido({
-        email_cliente: emailCliente,
+        email_cliente: emailFinal,
         numero_pedido: pedido.numero_pedido,
         fecha: pedido.fecha_pago,
         items: cartItems.map((item: any) => ({

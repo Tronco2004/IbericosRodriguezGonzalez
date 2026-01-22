@@ -65,6 +65,28 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     console.log('✅ Usuario registrado en tabla usuarios con rol cliente');
 
+    // 2.5 Vincular pedidos de invitado si existen
+    // Busca todos los pedidos hechos con este email sin usuario asociado
+    try {
+      const { data: pedidosVinculados, error: errorVinculo } = await supabaseClient
+        .rpc('vincular_pedidos_invitado', {
+          p_usuario_id: userId,
+          p_email: email
+        });
+
+      if (errorVinculo) {
+        console.error('⚠️ Error vinculando pedidos invitados:', errorVinculo.message);
+      } else {
+        const cantidadVinculada = pedidosVinculados?.[0]?.pedidos_vinculados || 0;
+        if (cantidadVinculada > 0) {
+          console.log(`✅ Vinculados ${cantidadVinculada} pedidos previos de invitado`);
+        }
+      }
+    } catch (vinculoError) {
+      console.error('❌ Error en función RPC:', vinculoError);
+      // No fallar el registro si hay error vinculando
+    }
+
     // 3. Iniciar sesión automáticamente
     const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword({
       email,

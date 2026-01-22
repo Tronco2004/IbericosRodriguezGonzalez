@@ -6,12 +6,13 @@ const SHIPPING_COST = 500; // 5€ en centimos
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
-    // Obtener el carrito del cliente
-    const { cartItems, codigoDescuento, descuentoAplicado } = await request.json();
+    // Obtener el carrito del cliente (con posibles datos de invitado)
+    const { cartItems, codigoDescuento, descuentoAplicado, datosInvitado } = await request.json();
 
     console.log('📦 Creando sesión Stripe...');
     console.log('Carrito items:', cartItems);
     console.log('Descuento aplicado:', descuentoAplicado);
+    console.log('Es invitado:', !!datosInvitado);
 
     if (!cartItems || cartItems.length === 0) {
       console.error('❌ Carrito vacío');
@@ -51,7 +52,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     console.log('📋 Line items para Stripe:', JSON.stringify(lineItems, null, 2));
 
     // Agregar descuento si existe
-    let discounts = [];
+    let discounts: { coupon: string }[] = [];
     if (descuentoAplicado && descuentoAplicado > 0) {
       try {
         // Crear un cupón en Stripe para aplicar el descuento
@@ -71,15 +72,35 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
     }
 
+    // Determinar email del cliente (invitado o usuario logueado)
+    const customerEmail = datosInvitado?.email || cookies.get('user_email')?.value;
+
     // Crear sesión de Stripe
     console.log('🔗 Creando sesión Stripe...');
+    console.log('📧 Email del cliente:', customerEmail);
+
+    // Construir URL de éxito con parámetro de invitado si aplica
+    let successUrl = `${new URL(request.url).origin}/checkout/exito?session_id={CHECKOUT_SESSION_ID}`;
+    if (codigoDescuento) {
+      successUrl += `&codigo=${codigoDescuento}`;
+    }
+    if (datosInvitado) {
+      successUrl += '&guest=true';
+    }
+
     const session = await stripe.checkout.sessions.create({
       line_items: lineItems,
       mode: 'payment',
-      success_url: `${new URL(request.url).origin}/checkout/exito?session_id={CHECKOUT_SESSION_ID}${codigoDescuento ? `&codigo=${codigoDescuento}` : ''}`,
+      success_url: successUrl,
       cancel_url: `${new URL(request.url).origin}/carrito`,
-      customer_email: cookies.get('user_email')?.value,
-      ...(discounts.length > 0 && { discounts })
+      customer_email: customerEmail,
+      ...(discounts.length > 0 && { discounts }),
+      // Guardar metadata para identificar invitados
+      metadata: {
+        es_invitado: datosInvitado ? 'true' : 'false',
+        nombre_cliente: datosInvitado?.nombre || '',
+        telefono_cliente: datosInvitado?.telefono || ''
+      }
     });
 
     console.log('✅ Sesión creada exitosamente:', session.id);
