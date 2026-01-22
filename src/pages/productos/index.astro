@@ -19,7 +19,7 @@ import Layout from '../../layouts/Layout.astro';
       padding: 2.5rem 1.5rem 3rem;
       margin-bottom: 2.5rem;
       background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-      border-radius: 24px;
+      border-radius: 0;
       position: relative;
       overflow: hidden;
     }
@@ -106,6 +106,45 @@ import Layout from '../../layouts/Layout.astro';
     }
   </style>
   
+  <!-- Barra de Filtros -->
+  <div class="filters-bar">
+    <div class="filters-container">
+      <select id="filterCategoria" class="filter-select">
+        <option value="">Todas las categorías</option>
+        <option value="jamones">Jamones</option>
+        <option value="quesos">Quesos</option>
+        <option value="embutidos">Embutidos</option>
+        <option value="aceites">Aceites</option>
+        <option value="conservas">Conservas</option>
+      </select>
+
+      <select id="filterPrecio" class="filter-select">
+        <option value="">Todos los precios</option>
+        <option value="0-25">Menos de 25€</option>
+        <option value="25-50">25€ - 50€</option>
+        <option value="50-100">50€ - 100€</option>
+        <option value="100-500">Más de 100€</option>
+      </select>
+
+      <select id="filterOrden" class="filter-select">
+        <option value="nombre">Ordenar por nombre</option>
+        <option value="precio-asc">Precio: menor a mayor</option>
+        <option value="precio-desc">Precio: mayor a menor</option>
+        <option value="nuevo">Más recientes</option>
+      </select>
+
+      <button id="resetFilters" class="btn-reset-filters">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+          <path d="M21 3v5h-5"/>
+          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+          <path d="M3 21v-5h5"/>
+        </svg>
+        Limpiar filtros
+      </button>
+    </div>
+  </div>
+  
   <!-- Grid de Productos -->
   <div id="productosGrid" class="productos-grid-container">
     <!-- Cargará con JavaScript -->
@@ -156,6 +195,88 @@ import Layout from '../../layouts/Layout.astro';
   </div>
 
   <style>
+    /* ===== FILTERS BAR ===== */
+    .filters-bar {
+      background: #fff;
+      padding: 1.5rem 0;
+      margin-bottom: 2rem;
+      border-bottom: 1px solid #eee;
+    }
+
+    .filters-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .filter-select {
+      padding: 0.75rem 1rem;
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: #333;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-width: 180px;
+    }
+
+    .filter-select:hover {
+      border-color: #a89968;
+      background: #faf9f7;
+    }
+
+    .filter-select:focus {
+      outline: none;
+      border-color: #a89968;
+      box-shadow: 0 0 0 3px rgba(168, 153, 104, 0.1);
+    }
+
+    .btn-reset-filters {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.25rem;
+      background: transparent;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      color: #666;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-left: auto;
+    }
+
+    .btn-reset-filters:hover {
+      border-color: #a89968;
+      color: #a89968;
+      background: #faf9f7;
+    }
+
+    @media (max-width: 768px) {
+      .filters-container {
+        padding: 0 1rem;
+        gap: 0.75rem;
+      }
+
+      .filter-select {
+        min-width: 140px;
+        font-size: 0.85rem;
+      }
+
+      .btn-reset-filters {
+        margin-left: 0;
+        margin-top: 0.5rem;
+        flex-basis: 100%;
+        justify-content: center;
+      }
+    }
+
     /* ===== MODAL STYLES ===== */
     .modal-overlay {
       display: none;
@@ -337,7 +458,7 @@ import Layout from '../../layouts/Layout.astro';
     /* ===== GRID LAYOUT ===== */
     .productos-grid-container {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 24px;
       padding: 0;
       max-width: 100%;
@@ -345,7 +466,7 @@ import Layout from '../../layouts/Layout.astro';
 
     @media (max-width: 1400px) {
       .productos-grid-container {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         gap: 20px;
       }
     }
@@ -427,151 +548,32 @@ import Layout from '../../layouts/Layout.astro';
     let productoEnModal = null; // Producto seleccionado para el modal
     let productosGlobal = []; // Array global de productos para acceso desde funciones invitado
 
-    // Cargar productos desde Supabase
-    async function cargarProductos() {
-      console.log('🔄 cargarProductos() ejecutándose');
-      try {
-        // Primero obtener ofertas activas
-        let ofertasMap = new Map(); // {producto_id -> oferta}
-        try {
-          const ofertasResponse = await fetch('/api/ofertas');
-          const ofertasData = await ofertasResponse.json();
-          if (ofertasData.success && ofertasData.data) {
-            console.log('📊 Ofertas obtenidas:', ofertasData.data);
-            ofertasData.data.forEach(oferta => {
-              ofertasMap.set(oferta.producto_id, oferta);
-              console.log('✅ Oferta para producto ' + oferta.producto_id + ': ' + oferta.nombre_oferta + ' (' + oferta.porcentaje_descuento + '% descuento)');
-            });
-            console.log('🎉 Ofertas cargadas:', ofertasMap.size);
-          }
-        } catch (error) {
-          console.error('❌ Error cargando ofertas:', error);
-        }
+    // Función para renderizar productos en el grid
+    function renderizarProductos(productos, variantesReservadas = []) {
+      const grid = document.getElementById('productosGrid');
+      
+      if (productos.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 4rem 2rem;"><p style="opacity: 0.6; font-size: 1.1rem; margin: 0;">No hay productos disponibles</p></div>';
+        return;
+      }
 
-        // Primero obtener items en el carrito
-        const userId = localStorage.getItem('user_id');
-        let productosEnCarrito = new Map(); // {producto_id -> [variante_ids]}
+      grid.innerHTML = productos.map((p) => {
+        const botonText = p.es_variable ? 'Seleccionar Peso' : 'Añadir al Carrito';
+        const botonClass = p.es_variable ? 'btn-seleccionar-variante' : 'btn-agregar-carrito';
         
-        if (userId) {
-          try {
-            const carritoResponse = await fetch('/api/carrito', {
-              headers: { 'x-user-id': userId }
-            });
-            if (carritoResponse.ok) {
-              const carritoData = await carritoResponse.json();
-              if (carritoData.items && carritoData.items.length > 0) {
-                carritoData.items.forEach(item => {
-                  const key = item.producto_id;
-                  if (!productosEnCarrito.has(key)) {
-                    productosEnCarrito.set(key, []);
-                  }
-                  if (item.producto_variante_id) {
-                    productosEnCarrito.get(key).push(item.producto_variante_id);
-                  }
-                });
-                console.log('🛒 Productos en carrito:', Array.from(productosEnCarrito.entries()));
-              }
-            }
-          } catch (error) {
-            console.error('❌ Error cargando carrito:', error);
-          }
-        }
-
-        const response = await fetch('/api/admin/productos');
-        console.log('📡 Response status:', response.status, response.ok);
-        const data = await response.json();
-        console.log('📡 Data recibida:', data);
+        // Verificar si es producto variable y tiene variantes con stock disponible
+        const todasLasVariantes = variantesMap[p.id] || [];
+        const variantesConStock = todasLasVariantes.filter(v => v.disponible && (v.cantidad_disponible > 0));
         
-        // Obtener variantes reservadas
-        const reservadosResponse = await fetch('/api/productos/reservados');
-        const { variantesReservadas } = await reservadosResponse.json();
-        console.log('🔒 Variantes reservadas:', variantesReservadas);
+        // El producto está agotado si: (no es variable y no tiene stock) O (es variable y no tiene variantes con stock)
+        const productoAgotado = (!p.es_variable && p.stock <= 0) || (p.es_variable && variantesConStock.length === 0);
         
-        let productos = [];
-        
-        if (data.success && data.productos && data.productos.length > 0) {
-          // Convertir productos de Supabase al formato esperado
-          productos = data.productos.map((p) => {
-            const oferta = ofertasMap.get(p.id);
-            // Los precios en BD están en centimos
-            const precioCentimos = oferta ? oferta.precio_descuento_centimos : p.precio_centimos;
-            const precioOriginalCentimos = p.precio_centimos;
-            
-            return {
-              id: p.id,
-              nombre: p.nombre,
-              precio: (precioCentimos / 100).toFixed(2),  // Para mostrar en euros
-              precioOriginal: (precioOriginalCentimos / 100).toFixed(2),  // Para mostrar en euros
-              precio_centimos: precioCentimos,  // Para guardar en carrito
-              tieneOferta: !!oferta,
-              oferta: oferta,
-              categoria: p.categorias?.nombre || 'desconocida',
-              categorias: { nombre: p.categorias?.nombre || 'desconocida', slug: p.categorias?.slug || 'desconocida' },
-              imagen: p.imagen_url || 'https://images.unsplash.com/photo-1557803104268-0ef0f060e15f?w=500&h=500&fit=crop',
-              descripcion: p.descripcion || 'Sin descripción',
-              rating: p.rating || 4.8,
-              es_variable: p.es_variable || false,
-              precio_por_kg: p.precio_por_kg || null,
-              stock: p.stock ?? 0  // Agregar stock
-            };
-          });
+        // Texto de stock a mostrar
+        const stockText = p.es_variable 
+          ? `${variantesConStock.length} opción${variantesConStock.length !== 1 ? 'es' : ''}`
+          : `${p.stock} unidad${p.stock !== 1 ? 'es' : ''}`;
 
-          // Cargar variantes para productos variables
-          console.log('📦 Total de productos:', productos.length);
-          console.log('📦 Productos variables:', productos.filter(p => p.es_variable).length);
-          
-          // Asignar a la variable global para que sea accesible desde funciones invitado
-          productosGlobal = productos;
-          console.log('✅ productosGlobal asignado:', productosGlobal.length, 'productos');
-          
-          for (const producto of productos) {
-            if (producto.es_variable) {
-              console.log('⏳ Cargando variantes para producto:', producto.id, producto.nombre);
-              try {
-                await cargarVariantesProducto(producto.id);
-                const cargsadas = variantesMap[producto.id] || [];
-                const disponibles = cargsadas.filter(v => v.disponible);
-                console.log('✅ Variantes cargadas para producto ' + producto.id + ': total=' + cargsadas.length + ', disponibles=' + disponibles.length);
-                cargsadas.forEach(v => {
-                  console.log(`   - Variante ${v.id}: peso=${v.peso_kg}, disponible=${v.disponible}`);
-                });
-              } catch (error) {
-                console.error('❌ Error cargando variantes para producto:', producto.id, error);
-              }
-            }
-          }
-          console.log('✅ Todas las variantes cargadas, re-renderizando grid...');
-        }
-
-        const grid = document.getElementById('productosGrid');
-        if (productos.length === 0) {
-          grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 4rem 2rem;"><p style="opacity: 0.6; font-size: 1.1rem; margin: 0;">No hay productos disponibles</p></div>';
-          return;
-        }
-
-        grid.innerHTML = productos.map((p) => {
-          const botonText = p.es_variable ? 'Seleccionar Peso' : 'Añadir al Carrito';
-          const botonClass = p.es_variable ? 'btn-seleccionar-variante' : 'btn-agregar-carrito';
-          
-          // Verificar si es producto variable y tiene variantes con stock disponible
-          const todasLasVariantes = variantesMap[p.id] || [];
-          const variantesConStock = todasLasVariantes.filter(v => v.disponible && (v.cantidad_disponible > 0));
-          
-          // Producto agotado si:
-          // - Es simple y no tiene stock, O
-          // - Es variable y no hay variantes con stock
-          const productoAgotado = (!p.es_variable && p.stock <= 0) || (p.es_variable && variantesConStock.length === 0);
-          
-          if (p.es_variable) {
-            console.log('📦 Producto ' + p.id + ' (' + p.nombre + '): totalVariantes=' + todasLasVariantes.length + ', conStock=' + variantesConStock.length + ', agotado=' + productoAgotado);
-          }
-
-          // Determinar el texto de stock
-          const stockText = p.es_variable 
-            ? `${variantesConStock.length} opción${variantesConStock.length !== 1 ? 'es' : ''}`
-            : `${p.stock} unidad${p.stock !== 1 ? 'es' : ''}`;
-          
-          return `
+        return `
           <article data-id="${p.id}" style="
             background: #fff;
             border-radius: 20px;
@@ -744,69 +746,172 @@ import Layout from '../../layouts/Layout.astro';
             </div>
           </article>
         `;
-        }).join('');
+      }).join('');
 
-        console.log('✅ Grid HTML generado, agregando event listeners');
-        const botonesAgregar = document.querySelectorAll('.btn-agregar-carrito:not([disabled])');
-        const botonesVariante = document.querySelectorAll('.btn-seleccionar-variante:not([disabled])');
-        console.log('📌 Botones "Agregar": ', botonesAgregar.length);
-        console.log('📌 Botones "Variante": ', botonesVariante.length);
+      // Agregar event listeners a los botones
+      const botonesAgregar = document.querySelectorAll('.btn-agregar-carrito:not([disabled])');
+      const botonesVariante = document.querySelectorAll('.btn-seleccionar-variante:not([disabled])');
+      
+      botonesAgregar.forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const productoId = btn.getAttribute('data-id');
+          abrirModalCantidad(productoId);
+        });
+      });
+
+      botonesVariante.forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const productoId = btn.getAttribute('data-id');
+          abrirModalVariantes(productoId, variantesReservadas);
+        });
+      });
+
+      // Hover effects
+      document.querySelectorAll('.product-image').forEach(img => {
+        img.addEventListener('mouseover', () => img.style.transform = 'scale(1.08)');
+        img.addEventListener('mouseout', () => img.style.transform = 'scale(1)');
+      });
+
+      document.querySelectorAll('.product-title').forEach(title => {
+        title.addEventListener('mouseover', () => title.style.color = '#a89968');
+        title.addEventListener('mouseout', () => title.style.color = '#1a1a1a');
+      });
+
+      document.querySelectorAll('.product-btn').forEach(btn => {
+        btn.addEventListener('mouseover', () => {
+          btn.style.transform = 'translateY(-3px)';
+          btn.style.boxShadow = '0 8px 20px rgba(168, 153, 104, 0.4)';
+        });
+        btn.addEventListener('mouseout', () => {
+          btn.style.transform = 'translateY(0)';
+          btn.style.boxShadow = '0 4px 12px rgba(168, 153, 104, 0.3)';
+        });
+      });
+    }
+
+    // Cargar productos desde Supabase
+    async function cargarProductos() {
+      console.log('🔄 cargarProductos() ejecutándose');
+      try {
+        // Primero obtener ofertas activas
+        let ofertasMap = new Map(); // {producto_id -> oferta}
+        try {
+          const ofertasResponse = await fetch('/api/ofertas');
+          const ofertasData = await ofertasResponse.json();
+          if (ofertasData.success && ofertasData.data) {
+            console.log('📊 Ofertas obtenidas:', ofertasData.data);
+            ofertasData.data.forEach(oferta => {
+              ofertasMap.set(oferta.producto_id, oferta);
+              console.log('✅ Oferta para producto ' + oferta.producto_id + ': ' + oferta.nombre_oferta + ' (' + oferta.porcentaje_descuento + '% descuento)');
+            });
+            console.log('🎉 Ofertas cargadas:', ofertasMap.size);
+          }
+        } catch (error) {
+          console.error('❌ Error cargando ofertas:', error);
+        }
+
+        // Primero obtener items en el carrito
+        const userId = localStorage.getItem('user_id');
+        let productosEnCarrito = new Map(); // {producto_id -> [variante_ids]}
         
-        // Event listeners para productos normales
-        botonesAgregar.forEach(btn => {
-          console.log('📌 Agregando event listener a botón:', btn.getAttribute('data-id'));
-          btn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            console.log('🖱️ Click en botón agregar carrito');
-            const productoId = btn.getAttribute('data-id');
-            console.log('📦 Product ID:', productoId);
+        if (userId) {
+          try {
+            const carritoResponse = await fetch('/api/carrito', {
+              headers: { 'x-user-id': userId }
+            });
+            if (carritoResponse.ok) {
+              const carritoData = await carritoResponse.json();
+              if (carritoData.items && carritoData.items.length > 0) {
+                carritoData.items.forEach(item => {
+                  const key = item.producto_id;
+                  if (!productosEnCarrito.has(key)) {
+                    productosEnCarrito.set(key, []);
+                  }
+                  if (item.producto_variante_id) {
+                    productosEnCarrito.get(key).push(item.producto_variante_id);
+                  }
+                });
+                console.log('🛒 Productos en carrito:', Array.from(productosEnCarrito.entries()));
+              }
+            }
+          } catch (error) {
+            console.error('❌ Error cargando carrito:', error);
+          }
+        }
+
+        const response = await fetch('/api/admin/productos');
+        console.log('📡 Response status:', response.status, response.ok);
+        const data = await response.json();
+        console.log('📡 Data recibida:', data);
+        
+        // Obtener variantes reservadas
+        const reservadosResponse = await fetch('/api/productos/reservados');
+        const { variantesReservadas: variantesReservFetch } = await reservadosResponse.json();
+        variantesReservadas = variantesReservFetch;  // Asignar a la variable global
+        console.log('🔒 Variantes reservadas:', variantesReservadas);
+        
+        let productos = [];
+        
+        if (data.success && data.productos && data.productos.length > 0) {
+          // Convertir productos de Supabase al formato esperado
+          productos = data.productos.map((p) => {
+            const oferta = ofertasMap.get(p.id);
+            // Los precios en BD están en centimos
+            const precioCentimos = oferta ? oferta.precio_descuento_centimos : p.precio_centimos;
+            const precioOriginalCentimos = p.precio_centimos;
             
-            // Abrir modal de cantidad
-            abrirModalCantidad(productoId);
+            return {
+              id: p.id,
+              nombre: p.nombre,
+              precio: (precioCentimos / 100).toFixed(2),  // Para mostrar en euros
+              precioOriginal: (precioOriginalCentimos / 100).toFixed(2),  // Para mostrar en euros
+              precio_centimos: precioCentimos,  // Para guardar en carrito
+              tieneOferta: !!oferta,
+              oferta: oferta,
+              categoria: p.categorias?.nombre || 'desconocida',
+              categorias: { nombre: p.categorias?.nombre || 'desconocida', slug: p.categorias?.slug || 'desconocida' },
+              imagen: p.imagen_url || 'https://images.unsplash.com/photo-1557803104268-0ef0f060e15f?w=500&h=500&fit=crop',
+              descripcion: p.descripcion || 'Sin descripción',
+              rating: p.rating || 4.8,
+              es_variable: p.es_variable || false,
+              precio_por_kg: p.precio_por_kg || null,
+              stock: p.stock ?? 0  // Agregar stock
+            };
           });
-        });
 
-        // Event listeners para productos variables
-        botonesVariante.forEach(btn => {
-          console.log('📌 Agregando event listener a botón variante:', btn.getAttribute('data-id'));
-          btn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const productoId = btn.getAttribute('data-id');
-            abrirModalVariantes(productoId, variantesReservadas);
-          });
-        });
+          // Cargar variantes para productos variables
+          console.log('📦 Total de productos:', productos.length);
+          console.log('📦 Productos variables:', productos.filter(p => p.es_variable).length);
+          
+          // Asignar a la variable global para que sea accesible desde funciones invitado
+          productosGlobal = productos;
+          console.log('✅ productosGlobal asignado:', productosGlobal.length, 'productos');
+          
+          for (const producto of productos) {
+            if (producto.es_variable) {
+              console.log('⏳ Cargando variantes para producto:', producto.id, producto.nombre);
+              try {
+                await cargarVariantesProducto(producto.id);
+                const cargsadas = variantesMap[producto.id] || [];
+                const disponibles = cargsadas.filter(v => v.disponible);
+                console.log('✅ Variantes cargadas para producto ' + producto.id + ': total=' + cargsadas.length + ', disponibles=' + disponibles.length);
+                cargsadas.forEach(v => {
+                  console.log(`   - Variante ${v.id}: peso=${v.peso_kg}, disponible=${v.disponible}`);
+                });
+              } catch (error) {
+                console.error('❌ Error cargando variantes para producto:', producto.id, error);
+              }
+            }
+          }
+          console.log('✅ Todas las variantes cargadas, re-renderizando grid...');
+        }
 
-        // Event listeners para imágenes (hover effect)
-        document.querySelectorAll('.product-image').forEach(img => {
-          img.addEventListener('mouseover', () => {
-            img.style.transform = 'scale(1.08)';
-          });
-          img.addEventListener('mouseout', () => {
-            img.style.transform = 'scale(1)';
-          });
-        });
-
-        // Event listeners para títulos de productos (hover effect)
-        document.querySelectorAll('.product-title').forEach(title => {
-          title.addEventListener('mouseover', () => {
-            title.style.color = '#a89968';
-          });
-          title.addEventListener('mouseout', () => {
-            title.style.color = '#1a1a1a';
-          });
-        });
-
-        // Event listeners para botones de productos (hover effect)
-        document.querySelectorAll('.product-btn').forEach(btn => {
-          btn.addEventListener('mouseover', () => {
-            btn.style.transform = 'translateY(-3px)';
-            btn.style.boxShadow = '0 8px 20px rgba(168, 153, 104, 0.4)';
-          });
-          btn.addEventListener('mouseout', () => {
-            btn.style.transform = 'translateY(0)';
-            btn.style.boxShadow = '0 4px 12px rgba(168, 153, 104, 0.3)';
-          });
-        });
+        // Guardar los productos originales para filtros
+        productosOriginales = [...productos];
+        // Renderizar los productos
+        renderizarProductos(productos, variantesReservadas);
 
       } catch (error) {
         console.error('Error cargando productos:', error);
@@ -1477,6 +1582,69 @@ console.log('📦 Encontrados ' + articulos.length + ' productos para actualizar
 
     // Cargar al iniciar
     console.log('📄 Script iniciando, llamando a cargarProductos()');
+    
+    // Variables de filtrado
+    let productosOriginales = [];
+    let variantesReservadas = [];
+    const filterCategoria = document.getElementById('filterCategoria');
+    const filterPrecio = document.getElementById('filterPrecio');
+    const filterOrden = document.getElementById('filterOrden');
+    const resetBtn = document.getElementById('resetFilters');
+
+    // Función para aplicar filtros
+    function aplicarFiltros() {
+      let productosFiltrados = [...productosOriginales];
+
+      // Filtro por categoría
+      const categoriaSeleccionada = filterCategoria.value;
+      if (categoriaSeleccionada) {
+        productosFiltrados = productosFiltrados.filter(p => 
+          p.categorias.slug === categoriaSeleccionada
+        );
+      }
+
+      // Filtro por precio
+      const precioSeleccionado = filterPrecio.value;
+      if (precioSeleccionado) {
+        const [min, max] = precioSeleccionado.split('-').map(Number);
+        productosFiltrados = productosFiltrados.filter(p => {
+          const precio = parseFloat(p.precio);
+          if (max === 500) {
+            return precio >= min;
+          }
+          return precio >= min && precio <= max;
+        });
+      }
+
+      // Ordenar
+      const ordenSeleccionado = filterOrden.value;
+      if (ordenSeleccionado === 'precio-asc') {
+        productosFiltrados.sort((a, b) => parseFloat(a.precio) - parseFloat(b.precio));
+      } else if (ordenSeleccionado === 'precio-desc') {
+        productosFiltrados.sort((a, b) => parseFloat(b.precio) - parseFloat(a.precio));
+      } else if (ordenSeleccionado === 'nombre') {
+        productosFiltrados.sort((a, b) => a.nombre.localeCompare(b.nombre));
+      } else if (ordenSeleccionado === 'nuevo') {
+        productosFiltrados.sort((a, b) => b.id - a.id);
+      }
+
+      // Re-renderizar grid
+      renderizarProductos(productosFiltrados, variantesReservadas);
+    }
+
+    // Event listeners de filtros
+    filterCategoria.addEventListener('change', aplicarFiltros);
+    filterPrecio.addEventListener('change', aplicarFiltros);
+    filterOrden.addEventListener('change', aplicarFiltros);
+    
+    resetBtn.addEventListener('click', () => {
+      filterCategoria.value = '';
+      filterPrecio.value = '';
+      filterOrden.value = 'nombre';
+      aplicarFiltros();
+    });
+
+    // Cargar productos al iniciar
     cargarProductos();
     console.log('📄 cargarProductos() llamada');
   </script>
