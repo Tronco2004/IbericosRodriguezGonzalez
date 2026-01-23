@@ -1,6 +1,12 @@
 import { defineMiddleware } from 'astro:middleware';
 
 export const onRequest = defineMiddleware((context, next) => {
+  // Redirigir HTTP a HTTPS (excepto en desarrollo)
+  const url = new URL(context.request.url);
+  if (url.protocol === 'http:' && url.hostname !== 'localhost' && url.hostname !== '127.0.0.1') {
+    return context.redirect(url.href.replace('http://', 'https://'), 301);
+  }
+
   const token = context.cookies.get('auth_token')?.value;
   const userRole = context.cookies.get('user_role')?.value;
   const userName = context.cookies.get('user_name')?.value;

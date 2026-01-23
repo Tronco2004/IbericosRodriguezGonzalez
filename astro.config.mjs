@@ -10,6 +10,7 @@ export default defineConfig({
   adapter: node({
     mode: 'standalone'
   }),
+  site: 'https://ibericosrodriguezgonzalez.victoriafp.online',
   vite: {
     ssr: {
       external: ['node:fs', 'node:path', 'node:util']
