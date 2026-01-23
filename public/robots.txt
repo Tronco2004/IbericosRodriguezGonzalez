@@ -1,0 +1,26 @@
+# robots.txt para Ibéricos Rodríguez González
+# Archivo para controlar el acceso de rastreadores
+
+# Permitir a todos los rastreadores
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /login
+Disallow: /registro
+Disallow: /carrito
+Disallow: /checkout
+
+# Google
+User-agent: Googlebot
+Allow: /
+
+# Bing
+User-agent: Bingbot
+Allow: /
+
+# Sitemap
+Sitemap: https://ibericos-rodriguez.com/sitemap.xml
+
+# Configuración de rastreo
+Crawl-delay: 1
