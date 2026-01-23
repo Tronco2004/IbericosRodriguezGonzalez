@@ -403,6 +403,15 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     function cerrarModal() {
       const modal = document.getElementById('modalOferta') as HTMLDivElement;
       modal.style.display = 'none';
+      
+      // Limpiar el formulario y restaurar valores por defecto
+      (document.getElementById('formOferta') as HTMLFormElement).reset();
+      delete (document.getElementById('formOferta') as HTMLFormElement).dataset.ofertaId;
+      
+      const tituloModal = document.querySelector('#modalOferta h2') as HTMLElement;
+      const btnEnviar = document.querySelector('#formOferta button[type="submit"]') as HTMLButtonElement;
+      tituloModal.textContent = 'Nueva Oferta';
+      btnEnviar.textContent = 'Crear Oferta';
     }
 
     async function guardarOferta(e: any) {
@@ -415,11 +424,18 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       const precioDescuento = parseFloat((document.getElementById('precioDescuento') as HTMLInputElement).value) * 100;
       const fechaInicio = (document.getElementById('fechaInicio') as HTMLInputElement).value;
       const fechaFin = (document.getElementById('fechaFin') as HTMLInputElement).value;
+      
+      const ofertaId = (document.getElementById('formOferta') as HTMLFormElement).dataset.ofertaId;
+      const isEdicion = !!ofertaId;
 
       try {
-        const response = await fetch('/api/admin/ofertas', {
-          method: 'POST',
+        const method = isEdicion ? 'PUT' : 'POST';
+        const url = isEdicion ? `/api/admin/ofertas/${ofertaId}` : '/api/admin/ofertas';
+
+        const response = await fetch(url, {
+          method: method,
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({
             producto_id: parseInt(productoId),
             nombre_oferta: nombreOferta,
@@ -435,7 +451,16 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         if (data.success) {
           cerrarModal();
           cargarOfertas();
-          alert('Oferta creada exitosamente');
+          alert(isEdicion ? 'Oferta actualizada exitosamente' : 'Oferta creada exitosamente');
+          
+          // Limpiar el dataset después de editar
+          if (isEdicion) {
+            delete (document.getElementById('formOferta') as HTMLFormElement).dataset.ofertaId;
+            const tituloModal = document.querySelector('#modalOferta h2') as HTMLElement;
+            const btnEnviar = document.querySelector('#formOferta button[type="submit"]') as HTMLButtonElement;
+            tituloModal.textContent = 'Nueva Oferta';
+            btnEnviar.textContent = 'Crear Oferta';
+          }
         } else {
           alert('Error: ' + data.error);
         }
@@ -445,22 +470,60 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       }
     }
 
+    // Hacer funciones globales para onclick
+    (window as any).abrirModal = abrirModal;
+    (window as any).cerrarModal = cerrarModal;
+    (window as any).guardarOferta = guardarOferta;
+    (window as any).editarOferta = editarOferta;
+    (window as any).eliminarOferta = eliminarOferta;
+
     async function editarOferta(id: number) {
-      alert('Función de edición en desarrollo');
+      const oferta = ofertas.find(o => o.id === id);
+      if (!oferta) {
+        alert('Oferta no encontrada');
+        return;
+      }
+
+      // Poblar el formulario con los datos de la oferta
+      (document.getElementById('productoSelect') as HTMLSelectElement).value = oferta.producto_id;
+      (document.getElementById('nombreOferta') as HTMLInputElement).value = oferta.nombre_oferta;
+      (document.getElementById('descripcion') as HTMLTextAreaElement).value = oferta.descripcion || '';
+      (document.getElementById('precioOriginal') as HTMLInputElement).value = (oferta.precio_original_centimos / 100).toString();
+      (document.getElementById('precioDescuento') as HTMLInputElement).value = (oferta.precio_descuento_centimos / 100).toString();
+      (document.getElementById('fechaInicio') as HTMLInputElement).value = new Date(oferta.fecha_inicio).toISOString().split('T')[0];
+      (document.getElementById('fechaFin') as HTMLInputElement).value = new Date(oferta.fecha_fin).toISOString().split('T')[0];
+
+      // Cambiar el título del modal
+      const tituloModal = document.querySelector('#modalOferta h2') as HTMLElement;
+      const btnEnviar = document.querySelector('#formOferta button[type="submit"]') as HTMLButtonElement;
+      
+      tituloModal.textContent = 'Editar Oferta';
+      btnEnviar.textContent = 'Actualizar Oferta';
+
+      // Guardar el ID de la oferta para saber que es una edición
+      (document.getElementById('formOferta') as HTMLFormElement).dataset.ofertaId = id.toString();
+
+      abrirModal();
     }
 
     async function eliminarOferta(id: number) {
       if (!confirm('¿Estás seguro de que deseas eliminar esta oferta?')) return;
 
       try {
-        const response = await fetch(`/api/admin/ofertas/${id}`, { method: 'DELETE' });
+        const response = await fetch(`/api/admin/ofertas/${id}`, { 
+          method: 'DELETE',
+          credentials: 'include'
+        });
         const data = await response.json();
         if (data.success) {
           cargarOfertas();
           alert('Oferta eliminada');
+        } else {
+          alert('Error: ' + data.error);
         }
       } catch (error) {
         console.error('Error eliminando oferta:', error);
+        alert('Error al eliminar oferta');
       }
     }
 

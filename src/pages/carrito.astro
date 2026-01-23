@@ -898,18 +898,17 @@ import Layout from '../layouts/Layout.astro';
           return;
         }
 
-        // Calcular descuento
-        let descuento = 0;
-        if (data.tipo_descuento === 'porcentaje') {
-          // subtotal está en centimos, calcular porcentaje y convertir a euros
-          const descuentoCentimos = (subtotal * data.valor) / 100;
-          descuento = descuentoCentimos / 100;
-        } else {
-          // data.valor ya está en euros
-          descuento = data.valor;
-        }
-
+        // El descuento ya viene calculado correctamente del endpoint
+        const descuento = data.descuento;
         descuentoAplicado = descuento;
+        
+        console.log('🔍 DEBUG Descuento:', {
+          descuentoRecibido: descuento,
+          tipoDescuento: data.tipo_descuento,
+          valor: data.valor,
+          montoCarrito: subtotal / 100
+        });
+        
         codigoValidado = {
           id: data.codigo_id,
           codigo: codigo,
@@ -949,14 +948,31 @@ import Layout from '../layouts/Layout.astro';
         // Obtener valores actuales
         const carritoItems = window.carritoItems || [];
         const subtotal = carritoItems.reduce((total, item) => {
-          let precioItem = item.precio_unitario * item.cantidad;
+          // El precio está guardado en centimos pero duplicado (17200 vs 1720000)
+          // Detectar y corregir automáticamente
+          let precio = item.precio_unitario;
+          while (precio > 100000) {
+            precio = Math.round(precio / 100);
+          }
+          let precioItem = precio * item.cantidad;
           if (item.cortado) {
             precioItem += 2000;
           }
           return total + precioItem;
         }, 0);
         const envio = 500; // 5€ en centimos
-        const totalConDescuento = (subtotal + envio) / 100 - descuentoAplicado;
+        // Convertir descuentoAplicado a centimos para restar correctamente
+        const descuentoEnCentimos = descuentoAplicado * 100;
+        const totalConDescuento = (subtotal + envio - descuentoEnCentimos) / 100;
+
+        console.log('💰 DEBUG Total:', {
+          subtotalCentimos: subtotal,
+          envioCentimos: envio,
+          descuentoEuros: descuentoAplicado,
+          descuentoCentimos: descuentoEnCentimos,
+          totalCentimos: (subtotal + envio - descuentoEnCentimos),
+          totalEuros: totalConDescuento
+        });
 
         totalDisplay.textContent = `${totalConDescuento.toFixed(2)}€`;
       } else {
