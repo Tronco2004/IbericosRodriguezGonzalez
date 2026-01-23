@@ -19,9 +19,9 @@ export const POST: APIRoute = async ({ request }) => {
       .eq('id', userId)
       .single();
 
-    if (errorUsuario || usuario.rol !== 'admin') {
+    if (errorUsuario || usuario?.rol !== 'admin') {
       return new Response(
-        JSON.stringify({ success: false, message: 'No autorizado' }),
+        JSON.stringify({ success: false, message: 'No autorizado: requiere ser admin' }),
         { status: 403 }
       );
     }
@@ -78,7 +78,7 @@ export const POST: APIRoute = async ({ request }) => {
         );
       }
       return new Response(
-        JSON.stringify({ success: false, message: 'Error al crear el código' }),
+        JSON.stringify({ success: false, message: errorCrear.message || 'Error al crear el código' }),
         { status: 500 }
       );
     }
