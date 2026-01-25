@@ -150,6 +150,31 @@ const success = params.get('status') === 'success';
   </div>
 
   <script>
+    function mostrarNotificacion(mensaje, tipo = 'error') {
+      console.log(`[${tipo.toUpperCase()}] ${mensaje}`);
+      const notificacion = document.createElement('div');
+      notificacion.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        background: ${tipo === 'exito' || tipo === 'success' ? '#28a745' : '#dc3545'};
+        color: white;
+        border-radius: 4px;
+        z-index: 10000;
+        max-width: 400px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        animation: slideIn 0.3s ease;
+      `;
+      notificacion.textContent = mensaje;
+      document.body.appendChild(notificacion);
+
+      setTimeout(() => {
+        notificacion.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => notificacion.remove(), 300);
+      }, 4000);
+    }
+
     async function crearPedidoDesdeStripe() {
       try {
         const params = new URLSearchParams(window.location.search);
@@ -207,29 +232,49 @@ const success = params.get('status') === 'success';
 
       console.log('📦 Items en carrito:', items.length);
 
+      // Normalizar precios a CENTIMOS (algunos pueden estar mal guardados)
+      const itemsNormalizados = items.map(item => {
+        let precio = item.precio_unitario;
+        
+        console.log('🔍 Normalizando precio:', { original: precio });
+        
+        // Si el precio es > 10000, está x100 de centimos
+        if (precio > 10000) {
+          precio = precio / 100;
+          console.log('  → Estaba x100, dividido por 100');
+        }
+        // Si es <= 100, está en euros - multiplicar por 100 para convertir a centimos
+        else if (precio <= 100) {
+          precio = precio * 100;
+          console.log('  → Estaba en euros, multiplicado por 100');
+        }
+        // Si 100 < precio <= 10000, ya está en centimos - no tocar
+        else {
+          console.log('  → Ya está en centimos');
+        }
+        
+        console.log('  → Final:', precio, '(centimos)');
+        
+        return {
+          ...item,
+          precio_unitario: precio
+        };
+      });
+
       // Formatear items para crear el pedido
-      const cartItems = items.map(item => ({
+      const cartItems = itemsNormalizados.map(item => ({
         producto_id: item.producto_id,
         producto_variante_id: item.producto_variante_id,
         nombre: item.productos?.nombre,
-        precio: item.precio_unitario,
+        precio: item.precio_unitario, // Ya normalizado a centimos
         cantidad: item.cantidad,
         peso_kg: item.peso_kg
       }));
 
-      // Calcular totales
+      // Calcular totales (todo en centimos)
       const SHIPPING_COST = 500;
-      const subtotal = items.reduce((sum, item) => sum + (item.precio_unitario * item.cantidad), 0);
+      const subtotal = itemsNormalizados.reduce((sum, item) => sum + (item.precio_unitario * item.cantidad), 0);
       const envio = SHIPPING_COST;
-
-      // Obtener email del usuario
-      const userDataResponse = await fetch('/api/auth/me', {
-        credentials: 'include',
-        headers: { 'x-user-id': userId }
-      });
-
-      const userDataRaw = await userDataResponse.json();
-      const userData = userDataRaw.usuario || userDataRaw;
 
       // Calcular descuento si existe
       let descuentoAplicado = 0;
@@ -275,9 +320,7 @@ const success = params.get('status') === 'success';
           envio,
           total: totalConDescuentoCentimos,
           descuento_aplicado: descuentoAplicado,
-          es_invitado: false,
-          email: userData.email,
-          telefono: userData.telefono || ''
+          es_invitado: false
         })
       });
 
@@ -288,16 +331,23 @@ const success = params.get('status') === 'success';
 
         // Registrar uso del código si existe
         if (codigoDescuento) {
-          await registrarUsoCodigo(codigoDescuento, pedidoData.pedido_id, userData.email, userId);
+          await registrarUsoCodigo(codigoDescuento, pedidoData.pedido_id, userId);
         }
 
+        // Limpiar localStorage
         localStorage.removeItem('carrito');
+        localStorage.removeItem('carrito_invitado');
+        localStorage.removeItem('checkout_invitado');
+        
+        console.log('✅ Carrito limpiado de localStorage');
+        console.log('✅ Redirigiendo a /mis-pedidos en 2 segundos...');
         
         setTimeout(() => {
           window.location.href = '/mis-pedidos';
         }, 2000);
       } else {
         console.error('Error del API:', pedidoData.error);
+        mostrarNotificacion('Error creando el pedido: ' + (pedidoData.error || 'Error desconocido'), 'error');
       }
     }
 

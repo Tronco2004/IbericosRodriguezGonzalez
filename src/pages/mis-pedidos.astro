@@ -219,9 +219,11 @@ import Layout from '../layouts/Layout.astro';
         await new Promise(resolve => setTimeout(resolve, 100));
         
         const userId = localStorage.getItem('user_id');
-        console.log('userId desde localStorage:', userId);
+        console.log('👤 userId desde localStorage:', userId);
+        console.log('👤 Tipo de userId:', typeof userId);
 
-        if (!userId) {
+        if (!userId || userId === 'null' || userId === 'undefined') {
+          console.warn('❌ userId no está disponible o es nulo');
           document.getElementById('loadingMessage').style.display = 'none';
           document.getElementById('pedidosContent').innerHTML = `
             <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; border-left: 4px solid #a89968;">
@@ -244,6 +246,7 @@ import Layout from '../layouts/Layout.astro';
           return;
         }
 
+        console.log('🔍 Llamando a GET /api/pedidos con userId:', userId);
         const response = await fetch('/api/pedidos', {
           credentials: 'include',
           headers: {
@@ -251,12 +254,21 @@ import Layout from '../layouts/Layout.astro';
           }
         });
 
+        console.log('📡 Response status:', response.status);
+        console.log('📡 Response ok:', response.ok);
+
         if (!response.ok) {
+          console.error('❌ Error HTTP:', response.status);
+          const errorData = await response.json().catch(() => ({}));
+          console.error('❌ Error data:', errorData);
           throw new Error('Error cargando pedidos');
         }
 
         const data = await response.json();
+        console.log('📦 Data completa:', JSON.stringify(data, null, 2));
+        
         const pedidos = data.pedidos || [];
+        console.log('📦 Pedidos:', pedidos?.length ?? 0);
 
         if (!pedidos || pedidos.length === 0) {
           document.getElementById('loadingMessage').style.display = 'none';
@@ -374,8 +386,21 @@ import Layout from '../layouts/Layout.astro';
               <div style="padding: 1.5rem;">
                 <h4 style="color: #001a33; margin: 0 0 1rem 0;">Productos</h4>
                 ${pedido.pedido_items.map((item, index) => {
-                  const precioUnitario = (parseFloat(item.precio_unitario) / 100) || (parseFloat(item.subtotal) / item.cantidad / 100);
-                  const subtotal = parseFloat(item.subtotal) / 100 || (precioUnitario * item.cantidad);
+                  let precioUnitario = parseFloat(item.precio_unitario) || 0;
+                  
+                  // FIX: Normalizar precio a euros
+                  if (precioUnitario > 10000) {
+                    // Está en centimos x100
+                    precioUnitario = precioUnitario / 100 / 100;
+                  } else if (precioUnitario > 100) {
+                    // Está en centimos
+                    precioUnitario = precioUnitario / 100;
+                  }
+                  // Si precioUnitario <= 100, ya está en euros
+                  
+                  // Calcular subtotal de forma segura
+                  let subtotal = precioUnitario * item.cantidad;
+                  
                   return `
                   <div style="
                     padding: 1rem;

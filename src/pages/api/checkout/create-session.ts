@@ -23,18 +23,38 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     // Construir los line items para Stripe
-    const lineItems = cartItems.map((item: any) => ({
-      price_data: {
-        currency: 'eur',
-        product_data: {
-          name: item.nombre,
-          description: item.peso_kg ? `Peso: ${item.peso_kg} kg` : undefined,
-          images: item.imagen ? [item.imagen] : [],
+    const lineItems = cartItems.map((item: any) => {
+      // El precio unitario ya está en centimos desde la BD
+      let precioEnCentimos = item.precio;
+      
+      // FIX: Si el precio está muy alto (> 100000), dividir por 100
+      // (esto significa que fue guardado mal multiplicado por 100)
+      if (precioEnCentimos > 100000) {
+        precioEnCentimos = Math.round(precioEnCentimos / 100);
+        console.log('⚠️  Precio demasiado alto, dividiendo:', { original: item.precio, corregido: precioEnCentimos });
+      }
+      
+      // El precio unitario * cantidad es lo que se cobra
+      console.log('💰 Item Stripe:', { 
+        nombre: item.nombre, 
+        precio_unitario_centimos: precioEnCentimos,
+        cantidad: item.cantidad,
+        total_item: precioEnCentimos * item.cantidad
+      });
+      
+      return {
+        price_data: {
+          currency: 'eur',
+          product_data: {
+            name: item.nombre,
+            description: item.peso_kg ? `Peso: ${item.peso_kg} kg` : undefined,
+            images: item.imagen ? [item.imagen] : [],
+          },
+          unit_amount: Math.round(precioEnCentimos), // Precio unitario en centimos
         },
-        unit_amount: Math.round(item.precio), // El precio ya está en centimos desde la BD
-      },
-      quantity: item.cantidad,
-    }));
+        quantity: item.cantidad, // Cantidad multiplica el unit_amount automáticamente
+      };
+    });
 
     // Agregar envío como un line item
     lineItems.push({

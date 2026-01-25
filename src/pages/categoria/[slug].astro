@@ -798,13 +798,16 @@ const info = categoryInfo[slug as string] || {
         return;
       }
 
+      // MOSTRAR todos los productos (no filtrar)
+      // Los productos variables sin variantes disponibles se mostrarán como "Agotado"
+
       grid.innerHTML = productos.map(p => {
         const botonText = p.es_variable ? 'Seleccionar Peso' : 'Añadir al Carrito';
         const botonClass = p.es_variable ? 'btn-seleccionar-variante' : 'btn-agregar-carrito';
 
         // Verificar stock
         const todasLasVariantes = variantesMap[p.id] || [];
-        const variantesConStock = todasLasVariantes.filter(v => v.disponible && (v.cantidad_disponible > 0));
+        const variantesConStock = todasLasVariantes.filter(v => v.disponible === true);
         const productoAgotado = (!p.es_variable && p.stock <= 0) || (p.es_variable && variantesConStock.length === 0);
 
         const stockText = p.es_variable 
@@ -975,9 +978,23 @@ const info = categoryInfo[slug as string] || {
 
       // Botones seleccionar variante
       document.querySelectorAll('.btn-seleccionar-variante:not([disabled])').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        btn.addEventListener('click', async (e) => {
           e.stopPropagation();
           const productoId = btn.getAttribute('data-id');
+          
+          // Actualizar variantes reservadas antes de abrir el modal
+          console.log('🔄 Actualizando variantes reservadas antes de abrir modal...');
+          try {
+            const reservadosResponse = await fetch('/api/productos/reservados');
+            if (reservadosResponse.ok) {
+              const data = await reservadosResponse.json();
+              variantesReservadas = data.variantesReservadas || {};
+              console.log('✅ Variantes reservadas actualizadas:', variantesReservadas);
+            }
+          } catch (error) {
+            console.error('❌ Error actualizando variantes reservadas:', error);
+          }
+          
           abrirModalVariantes(productoId, variantesReservadas);
         });
       });
@@ -1025,7 +1042,7 @@ const info = categoryInfo[slug as string] || {
       
       const disponibles = variantes.filter(v => {
         const estaReservada = variantesReservadas.includes(v.id);
-        return v.disponible && v.cantidad_disponible > 0 && !estaReservada;
+        return v.disponible === true && !estaReservada;
       });
 
       if (disponibles.length === 0) {
@@ -1070,7 +1087,7 @@ const info = categoryInfo[slug as string] || {
               </div>
               <div style="text-align: left;">
                 <div style="font-weight: 700; color: #1a1a1a; font-size: 1rem;">${v.peso_kg.toFixed(2)} kg</div>
-                <div style="font-size: 0.8rem; color: #666;">${v.cantidad_disponible} disponible${v.cantidad_disponible !== 1 ? 's' : ''}</div>
+                <div style="font-size: 0.8rem; color: #666;">1 variante disponible</div>
               </div>
             </div>
             <div style="
@@ -1246,7 +1263,7 @@ const info = categoryInfo[slug as string] || {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: #999">
               <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
             </svg>
-            Sin stock
+            Agotado
           `;
           stockSpan.style.color = '#999';
           stockSpan.style.background = '#f5f5f5';
@@ -1322,6 +1339,130 @@ const info = categoryInfo[slug as string] || {
       const cantidad = parseInt(document.getElementById('cantidadInput').value) || 1;
       agregarProductoAlCarrito(cantidad);
     });
+
+    // Escuchar evento de actualización del carrito
+    window.addEventListener('carritoActualizado', () => {
+      console.log('🔔 Evento carritoActualizado recibido en categoría, actualizando stock en tiempo real...');
+      actualizarStockEnTiempoReal();
+    });
+
+    async function actualizarStockEnTiempoReal() {
+      try {
+        console.log('🔄 Iniciando actualización de stock en tiempo real en categoría...');
+        
+        // Obtener variantes reservadas actuales
+        const reservadosResponse = await fetch('/api/productos/reservados');
+        if (!reservadosResponse.ok) {
+          console.error('❌ Error en respuesta del API reservados:', reservadosResponse.status);
+          return;
+        }
+        
+        const dataReservados = await reservadosResponse.json();
+        const variantesReservadas = dataReservados.variantesReservadas || {};
+        console.log('🔄 Variantes reservadas actualizadas:', variantesReservadas);
+
+        // Obtener stocks actuales de la BD
+        const stocksResponse = await fetch('/api/productos/stocks');
+        if (!stocksResponse.ok) {
+          console.error('❌ Error en respuesta del API stocks:', stocksResponse.status);
+          return;
+        }
+        
+        const dataStocks = await stocksResponse.json();
+        const stocksActuales = dataStocks.stocks || {};
+        console.log('🔄 Stocks actualizados:', stocksActuales);
+
+        // Actualizar cada tarjeta de producto
+        const articulos = document.querySelectorAll('article[data-id]');
+        console.log('📦 Encontrados ' + articulos.length + ' productos para actualizar');
+        
+        articulos.forEach(article => {
+          const productoId = parseInt(article.getAttribute('data-id'));
+          const producto = productosGlobal.find(p => p.id === productoId);
+          
+          if (!producto) {
+            console.log('⚠️  Producto ' + productoId + ' no encontrado en productosGlobal');
+            return;
+          }
+
+          // Obtener stock actual de la BD
+          const stockActual = stocksActuales[productoId] !== undefined ? stocksActuales[productoId] : producto.stock;
+          console.log('📊 Stock actual para producto ' + productoId + ': ' + stockActual);
+
+          // Recalcular estado del producto
+          const todasLasVariantes = variantesMap[productoId] || [];
+          const variantesConStock = todasLasVariantes.filter(v => {
+            const reservadas = variantesReservadas[productoId] || [];
+            return v.disponible === true && !reservadas.includes(v.id);
+          });
+          
+          const productoAgotado = (!producto.es_variable && stockActual <= 0) || (producto.es_variable && variantesConStock.length === 0);
+          console.log('📊 Producto ' + productoId + ': ' + variantesConStock.length + ' variantes disponibles, stock=' + stockActual + ', agotado: ' + productoAgotado);
+
+          // Actualizar estado del botón
+          const button = article.querySelector('button[class*="btn-"]');
+          if (button) {
+            button.disabled = productoAgotado;
+            
+            // Cambiar visualmente
+            if (productoAgotado) {
+              button.style.background = '#d0d0d0';
+              button.style.color = '#888';
+              button.style.boxShadow = 'none';
+            } else {
+              button.style.background = 'linear-gradient(135deg, #a89968 0%, #9a8a5c 100%)';
+              button.style.color = '#fff';
+              button.style.boxShadow = '0 4px 12px rgba(168, 153, 104, 0.3)';
+            }
+          }
+
+          // Actualizar indicador de stock
+          const stockElements = article.querySelectorAll('span');
+          for (let elem of stockElements) {
+            const html = elem.innerHTML;
+            if (html.includes('opción') || html.includes('unidad') || html.includes('Agotado')) {
+              const stockText = producto.es_variable 
+                ? `${variantesConStock.length} opción${variantesConStock.length !== 1 ? 'es' : ''}`
+                : `${stockActual} unidad${stockActual !== 1 ? 'es' : ''}`;
+              
+              const stockDisplay = productoAgotado ? 'Agotado' : stockText;
+              const svg = elem.querySelector('svg');
+              elem.innerHTML = `
+                ${svg ? svg.outerHTML : ''}
+                ${stockDisplay}
+              `;
+              console.log('✅ Stock actualizado para producto ' + productoId + ': ' + stockDisplay);
+              break;
+            }
+          }
+
+          // Actualizar overlay de "Agotado"
+          const link = article.querySelector('a[href*="/productos/"]');
+          if (link) {
+            const existingOverlay = link.querySelector('div[style*="position: absolute"]');
+            if (productoAgotado && !existingOverlay) {
+              // Crear overlay
+              const overlay = document.createElement('div');
+              overlay.style.cssText = "position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; border-radius: 8px;";
+              const badge = document.createElement('span');
+              badge.style.cssText = "background: linear-gradient(135deg, #c1121f 0%, #800000 100%); color: white; padding: 12px 24px; border-radius: 6px; font-weight: 700; font-size: 16px; text-shadow: 0 2px 4px rgba(0,0,0,0.3);";
+              badge.textContent = 'Agotado';
+              overlay.appendChild(badge);
+              link.appendChild(overlay);
+              console.log('✅ Overlay añadido para producto ' + productoId);
+            } else if (!productoAgotado && existingOverlay) {
+              // Eliminar overlay
+              existingOverlay.remove();
+              console.log('✅ Overlay eliminado para producto ' + productoId);
+            }
+          }
+        });
+        
+        console.log('✅ Actualización de stock completada');
+      } catch (error) {
+        console.error('❌ Error actualizando stock:', error);
+      }
+    }
 
     // Cargar productos al iniciar
     cargarProductos();
