@@ -38,7 +38,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     console.log('✅ Usuario registrado en auth.users:', userId);
 
     // 2. Crear registro en tabla usuarios con rol 'cliente' por defecto
-    // Nota: Necesitamos crear una sesión o usar RLS policy que permita insertar
     const { data: insertData, error: dbError } = await supabaseClient
       .from('usuarios')
       .insert([
