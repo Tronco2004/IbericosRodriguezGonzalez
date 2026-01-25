@@ -82,6 +82,7 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
+    // Usar cliente anónimo - RLS validará que sea admin
     const { data, error } = await supabase
       .from('ofertas')
       .insert([{
@@ -100,7 +101,7 @@ export const POST: APIRoute = async ({ request }) => {
     if (error) {
       console.error('Error creando oferta:', error);
       return new Response(
-        JSON.stringify({ success: false, error: 'Error al crear la oferta' }),
+        JSON.stringify({ success: false, error: error.message || 'Error al crear la oferta' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
