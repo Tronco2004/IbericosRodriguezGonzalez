@@ -62,13 +62,54 @@ const info = categoryInfo[slug as string] || {
   <!-- Barra de Filtros -->
   <div class="filters-bar">
     <div class="filters-container">
-      <select id="filtro-precio" class="filter-select">
-        <option value="">Todos los precios</option>
-        <option value="0-25">Menos de 25€</option>
-        <option value="25-50">25€ - 50€</option>
-        <option value="50-100">50€ - 100€</option>
-        <option value="100+">Más de 100€</option>
-      </select>
+      <!-- NUEVA SECCIÓN DE FILTRO DE PRECIO CON SLIDER -->
+      <div class="filtro-precio-container">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+          <label style="font-weight: 700; color: #001a33; font-size: 0.9rem;">Rango de Precio</label>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <span style="color: #001a33; font-weight: 600; font-size: 0.95rem;">
+              <span id="precioMinDisplay">€0</span>
+            </span>
+            <span style="color: #a89968; font-weight: 400;">—</span>
+            <span style="color: #001a33; font-weight: 600; font-size: 0.95rem;">
+              <span id="precioMaxDisplay">€1000</span>
+            </span>
+          </div>
+        </div>
+        
+        <div style="position: relative; width: 100%; height: 50px; display: flex; align-items: center; padding: 0 4px;">
+          <!-- Línea de track de fondo -->
+          <div style="position: absolute; width: 100%; height: 2px; background: #d4c4b0; border-radius: 1px; top: 50%; transform: translateY(-50%); left: 0;"></div>
+          
+          <!-- Sliders -->
+          <input type="range" id="sliderPrecioMin" min="0" max="1000" value="0" style="
+            position: absolute;
+            width: 100%;
+            height: 50px;
+            outline: none;
+            -webkit-appearance: none;
+            pointer-events: auto;
+            z-index: 5;
+            background: transparent;
+            padding: 0;
+            margin: 0;
+            left: 0;
+          " />
+          <input type="range" id="sliderPrecioMax" min="0" max="1000" value="1000" style="
+            position: absolute;
+            width: 100%;
+            height: 50px;
+            outline: none;
+            -webkit-appearance: none;
+            pointer-events: auto;
+            z-index: 6;
+            background: transparent;
+            padding: 0;
+            margin: 0;
+            left: 0;
+          " />
+        </div>
+      </div>
 
       <select id="filtro-orden" class="filter-select">
         <option value="">Ordenar por nombre</option>
@@ -287,6 +328,110 @@ const info = categoryInfo[slug as string] || {
       border-color: #a89968;
       color: #a89968;
       background: #faf9f7;
+    }
+
+    /* ===== FILTER PRECIO SLIDER ===== */
+    .filtro-precio-container {
+      padding: 1rem 0;
+      background: transparent;
+      border-radius: 0;
+      border: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      width: 100%;
+      max-width: 350px;
+    }
+
+    #sliderPrecioMin, #sliderPrecioMax {
+      -webkit-appearance: none;
+      width: 100%;
+      cursor: pointer;
+    }
+
+    #sliderPrecioMin::-webkit-slider-thumb, #sliderPrecioMax::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #a89968 0%, #8b7d52 100%);
+      cursor: grab;
+      border: 2px solid white;
+      box-shadow: 0 3px 10px rgba(0, 26, 51, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.5);
+      transition: all 0.2s ease;
+      position: relative;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    #sliderPrecioMin::-webkit-slider-thumb:hover, #sliderPrecioMax::-webkit-slider-thumb:hover {
+      background: linear-gradient(135deg, #b8a978 0%, #9a8a62 100%);
+      box-shadow: 0 4px 14px rgba(168, 153, 104, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.6);
+      transform: translateY(-50%) scale(1.1);
+    }
+
+    #sliderPrecioMin::-webkit-slider-thumb:active, #sliderPrecioMax::-webkit-slider-thumb:active {
+      cursor: grabbing;
+      background: linear-gradient(135deg, #987d52 0%, #7a6d42 100%);
+      box-shadow: 0 2px 8px rgba(0, 26, 51, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+      transform: translateY(-50%);
+    }
+
+    #sliderPrecioMin::-moz-range-thumb, #sliderPrecioMax::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #a89968 0%, #8b7d52 100%);
+      cursor: grab;
+      border: 2px solid white;
+      box-shadow: 0 3px 10px rgba(0, 26, 51, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.5);
+      transition: all 0.2s ease;
+      position: relative;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    #sliderPrecioMin::-moz-range-thumb:hover, #sliderPrecioMax::-moz-range-thumb:hover {
+      background: linear-gradient(135deg, #b8a978 0%, #9a8a62 100%);
+      box-shadow: 0 4px 14px rgba(168, 153, 104, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.6);
+      transform: translateY(-50%) scale(1.1);
+    }
+
+    #sliderPrecioMin::-moz-range-thumb:active, #sliderPrecioMax::-moz-range-thumb:active {
+      cursor: grabbing;
+      background: linear-gradient(135deg, #987d52 0%, #7a6d42 100%);
+      box-shadow: 0 2px 8px rgba(0, 26, 51, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+      transform: translateY(-50%);
+    }
+
+    #sliderPrecioMin::-webkit-slider-runnable-track, #sliderPrecioMax::-webkit-slider-runnable-track {
+      background: transparent;
+      border: none;
+      height: 50px;
+    }
+
+    #sliderPrecioMin::-moz-range-track, #sliderPrecioMax::-moz-range-track {
+      background: transparent;
+      border: none;
+    }
+
+    #sliderPrecioMin::-moz-focus-outer, #sliderPrecioMax::-moz-focus-outer {
+      border: none;
+    }
+
+    @media (max-width: 1024px) {
+      .filtro-precio-container {
+        min-width: 100%;
+        width: 100%;
+        margin-bottom: 1rem;
+      }
+
+      .btn-reset-filters {
+        margin-left: 0;
+        width: 100%;
+        justify-content: center;
+      }
     }
 
     @media (max-width: 768px) {
@@ -684,16 +829,55 @@ const info = categoryInfo[slug as string] || {
         renderizarProductos(productos);
 
         // Agregar event listeners a los filtros
-        const filtroPrecios = document.getElementById('filtro-precio');
+        const sliderPrecioMin = document.getElementById('sliderPrecioMin');
+        const sliderPrecioMax = document.getElementById('sliderPrecioMax');
+        const precioMinDisplay = document.getElementById('precioMinDisplay');
+        const precioMaxDisplay = document.getElementById('precioMaxDisplay');
         const filtroOrden = document.getElementById('filtro-orden');
         const btnResetFiltros = document.getElementById('btn-reset-filtros');
 
-        if (filtroPrecios) {
-          filtroPrecios.addEventListener('change', () => {
-            actualizarContadorFiltrado();
-            aplicarFiltros();
-          });
+        // Inicializar con valores reales del catálogo
+        const preciosProductos = productosOriginales.map(p => parseFloat(p.precio)).sort((a, b) => a - b);
+        const precioMinReal = Math.floor(preciosProductos[0]) || 0;
+        const precioMaxReal = Math.ceil(preciosProductos[preciosProductos.length - 1]) || 1000;
+        
+        console.log('Precios encontrados:', preciosProductos);
+        console.log('Precio máximo real:', precioMaxReal);
+        
+        // Actualizar los sliders de visualización
+        sliderPrecioMin.value = 0;
+        sliderPrecioMax.value = precioMaxReal;
+        precioMinDisplay.textContent = `€0`;
+        precioMaxDisplay.textContent = `€${precioMaxReal}`;
+        
+        sliderPrecioMin.max = precioMaxReal;
+        sliderPrecioMax.min = 0;
+        sliderPrecioMax.max = precioMaxReal;
+
+        function actualizarSliders() {
+          const min = parseFloat(sliderPrecioMin.value) || 0;
+          const max = parseFloat(sliderPrecioMax.value) || precioMaxReal;
+
+          if (min > max) {
+            sliderPrecioMin.value = max;
+          }
+          if (max < min) {
+            sliderPrecioMax.value = min;
+          }
+
+          // Actualizar displays
+          const minVal = Math.round(sliderPrecioMin.value) || 0;
+          const maxVal = Math.round(sliderPrecioMax.value) || precioMaxReal;
+          
+          precioMinDisplay.textContent = `€${minVal}`;
+          precioMaxDisplay.textContent = `€${maxVal}`;
+          
+          actualizarContadorFiltrado();
+          aplicarFiltros();
         }
+
+        sliderPrecioMin.addEventListener('input', actualizarSliders);
+        sliderPrecioMax.addEventListener('input', actualizarSliders);
 
         if (filtroOrden) {
           filtroOrden.addEventListener('change', () => {
@@ -704,9 +888,12 @@ const info = categoryInfo[slug as string] || {
 
         if (btnResetFiltros) {
           btnResetFiltros.addEventListener('click', () => {
-            if (filtroPrecios) filtroPrecios.value = '';
+            sliderPrecioMin.value = 0;
+            sliderPrecioMax.value = precioMaxReal;
+            precioMinDisplay.textContent = `€0`;
+            precioMaxDisplay.textContent = `€${precioMaxReal}`;
             if (filtroOrden) filtroOrden.value = '';
-            document.getElementById('productsCount').textContent = 
+            document.getElementById('productsCount').textContent =
               `${productosOriginales.length} producto${productosOriginales.length !== 1 ? 's' : ''} encontrado${productosOriginales.length !== 1 ? 's' : ''}`;
             renderizarProductos(productosOriginales);
           });
@@ -735,16 +922,11 @@ const info = categoryInfo[slug as string] || {
     }
 
     function actualizarContadorFiltrado() {
-      const precioSelect = document.getElementById('filtro-precio');
+      const precioMin = parseFloat(document.getElementById('precioMin').value) || 0;
+      const precioMax = parseFloat(document.getElementById('precioMax').value) || 1000;
       const filtrados = productosOriginales.filter(p => {
-        if (precioSelect.value === '') return true;
-        
         const precio = parseFloat(p.precio);
-        if (precioSelect.value === '0-25') return precio < 25;
-        if (precioSelect.value === '25-50') return precio >= 25 && precio < 50;
-        if (precioSelect.value === '50-100') return precio >= 50 && precio < 100;
-        if (precioSelect.value === '100+') return precio >= 100;
-        return true;
+        return precio >= precioMin && precio <= precioMax;
       });
 
       document.getElementById('productsCount').textContent = 
@@ -752,22 +934,16 @@ const info = categoryInfo[slug as string] || {
     }
 
     function aplicarFiltros() {
-      const precioSelect = document.getElementById('filtro-precio');
+      const precioMin = parseFloat(document.getElementById('precioMin').value) || 0;
+      const precioMax = parseFloat(document.getElementById('precioMax').value) || 1000;
       const ordenSelect = document.getElementById('filtro-orden');
       
-      const precioSeleccionado = precioSelect.value;
       const ordenSeleccionado = ordenSelect.value;
 
       // Filtrar por precio
       let productosFiltrados = productosOriginales.filter(p => {
-        if (precioSeleccionado === '') return true;
-        
         const precio = parseFloat(p.precio);
-        if (precioSeleccionado === '0-25') return precio < 25;
-        if (precioSeleccionado === '25-50') return precio >= 25 && precio < 50;
-        if (precioSeleccionado === '50-100') return precio >= 50 && precio < 100;
-        if (precioSeleccionado === '100+') return precio >= 100;
-        return true;
+        return precio >= precioMin && precio <= precioMax;
       });
 
       // Ordenar
@@ -801,7 +977,23 @@ const info = categoryInfo[slug as string] || {
       // MOSTRAR todos los productos (no filtrar)
       // Los productos variables sin variantes disponibles se mostrarán como "Agotado"
 
-      grid.innerHTML = productos.map(p => {
+      // Ordenar: productos disponibles primero, agotados al final
+      const productosOrdenados = productos.sort((a, b) => {
+        const todasLasVariantesA = variantesMap[a.id] || [];
+        const variantesConStockA = todasLasVariantesA.filter(v => v.disponible === true);
+        const agotadoA = (!a.es_variable && a.stock <= 0) || (a.es_variable && variantesConStockA.length === 0);
+        
+        const todasLasVariantesB = variantesMap[b.id] || [];
+        const variantesConStockB = todasLasVariantesB.filter(v => v.disponible === true);
+        const agotadoB = (!b.es_variable && b.stock <= 0) || (b.es_variable && variantesConStockB.length === 0);
+        
+        // Si uno está agotado y otro no, el disponible va primero
+        if (agotadoA && !agotadoB) return 1;
+        if (!agotadoA && agotadoB) return -1;
+        return 0;
+      });
+
+      grid.innerHTML = productosOrdenados.map(p => {
         const botonText = p.es_variable ? 'Seleccionar Peso' : 'Añadir al Carrito';
         const botonClass = p.es_variable ? 'btn-seleccionar-variante' : 'btn-agregar-carrito';
 
@@ -906,19 +1098,10 @@ const info = categoryInfo[slug as string] || {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                gap: 8px;
-                padding-top: 8px;
+                gap: 12px;
+                padding-top: 12px;
+                margin-top: auto;
               ">
-                <span style="
-                  border-radius: 20px;
-                  background: #f5f3ef;
-                  padding: 6px 12px;
-                  font-size: 0.75rem;
-                  color: #666;
-                  font-weight: 500;
-                ">
-                  ${stockText}
-                </span>
                 <div style="
                   display: flex;
                   align-items: baseline;
@@ -937,27 +1120,29 @@ const info = categoryInfo[slug as string] || {
                     color: #a89968;
                   ">${p.precio}€</span>
                 </div>
+                
+                <button 
+                  class="product-btn ${botonClass}"
+                  data-id="${p.id}"
+                  ${productoAgotado ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}
+                  style="
+                    padding: 6px 10px;
+                    background: linear-gradient(135deg, #a89968 0%, #9a8a5c 100%);
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    font-size: 0.65rem;
+                    cursor: ${productoAgotado ? 'not-allowed' : 'pointer'};
+                    transition: all 0.3s;
+                    box-shadow: 0 4px 12px rgba(168, 153, 104, 0.3);
+                    flex-shrink: 0;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    white-space: nowrap;
+                  "
+                >${botonText}</button>
               </div>
-              
-              <button 
-                class="product-btn ${botonClass}"
-                data-id="${p.id}"
-                ${productoAgotado ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}
-                style="
-                  width: 100%;
-                  padding: 12px 16px;
-                  margin-top: auto;
-                  background: linear-gradient(135deg, #a89968 0%, #9a8a5c 100%);
-                  color: white;
-                  border: none;
-                  border-radius: 12px;
-                  font-weight: 600;
-                  font-size: 0.9rem;
-                  cursor: ${productoAgotado ? 'not-allowed' : 'pointer'};
-                  transition: all 0.3s;
-                  box-shadow: 0 4px 12px rgba(168, 153, 104, 0.3);
-                "
-              >${botonText}</button>
             </div>
           </article>
         `;
