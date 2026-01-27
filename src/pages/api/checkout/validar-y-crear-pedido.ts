@@ -111,7 +111,7 @@ export const POST: APIRoute = async ({ request }) => {
         usuario_id: userId || null, // null si es invitado
         stripe_session_id: sessionId,
         numero_pedido: numeroPedido,
-        estado: 'confirmado',
+        estado: 'pagado',
         subtotal: 0, // Será actualizado después de insertar items
         envio: envio, // En euros
         impuestos: 0,
@@ -171,6 +171,47 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     console.log(`✅ ${itemsCreated?.length || 0} items creados`);
+
+    // ✅ DESCONTAR STOCK DE PRODUCTOS NORMALES (sin variante)
+    // Las variantes se eliminan automáticamente por trigger en la BD
+    for (const item of cartItems) {
+      if (!item.producto_variante_id) {
+        // Producto normal: descontar del stock
+        // Primero obtener el stock actual
+        const { data: producto, error: getError } = await supabaseClient
+          .from('productos')
+          .select('stock')
+          .eq('id', item.producto_id)
+          .single();
+        
+        if (!getError && producto) {
+          const nuevoStock = Math.max(0, (producto.stock || 0) - (item.cantidad || 1));
+          const { error: stockError } = await supabaseClient
+            .from('productos')
+            .update({ stock: nuevoStock })
+            .eq('id', item.producto_id);
+          
+          if (stockError) {
+            console.warn('⚠️ Error descontando stock del producto:', item.producto_id, stockError);
+          } else {
+            console.log('✅ Stock descontado para producto:', item.producto_id, 'cantidad:', item.cantidad, 'nuevo stock:', nuevoStock);
+          }
+        }
+      } else {
+        // Producto con variante: eliminar la variante de la BD
+        console.log('🗑️ Eliminando variante vendida:', item.producto_variante_id);
+        const { error: deleteError } = await supabaseClient
+          .from('producto_variantes')
+          .delete()
+          .eq('id', item.producto_variante_id);
+        
+        if (deleteError) {
+          console.warn('⚠️ Error eliminando variante:', item.producto_variante_id, deleteError);
+        } else {
+          console.log('✅ Variante eliminada:', item.producto_variante_id);
+        }
+      }
+    }
 
     // ✅ RECALCULAR SUBTOTAL Y TOTAL DEL PEDIDO basado en items insertados
     const subtotalCalculado = itemsCreated?.reduce((sum: number, item: any) => sum + (item.subtotal || 0), 0) || 0;
