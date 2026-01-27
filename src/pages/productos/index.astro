@@ -627,6 +627,257 @@ import Layout from '../../layouts/Layout.astro';
       padding: 1rem;
     }
 
+    /* ===== STOCK INFO & LABELS ===== */
+    :global(.stock-info) {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      background: var(--bg-tertiary);
+      padding: 5px 10px;
+      border-radius: 20px;
+      transition: all 0.3s ease;
+    }
+
+    :global(.stock-info svg) {
+      color: var(--color-accent);
+    }
+
+    :global(.stock-info.stock-agotado) {
+      color: #999;
+      background: #f5f5f5;
+    }
+
+    :global(.stock-info.stock-agotado svg) {
+      color: #999;
+    }
+
+    :global(.stock-label) {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    :global(.stock-label-disponible) {
+      background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+      color: #065f46;
+    }
+
+    :global(.stock-label-agotandose) {
+      background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%);
+      color: #92400e;
+    }
+
+    :global(.stock-label-ultima) {
+      background: linear-gradient(135deg, #fee2e2 0%, #fca5a5 100%);
+      color: #991b1b;
+      animation: pulse-stock 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-stock {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    /* ====== ESTILOS TARJETAS DE PRODUCTO ====== */
+    :global(.producto-card) {
+      background: var(--bg-card);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      border: 1px solid var(--border-color);
+    }
+
+    :global(.producto-card:hover) {
+      transform: translateY(-8px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    }
+
+    :global(.producto-oferta-badge) {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      z-index: 10;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    :global(.producto-img-container) {
+      position: relative;
+      padding-top: 80%;
+      overflow: hidden;
+      background: linear-gradient(145deg, #f8f5f0, #f0ebe3);
+    }
+
+    [data-theme="dark"] :global(.producto-img-container) {
+      background: linear-gradient(145deg, #2a2a2a, #1f1f1f);
+    }
+
+    :global(.producto-img-link) {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    :global(.producto-img) {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    :global(.producto-card:hover .producto-img) {
+      transform: scale(1.08);
+    }
+
+    :global(.producto-agotado-overlay) {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    :global(.producto-agotado-text) {
+      background: rgba(0,0,0,0.85);
+      color: #fff;
+      padding: 10px 24px;
+      border-radius: 30px;
+      font-weight: 800;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    :global(.producto-info) {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+    }
+
+    :global(.producto-nombre-link) {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    :global(.producto-nombre) {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0 0 8px;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      transition: color 0.3s;
+    }
+
+    :global(.producto-nombre-link:hover .producto-nombre) {
+      color: var(--color-accent);
+    }
+
+    :global(.producto-stock-row) {
+      margin-bottom: 10px;
+    }
+
+    :global(.producto-footer) {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: auto;
+      padding-top: 8px;
+      gap: 8px;
+    }
+
+    :global(.producto-precio-wrap) {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    :global(.producto-precio) {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+
+    :global(.producto-precio-original) {
+      text-decoration: line-through;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    :global(.producto-precio-oferta) {
+      color: #dc2626;
+    }
+
+    :global(.product-btn) {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 6px 10px;
+      background: linear-gradient(135deg, #a89968 0%, #9a8a5c 100%);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.65rem;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 12px rgba(168, 153, 104, 0.3);
+      flex-shrink: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    :global(.product-btn:hover:not(:disabled)) {
+      background: linear-gradient(135deg, #9a8a5c 0%, #8a7a4c 100%);
+      transform: scale(1.05);
+      box-shadow: 0 6px 16px rgba(168, 153, 104, 0.4);
+    }
+
+    :global(.product-btn.btn-agotado) {
+      background: #d0d0d0 !important;
+      color: #888 !important;
+      cursor: not-allowed;
+      box-shadow: none !important;
+    }
+
+    [data-theme="dark"] :global(.product-btn.btn-agotado) {
+      background: #404040 !important;
+      color: #777 !important;
+    }
+
     .cantidad-input-wrapper {
       display: flex;
       align-items: center;
@@ -863,169 +1114,72 @@ import Layout from '../../layouts/Layout.astro';
         // El producto está agotado si: (no es variable y no tiene stock) O (es variable y no tiene variantes con stock)
         const productoAgotado = (!p.es_variable && p.stock <= 0) || (p.es_variable && variantesConStock.length === 0);
         
+        // Calcular cantidad disponible (para productos variables cuenta las variantes, para normales el stock)
+        const cantidadDisponible = p.es_variable ? variantesConStock.length : p.stock;
+        
+        // Determinar etiqueta de estado de stock
+        let stockLabel = '';
+        let stockLabelClass = '';
+        if (!productoAgotado) {
+          if (cantidadDisponible === 1) {
+            stockLabel = '¡ÚLTIMA UNIDAD!';
+            stockLabelClass = 'stock-label-ultima';
+          } else if (cantidadDisponible <= 5) {
+            stockLabel = 'Agotándose';
+            stockLabelClass = 'stock-label-agotandose';
+          } else {
+            stockLabel = 'Disponible';
+            stockLabelClass = 'stock-label-disponible';
+          }
+        }
+        
         // Texto de stock a mostrar
         const stockText = p.es_variable 
           ? `${variantesConStock.length} opción${variantesConStock.length !== 1 ? 'es' : ''}`
           : `${p.stock} unidad${p.stock !== 1 ? 'es' : ''}`;
 
         return `
-          <article data-id="${p.id}" style="
-            background: #fff;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            display: flex;
-            flex-direction: column;
-          ">
+          <article data-id="${p.id}" class="producto-card">
             ${p.tieneOferta ? `
-              <div style="
-                position: absolute;
-                top: 16px;
-                left: 16px;
-                z-index: 10;
-                background: linear-gradient(135deg, #e53935 0%, #c62828 100%);
-                color: white;
-                padding: 6px 14px;
-                border-radius: 30px;
-                font-weight: 700;
-                font-size: 0.8rem;
-                box-shadow: 0 4px 15px rgba(229, 57, 53, 0.4);
-                letter-spacing: 0.5px;
-              ">-${p.oferta.porcentaje_descuento}%</div>
+              <div class="producto-oferta-badge">-${p.oferta.porcentaje_descuento}%</div>
             ` : ''}
             
-            <a href="/productos/${p.id}" style="
-              display: block;
-              width: 100%;
-              aspect-ratio: 1/1;
-              overflow: hidden;
-              background: linear-gradient(145deg, #f5f5f5 0%, #e8e8e8 100%);
-              position: relative;
-            ">
-              <img src="${p.imagen}" alt="${p.nombre}" loading="lazy" style="
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-                object-position: center;
-                transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-              " class="product-image" />
+            <div class="producto-img-container">
+              <a href="/productos/${p.id}" class="producto-img-link">
+                <img src="${p.imagen}" alt="${p.nombre}" loading="lazy" class="producto-img" />
+              </a>
               ${productoAgotado ? `
-                <div style="
-                  position: absolute;
-                  inset: 0;
-                  background: rgba(0,0,0,0.5);
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                ">
-                  <span style="
-                    background: rgba(255,255,255,0.95);
-                    color: #1a1a1a;
-                    padding: 10px 24px;
-                    border-radius: 30px;
-                    font-weight: 700;
-                    font-size: 0.85rem;
-                    text-transform: uppercase;
-                    letter-spacing: 1.5px;
-                  ">Agotado</span>
+                <div class="producto-agotado-overlay">
+                  <span class="producto-agotado-text">Agotado</span>
                 </div>
               ` : ''}
-            </a>
+            </div>
             
-            <div style="
-              padding: 20px;
-              display: flex;
-              flex-direction: column;
-              flex-grow: 1;
-              gap: 8px;
-            ">
-              <a href="/productos/${p.id}" style="text-decoration: none;">
-                <h3 style="
-                  font-size: 1rem;
-                  font-weight: 600;
-                  color: #1a1a1a;
-                  margin: 0;
-                  line-height: 1.4;
-                  display: -webkit-box;
-                  -webkit-line-clamp: 2;
-                  -webkit-box-orient: vertical;
-                  overflow: hidden;
-                  transition: color 0.2s;
-                " class="product-title">${p.nombre}</h3>
+            <div class="producto-info">
+              <a href="/productos/${p.id}" class="producto-nombre-link">
+                <h3 class="producto-nombre">${p.nombre}</h3>
               </a>
               
-              <div style="
-                display: flex;
-                align-items: center;
-                gap: 6px;
-                margin-top: 4px;
-              ">
-                <span style="
-                  display: inline-flex;
-                  align-items: center;
-                  gap: 5px;
-                  font-size: 0.75rem;
-                  color: ${productoAgotado ? '#999' : '#666'};
-                  background: ${productoAgotado ? '#f5f5f5' : '#f0efe8'};
-                  padding: 5px 10px;
-                  border-radius: 20px;
-                ">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: ${productoAgotado ? '#999' : '#a89968'}">
+              <div class="producto-stock-row">
+                <span class="stock-info ${productoAgotado ? 'stock-agotado' : ''}">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
                   </svg>
                   ${productoAgotado ? 'Agotado' : stockText}
                 </span>
+                ${!productoAgotado ? `<span class="stock-label ${stockLabelClass}">${stockLabel}</span>` : ''}
               </div>
               
-              <div style="
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                gap: 12px;
-                margin-top: auto;
-                padding-top: 16px;
-                border-top: 1px solid #f0f0f0;
-              ">
-                <div style="display: flex; align-items: baseline; gap: 8px;">
-                  ${p.tieneOferta ? `<span style="
-                    font-size: 0.85rem;
-                    color: #999;
-                    text-decoration: line-through;
-                  ">${p.precioOriginal}€</span>` : ''}
-                  <span style="
-                    font-size: 1.5rem;
-                    font-weight: 800;
-                    color: ${p.tieneOferta ? '#e53935' : '#1a1a1a'};
-                    letter-spacing: -0.5px;
-                  ">${p.precio}€</span>
+              <div class="producto-footer">
+                <div class="producto-precio-wrap">
+                  ${p.tieneOferta ? `<span class="producto-precio-original">${p.precioOriginal}€</span>` : ''}
+                  <span class="producto-precio ${p.tieneOferta ? 'producto-precio-oferta' : ''}">${p.precio}€</span>
                 </div>
                 
                 <button 
-                  class="${botonClass}${!productoAgotado ? ' product-btn' : ''}" 
+                  class="${botonClass} product-btn ${productoAgotado ? 'btn-agotado' : ''}" 
                   data-id="${p.id}" 
                   ${productoAgotado ? 'disabled' : ''}
-                  style="
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 6px;
-                    padding: 6px 10px;
-                    background: ${productoAgotado ? '#d0d0d0' : 'linear-gradient(135deg, #a89968 0%, #9a8a5c 100%)'};
-                    color: ${productoAgotado ? '#888' : '#fff'};
-                    border: none;
-                    border-radius: 8px;
-                    font-weight: 700;
-                    font-size: 0.65rem;
-                    cursor: ${productoAgotado ? 'not-allowed' : 'pointer'};
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    box-shadow: ${productoAgotado ? 'none' : '0 4px 12px rgba(168, 153, 104, 0.3)'};
-                    flex-shrink: 0;
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                    white-space: nowrap;
-                  "
                 >
                   ${productoAgotado ? `
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
