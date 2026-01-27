@@ -64,50 +64,26 @@ const info = categoryInfo[slug as string] || {
     <div class="filters-container">
       <!-- NUEVA SECCIÓN DE FILTRO DE PRECIO CON SLIDER -->
       <div class="filtro-precio-container">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
-          <label style="font-weight: 700; color: #001a33; font-size: 0.9rem;">Rango de Precio</label>
-          <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <span style="color: #001a33; font-weight: 600; font-size: 0.95rem;">
+        <div class="filtro-precio-header">
+          <label class="filtro-precio-label">Rango de Precio</label>
+          <div class="filtro-precio-values">
+            <span class="filtro-precio-value">
               <span id="precioMinDisplay">€0</span>
             </span>
-            <span style="color: #a89968; font-weight: 400;">—</span>
-            <span style="color: #001a33; font-weight: 600; font-size: 0.95rem;">
+            <span class="filtro-precio-separator">—</span>
+            <span class="filtro-precio-value">
               <span id="precioMaxDisplay">€1000</span>
             </span>
           </div>
         </div>
         
-        <div style="position: relative; width: 100%; height: 50px; display: flex; align-items: center; padding: 0 4px;">
+        <div class="filtro-slider-wrapper">
           <!-- Línea de track de fondo -->
-          <div style="position: absolute; width: 100%; height: 2px; background: #d4c4b0; border-radius: 1px; top: 50%; transform: translateY(-50%); left: 0;"></div>
+          <div class="filtro-slider-track"></div>
           
           <!-- Sliders -->
-          <input type="range" id="sliderPrecioMin" min="0" max="1000" value="0" style="
-            position: absolute;
-            width: 100%;
-            height: 50px;
-            outline: none;
-            -webkit-appearance: none;
-            pointer-events: auto;
-            z-index: 5;
-            background: transparent;
-            padding: 0;
-            margin: 0;
-            left: 0;
-          " />
-          <input type="range" id="sliderPrecioMax" min="0" max="1000" value="1000" style="
-            position: absolute;
-            width: 100%;
-            height: 50px;
-            outline: none;
-            -webkit-appearance: none;
-            pointer-events: auto;
-            z-index: 6;
-            background: transparent;
-            padding: 0;
-            margin: 0;
-            left: 0;
-          " />
+          <input type="range" id="sliderPrecioMin" min="0" max="1000" value="0" />
+          <input type="range" id="sliderPrecioMax" min="0" max="1000" value="1000" />
         </div>
       </div>
 
@@ -243,11 +219,11 @@ const info = categoryInfo[slug as string] || {
       align-items: center;
       padding: 1rem 0;
       margin-bottom: 1.5rem;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid var(--border-color, #eee);
     }
 
     .products-count-bar span {
-      color: #666;
+      color: var(--text-muted, #666);
       font-size: 0.9rem;
     }
 
@@ -269,10 +245,10 @@ const info = categoryInfo[slug as string] || {
 
     /* ===== FILTERS BAR ===== */
     .filters-bar {
-      background: #fff;
+      background: var(--bg-card, #fff);
       padding: 1.5rem 0;
       margin-bottom: 2rem;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid var(--border-color, #eee);
     }
 
     .filters-container {
@@ -287,25 +263,30 @@ const info = categoryInfo[slug as string] || {
 
     .filter-select {
       padding: 0.75rem 1rem;
-      background: #f5f5f5;
-      border: 1px solid #ddd;
+      background: var(--bg-tertiary, #f5f5f5);
+      border: 1px solid var(--border-color, #ddd);
       border-radius: 8px;
       font-size: 0.9rem;
-      color: #333;
+      color: var(--text-primary, #333);
       cursor: pointer;
       transition: all 0.2s;
       min-width: 180px;
     }
 
     .filter-select:hover {
-      border-color: #a89968;
-      background: #faf9f7;
+      border-color: var(--color-accent, #a89968);
+      background: var(--bg-secondary, #faf9f7);
     }
 
     .filter-select:focus {
       outline: none;
-      border-color: #a89968;
+      border-color: var(--color-accent, #a89968);
       box-shadow: 0 0 0 3px rgba(168, 153, 104, 0.1);
+    }
+
+    .filter-select option {
+      background: var(--bg-card, #fff);
+      color: var(--text-primary, #333);
     }
 
     .btn-reset-filters {
@@ -314,9 +295,9 @@ const info = categoryInfo[slug as string] || {
       gap: 0.5rem;
       padding: 0.75rem 1.25rem;
       background: transparent;
-      border: 1px solid #ddd;
+      border: 1px solid var(--border-color, #ddd);
       border-radius: 8px;
-      color: #666;
+      color: var(--text-muted, #666);
       font-size: 0.9rem;
       font-weight: 500;
       cursor: pointer;
@@ -325,9 +306,9 @@ const info = categoryInfo[slug as string] || {
     }
 
     .btn-reset-filters:hover {
-      border-color: #a89968;
-      color: #a89968;
-      background: #faf9f7;
+      border-color: var(--color-accent, #a89968);
+      color: var(--color-accent, #a89968);
+      background: var(--bg-tertiary, #faf9f7);
     }
 
     /* ===== FILTER PRECIO SLIDER ===== */
@@ -343,10 +324,76 @@ const info = categoryInfo[slug as string] || {
       max-width: 350px;
     }
 
-    #sliderPrecioMin, #sliderPrecioMax {
-      -webkit-appearance: none;
+    .filtro-precio-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+
+    .filtro-precio-label {
+      font-weight: 700;
+      color: var(--text-primary, #001a33);
+      font-size: 0.9rem;
+    }
+
+    .filtro-precio-values {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .filtro-precio-value {
+      color: var(--text-primary, #001a33);
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .filtro-precio-separator {
+      color: var(--color-accent, #a89968);
+      font-weight: 400;
+    }
+
+    .filtro-slider-wrapper {
+      position: relative;
       width: 100%;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      padding: 0 4px;
+    }
+
+    .filtro-slider-track {
+      position: absolute;
+      width: 100%;
+      height: 2px;
+      background: var(--border-color, #d4c4b0);
+      border-radius: 1px;
+      top: 50%;
+      transform: translateY(-50%);
+      left: 0;
+    }
+
+    #sliderPrecioMin, #sliderPrecioMax {
+      position: absolute;
+      width: 100%;
+      height: 50px;
+      outline: none;
+      -webkit-appearance: none;
+      pointer-events: auto;
+      background: transparent;
+      padding: 0;
+      margin: 0;
+      left: 0;
       cursor: pointer;
+    }
+
+    #sliderPrecioMin {
+      z-index: 5;
+    }
+
+    #sliderPrecioMax {
+      z-index: 6;
     }
 
     #sliderPrecioMin::-webkit-slider-thumb, #sliderPrecioMax::-webkit-slider-thumb {
