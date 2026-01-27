@@ -1,5 +1,6 @@
 ---
 import MegaMenu from '../components/MegaMenu.astro';
+import ChatBot from '../components/ChatBot.astro';
 import { supabaseClient } from '../lib/supabase';
 
 const title = "IbericosRG - Surtidos Ibéricos Premium";
@@ -1937,5 +1938,8 @@ const { data: categorias } = await supabaseClient
         }
       });
     </script>
+
+    <!-- Chatbot flotante -->
+    <ChatBot />
   </body>
 </html>
