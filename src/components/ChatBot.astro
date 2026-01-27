@@ -558,7 +558,10 @@
 
   function scrollToBottom() {
     if (chatMessages) {
-      chatMessages.scrollTop = chatMessages.scrollHeight;
+      // Usar requestAnimationFrame para evitar forced reflow
+      requestAnimationFrame(() => {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      });
     }
   }
 
