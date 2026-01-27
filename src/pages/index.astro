@@ -442,11 +442,15 @@ const productos = [
   }
 
   .section-label {
-    color: var(--color-accent);
+    color: #7a6b4a; /* Mejor contraste que var(--color-accent) */
     font-size: clamp(0.65rem, 2vw, 0.85rem);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1.5px;
+  }
+
+  [data-theme="dark"] .section-label {
+    color: #c4b896;
   }
 
   .section-title {
@@ -456,11 +460,14 @@ const productos = [
   }
 
   .section-subtitle {
-    opacity: 0.7;
     font-size: clamp(0.95rem, 2.5vw, 1.05rem);
     max-width: 600px;
     margin: clamp(0.8rem, 3vw, 1.5rem) auto 0;
-    color: var(--text-secondary);
+    color: #5c5c5c; /* Mejor contraste sin opacity */
+  }
+
+  [data-theme="dark"] .section-subtitle {
+    color: #b0b0b0;
   }
 
   /* ===== PRODUCTOS GRID ===== */
@@ -513,13 +520,17 @@ const productos = [
     position: absolute;
     top: clamp(0.5rem, 3vw, 1rem);
     right: clamp(0.5rem, 3vw, 1rem);
-    background: var(--color-accent);
-    color: var(--text-inverse);
+    background: #6b5c3a; /* Fondo más oscuro para mejor contraste con texto blanco */
+    color: #ffffff;
     padding: clamp(0.35rem, 1.5vw, 0.5rem) clamp(0.6rem, 2vw, 1rem);
     border-radius: 6px;
     font-weight: 700;
     font-size: clamp(0.75rem, 2vw, 0.9rem);
     box-shadow: 0 4px 12px var(--shadow-accent);
+  }
+
+  [data-theme="dark"] .product-rating {
+    background: #8b7d52;
   }
 
   .product-body {
@@ -530,11 +541,15 @@ const productos = [
   }
 
   .product-category {
-    color: var(--color-accent);
+    color: #7a6b4a; /* Mejor contraste */
     font-size: clamp(0.65rem, 1.5vw, 0.75rem);
     text-transform: uppercase;
     font-weight: 700;
     letter-spacing: 1px;
+  }
+
+  [data-theme="dark"] .product-category {
+    color: #c4b896;
   }
 
   .product-name {
@@ -544,12 +559,15 @@ const productos = [
   }
 
   .product-description {
-    opacity: 0.65;
     margin-bottom: clamp(0.8rem, 3vw, 1.5rem);
     font-size: clamp(0.85rem, 2vw, 0.95rem);
     line-height: 1.5;
     flex-grow: 1;
-    color: var(--text-secondary);
+    color: #595959; /* Mejor contraste sin opacity */
+  }
+
+  [data-theme="dark"] .product-description {
+    color: #a8a8a8;
   }
 
   .product-footer {
