@@ -596,6 +596,64 @@ const info = categoryInfo[slug as string] || {
       color: var(--color-accent) !important;
     }
 
+    /* ===== STOCK INFO & LABELS ===== */
+    :global(.stock-info) {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      background: var(--bg-tertiary);
+      padding: 5px 10px;
+      border-radius: 20px;
+      transition: all 0.3s ease;
+    }
+
+    :global(.stock-info svg) {
+      color: var(--color-accent);
+    }
+
+    :global(.stock-info.stock-agotado) {
+      color: #999;
+      background: #f5f5f5;
+    }
+
+    :global(.stock-info.stock-agotado svg) {
+      color: #999;
+    }
+
+    :global(.stock-label) {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    :global(.stock-label-disponible) {
+      background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+      color: #065f46;
+    }
+
+    :global(.stock-label-agotandose) {
+      background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%);
+      color: #92400e;
+    }
+
+    :global(.stock-label-ultima) {
+      background: linear-gradient(135deg, #fee2e2 0%, #fca5a5 100%);
+      color: #991b1b;
+      animation: pulse-stock 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-stock {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
     .cantidad-input-wrapper {
       display: flex;
       align-items: center;
@@ -1068,13 +1126,32 @@ const info = categoryInfo[slug as string] || {
         const variantesConStock = todasLasVariantes.filter(v => v.disponible === true);
         const productoAgotado = (!p.es_variable && p.stock <= 0) || (p.es_variable && variantesConStock.length === 0);
 
+        // Calcular cantidad disponible (para productos variables cuenta las variantes, para normales el stock)
+        const cantidadDisponible = p.es_variable ? variantesConStock.length : p.stock;
+        
+        // Determinar etiqueta de estado de stock
+        let stockLabel = '';
+        let stockLabelClass = '';
+        if (!productoAgotado) {
+          if (cantidadDisponible === 1) {
+            stockLabel = '¡ÚLTIMA UNIDAD!';
+            stockLabelClass = 'stock-label-ultima';
+          } else if (cantidadDisponible <= 5) {
+            stockLabel = 'Agotándose';
+            stockLabelClass = 'stock-label-agotandose';
+          } else {
+            stockLabel = 'Disponible';
+            stockLabelClass = 'stock-label-disponible';
+          }
+        }
+
         const stockText = p.es_variable 
           ? `${variantesConStock.length} opción${variantesConStock.length !== 1 ? 'es' : ''}`
           : `${p.stock} unidad${p.stock !== 1 ? 'es' : ''}`;
 
         return `
-          <article data-id="${p.id}" style="
-            background: #fff;
+          <article data-id="${p.id}" class="producto-card" style="
+            background: var(--bg-card);
             border-radius: 20px;
             overflow: hidden;
             box-shadow: 0 4px 20px rgba(0,0,0,0.08);
@@ -1149,7 +1226,7 @@ const info = categoryInfo[slug as string] || {
                 <h3 style="
                   font-size: 1rem;
                   font-weight: 600;
-                  color: #1a1a1a;
+                  color: var(--text-primary);
                   margin: 0;
                   line-height: 1.4;
                   display: -webkit-box;
@@ -1159,6 +1236,22 @@ const info = categoryInfo[slug as string] || {
                   transition: color 0.3s;
                 " class="product-title">${p.nombre}</h3>
               </a>
+              
+              <div style="
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                margin-top: 4px;
+                flex-wrap: wrap;
+              ">
+                <span class="stock-info ${productoAgotado ? 'stock-agotado' : ''}">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                  </svg>
+                  ${productoAgotado ? 'Agotado' : stockText}
+                </span>
+                ${!productoAgotado ? `<span class="stock-label ${stockLabelClass}">${stockLabel}</span>` : ''}
+              </div>
               
               <div style="
                 display: flex;
