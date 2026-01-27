@@ -3,9 +3,12 @@ node_modules/
 package-lock.json
 yarn.lock
 
-# Environment variables
+# Environment variables - NUNCA SUBIR
+.env
+.env.*
 .env.local
 .env.*.local
+*.env
 
 # Build outputs
 dist/
