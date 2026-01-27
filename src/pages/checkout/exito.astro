@@ -150,358 +150,180 @@ const success = params.get('status') === 'success';
   </div>
 
   <script>
-    function mostrarNotificacion(mensaje, tipo = 'error') {
-      console.log(`[${tipo.toUpperCase()}] ${mensaje}`);
-      const notificacion = document.createElement('div');
-      notificacion.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 1rem 1.5rem;
-        background: ${tipo === 'exito' || tipo === 'success' ? '#28a745' : '#dc3545'};
-        color: white;
-        border-radius: 4px;
-        z-index: 10000;
-        max-width: 400px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        animation: slideIn 0.3s ease;
-      `;
-      notificacion.textContent = mensaje;
-      document.body.appendChild(notificacion);
-
-      setTimeout(() => {
-        notificacion.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => notificacion.remove(), 300);
-      }, 4000);
-    }
-
     async function crearPedidoDesdeStripe() {
       try {
         const params = new URLSearchParams(window.location.search);
         const sessionId = params.get('session_id');
-        const codigoDescuento = params.get('codigo');
-        const esInvitado = params.get('guest') === 'true';
         const userId = localStorage.getItem('user_id');
+        const userEmail = localStorage.getItem('user_email');
 
-        console.log('=== Creando pedido ===');
+        console.log('\n🟢 ======= INICIO: Crear Pedido desde Stripe =======');
         console.log('sessionId:', sessionId);
         console.log('userId:', userId);
-        console.log('esInvitado:', esInvitado);
-        console.log('codigoDescuento:', codigoDescuento);
+        console.log('userEmail:', userEmail);
+
+        // Si es invitado, autenticarse anónimamente para que RLS funcione
+        let finalUserId = userId;
 
         if (!sessionId) {
-          console.error('Falta session_id');
+          console.error('❌ Falta session_id');
           return;
         }
 
-        // Si es invitado, usar datos del localStorage
-        if (esInvitado || !userId) {
-          await crearPedidoInvitado(sessionId, codigoDescuento);
-          return;
+        function mostrarNotificacion(mensaje, tipo = 'error') {
+          console.log(`[${tipo.toUpperCase()}] ${mensaje}`);
+          const notificacion = document.createElement('div');
+          notificacion.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            background: ${tipo === 'exito' || tipo === 'success' ? '#28a745' : '#dc3545'};
+            color: white;
+            border-radius: 4px;
+            z-index: 10000;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease;
+          `;
+          notificacion.textContent = mensaje;
+          document.body.appendChild(notificacion);
+
+          setTimeout(() => {
+            notificacion.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => notificacion.remove(), 300);
+          }, 4000);
         }
 
-        // Flujo normal para usuarios logueados
-        await crearPedidoUsuario(sessionId, codigoDescuento, userId);
+        let cartItems = [];
 
-      } catch (error) {
-        console.error('Error creando pedido:', error);
-        // No mostrar alerta para no molestar al usuario
-      }
-    }
+        // Si es usuario logueado, obtener carrito de BD
+        if (userId) {
+          console.log('📦 Obteniendo carrito desde BD...');
+          try {
+            const carritoResponse = await fetch('/api/carrito', {
+              credentials: 'include',
+              headers: { 'x-user-id': userId }
+            });
 
-    // Crear pedido para usuario logueado
-    async function crearPedidoUsuario(sessionId, codigoDescuento, userId) {
-      // Obtener datos del carrito
-      const carritoResponse = await fetch('/api/carrito', {
-        credentials: 'include',
-        headers: { 'x-user-id': userId }
-      });
-
-      if (!carritoResponse.ok) {
-        console.error('Error obteniendo carrito:', carritoResponse.status);
-        return;
-      }
-
-      const carritoData = await carritoResponse.json();
-      const items = carritoData.items || [];
-
-      if (!items.length) {
-        console.log('Carrito vacío - pedido ya creado o expirado');
-        return;
-      }
-
-      console.log('📦 Items en carrito:', items.length);
-
-      // Normalizar precios a CENTIMOS (algunos pueden estar mal guardados)
-      const itemsNormalizados = items.map(item => {
-        let precio = item.precio_unitario;
-        
-        console.log('🔍 Normalizando precio:', { original: precio });
-        
-        // Si el precio es > 10000, está x100 de centimos
-        if (precio > 10000) {
-          precio = precio / 100;
-          console.log('  → Estaba x100, dividido por 100');
-        }
-        // Si es <= 100, está en euros - multiplicar por 100 para convertir a centimos
-        else if (precio <= 100) {
-          precio = precio * 100;
-          console.log('  → Estaba en euros, multiplicado por 100');
-        }
-        // Si 100 < precio <= 10000, ya está en centimos - no tocar
-        else {
-          console.log('  → Ya está en centimos');
-        }
-        
-        console.log('  → Final:', precio, '(centimos)');
-        
-        return {
-          ...item,
-          precio_unitario: precio
-        };
-      });
-
-      // Formatear items para crear el pedido
-      const cartItems = itemsNormalizados.map(item => ({
-        producto_id: item.producto_id,
-        producto_variante_id: item.producto_variante_id,
-        nombre: item.productos?.nombre,
-        precio: item.precio_unitario, // Ya normalizado a centimos
-        cantidad: item.cantidad,
-        peso_kg: item.peso_kg
-      }));
-
-      // Calcular totales (todo en centimos)
-      const SHIPPING_COST = 500;
-      const subtotal = itemsNormalizados.reduce((sum, item) => sum + (item.precio_unitario * item.cantidad), 0);
-      const envio = SHIPPING_COST;
-
-      // Calcular descuento si existe
-      let descuentoAplicado = 0;
-      if (codigoDescuento) {
-        try {
-          const validarResponse = await fetch('/api/codigos/validar', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-user-id': userId
-            },
-            body: JSON.stringify({
-              codigo: codigoDescuento,
-              monto_carrito: (subtotal / 100)
-            })
-          });
-
-          const validarData = await validarResponse.json();
-          if (validarData.success) {
-            descuentoAplicado = validarData.descuento;
+            if (carritoResponse.ok) {
+              const carritoData = await carritoResponse.json();
+              if (carritoData.items && carritoData.items.length > 0) {
+                // Formatear items de la BD
+                cartItems = carritoData.items.map((item: any) => ({
+                  producto_id: item.producto_id,
+                  producto_variante_id: item.producto_variante_id,
+                  nombre: item.productos?.nombre || 'Producto sin nombre',
+                  precio: item.precio_unitario, // Ya en centimos
+                  precio_unitario: item.precio_unitario,
+                  cantidad: item.cantidad,
+                  peso_kg: item.peso_kg
+                }));
+                console.log(`✅ ${cartItems.length} items obtenidos de BD`);
+              }
+            }
+          } catch (error) {
+            console.warn('⚠️ No se pudo obtener carrito de BD:', error);
           }
-        } catch (error) {
-          console.error('Error validando descuento:', error);
-        }
-      }
-
-      const descuentoEnCentimos = Math.round(descuentoAplicado * 100);
-      const totalConDescuentoCentimos = (subtotal + envio) - descuentoEnCentimos;
-
-      // Crear el pedido
-      const pedidoResponse = await fetch('/api/pedidos', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': userId,
-          'x-envio': String(envio)
-        },
-        body: JSON.stringify({
-          stripe_session_id: sessionId,
-          cartItems,
-          subtotal,
-          envio,
-          total: totalConDescuentoCentimos,
-          descuento_aplicado: descuentoAplicado,
-          es_invitado: false
-        })
-      });
-
-      const pedidoData = await pedidoResponse.json();
-
-      if (pedidoData.success) {
-        console.log('✅ Pedido creado:', pedidoData.numero_pedido);
-
-        // Registrar uso del código si existe
-        if (codigoDescuento) {
-          await registrarUsoCodigo(codigoDescuento, pedidoData.pedido_id, userId);
         }
 
-        // Limpiar localStorage
-        localStorage.removeItem('carrito');
-        localStorage.removeItem('carrito_invitado');
-        localStorage.removeItem('checkout_invitado');
-        
-        console.log('✅ Carrito limpiado de localStorage');
-        console.log('✅ Redirigiendo a /mis-pedidos en 2 segundos...');
-        
-        setTimeout(() => {
-          window.location.href = '/mis-pedidos';
-        }, 2000);
-      } else {
-        console.error('Error del API:', pedidoData.error);
-        mostrarNotificacion('Error creando el pedido: ' + (pedidoData.error || 'Error desconocido'), 'error');
-      }
-    }
+        // Si no hay items de BD, usar localStorage (para invitados)
+        if (cartItems.length === 0) {
+          console.log('📦 Obteniendo carrito desde localStorage...');
+          const carritoData = localStorage.getItem('carrito');
+          const carritoInvitado = localStorage.getItem('carrito_invitado');
+          
+          if (carritoInvitado) {
+            cartItems = JSON.parse(carritoInvitado).map((item: any) => ({
+              producto_id: item.producto_id,
+              producto_variante_id: item.producto_variante_id,
+              nombre: item.nombre,
+              precio: item.precio_unitario || item.precio,
+              precio_unitario: item.precio_unitario || item.precio,
+              cantidad: item.cantidad,
+              peso_kg: item.peso_kg
+            }));
+          } else if (carritoData) {
+            cartItems = JSON.parse(carritoData).map((item: any) => ({
+              producto_id: item.producto_id,
+              producto_variante_id: item.producto_variante_id,
+              nombre: item.nombre,
+              precio: item.precio_unitario || item.precio,
+              precio_unitario: item.precio_unitario || item.precio,
+              cantidad: item.cantidad,
+              peso_kg: item.peso_kg
+            }));
+          }
+          console.log(`✅ ${cartItems.length} items desde localStorage`);
+        }
 
-    // Crear pedido para invitado
-    async function crearPedidoInvitado(sessionId, codigoDescuento) {
-      // Obtener datos guardados en localStorage
-      const checkoutData = localStorage.getItem('checkout_invitado');
-      
-      if (!checkoutData) {
-        console.log('No hay datos de checkout invitado');
-        return;
-      }
+        console.log('📦 Items totales a crear:', cartItems.length);
+        if (cartItems.length > 0) {
+          console.log('Primer item:', cartItems[0]);
+        }
 
-      const datos = JSON.parse(checkoutData);
-      const { nombre, email, telefono, cartItems, descuentoAplicado } = datos;
-
-      if (!cartItems || cartItems.length === 0) {
-        console.log('No hay items en el checkout de invitado');
-        return;
-      }
-
-      console.log('📦 Creando pedido de invitado');
-      console.log('Items:', cartItems.length);
-      console.log('Email:', email);
-
-      // Calcular totales
-      const SHIPPING_COST = 500;
-      const subtotal = cartItems.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
-      const envio = SHIPPING_COST;
-      const descuentoEnCentimos = Math.round((descuentoAplicado || 0) * 100);
-      const total = (subtotal + envio) - descuentoEnCentimos;
-
-      // Crear el pedido
-      const pedidoResponse = await fetch('/api/pedidos', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-envio': String(envio)
-        },
-        body: JSON.stringify({
-          stripe_session_id: sessionId,
-          cartItems,
-          subtotal,
-          envio,
-          total,
-          descuento_aplicado: descuentoAplicado || 0,
-          es_invitado: true,
-          nombre_cliente: nombre,
-          email_cliente: email,
-          telefono_cliente: telefono
-        })
-      });
-
-      const pedidoData = await pedidoResponse.json();
-
-      if (pedidoData.success) {
-        console.log('✅ Pedido de invitado creado:', pedidoData.numero_pedido);
-
-        // Limpiar datos de invitado
-        localStorage.removeItem('checkout_invitado');
-        localStorage.removeItem('carrito_invitado');
-        
-        // Mostrar mensaje de éxito y quedarse en la página
-        mostrarExitoInvitado(pedidoData.numero_pedido, email);
-      } else {
-        console.error('Error creando pedido invitado:', pedidoData.error);
-      }
-    }
-
-    // Registrar uso de código de descuento
-    async function registrarUsoCodigo(codigo, pedidoId, email, userId) {
-      try {
-        const registroResponse = await fetch('/api/codigos/registrar-uso', {
+        // Llamar al nuevo endpoint que valida y crea el pedido
+        const response = await fetch('/api/checkout/validar-y-crear-pedido', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-user-id': userId
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            codigo,
-            pedido_id: pedidoId,
-            email_usuario: email
+            sessionId,
+            userId: finalUserId || null,
+            userEmail: userEmail || null,
+            cartItems,
+            codigoDescuento: null,
+            descuentoAplicado: 0,
+            datosInvitado: null
           })
         });
 
-        const registroData = await registroResponse.json();
-        if (registroData.success) {
-          console.log('Código registrado correctamente');
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          console.log('✅ Pedido creado exitosamente:');
+          console.log('  - ID:', data.pedidoId);
+          console.log('  - Número:', data.numeroPedido);
+          console.log('  - Total:', data.total);
+
+          // Limpiar localStorage
+          localStorage.removeItem('carrito');
+          localStorage.removeItem('carrito_invitado');
+          localStorage.removeItem('checkout_data');
+          
+          console.log('✅ Carrito limpiado de localStorage');
+          console.log('🟢 Redirigiendo a /mis-pedidos...\n');
+
+          // Mostrar mensaje de éxito
+          mostrarNotificacion(`Pedido #${data.numeroPedido} creado correctamente`, 'success');
+
+          // Redirigir
+          setTimeout(() => {
+            window.location.href = userId ? '/mis-pedidos' : '/productos';
+          }, 2000);
+        } else {
+          console.error('❌ Error del API:', data.error);
+          console.error('Detalles:', data.details);
+          console.error('🔴 ======= ERROR: Crear Pedido desde Stripe =======\n');
+          mostrarNotificacion(data.error || 'Error creando el pedido', 'error');
         }
+
       } catch (error) {
-        console.error('Error registrando código:', error);
+        console.error('❌ Error en crearPedidoDesdeStripe:', error);
+        mostrarNotificacion('Error al procesar tu pedido. Por favor, contacta soporte.', 'error');
       }
+      console.log('🔄 ======= FIN: Validar y crear pedido =======\n');
     }
 
-    // Mostrar mensaje de éxito para invitados
-    function mostrarExitoInvitado(numeroPedido, email) {
-      // Ocultar el botón de "Ver mis pedidos" y mostrar mensaje especial
-      const container = document.querySelector('[style*="display: flex; flex-direction: column; gap: 1rem"]');
-      if (container) {
-        container.innerHTML = `
-          <div style="background: #d1fae5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; text-align: center;">
-            <p style="color: #065f46; font-size: 1rem; margin: 0 0 0.5rem 0; font-weight: 600;">
-              ¡Gracias por tu compra!
-            </p>
-            <p style="color: #047857; font-size: 0.9rem; margin: 0;">
-              Hemos enviado la confirmación a <strong>${email}</strong>
-            </p>
-            <p style="color: #047857; font-size: 0.85rem; margin: 0.5rem 0 0 0;">
-              Nº de pedido: <strong>${numeroPedido}</strong>
-            </p>
-          </div>
-          
-          <a href="/productos" style="display: block; text-align: center; padding: 1rem 1.5rem; background: linear-gradient(135deg, #a89968 0%, #8b7355 100%); color: #faf9f7; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 1.125rem;">
-            Continuar comprando
-          </a>
-          
-          <div style="text-align: center; margin-top: 1rem; padding: 1rem; background: #f8f7f4; border-radius: 8px;">
-            <p style="color: #5c4a3d; font-size: 0.9rem; margin: 0 0 0.5rem 0;">
-              ¿Quieres guardar tus pedidos?
-            </p>
-            <a href="/registro" style="color: #a89968; font-weight: 600; text-decoration: underline;">
-              Crear una cuenta
-            </a>
-          </div>
-        `;
-      }
 
-      // Ocultar countdown
-      const countdown = document.getElementById('countdown');
-      if (countdown && countdown.parentElement) {
-        countdown.parentElement.style.display = 'none';
-      }
-    }
 
     // Crear el pedido solo si hay sessionId
     const sessionId = new URLSearchParams(window.location.search).get('session_id');
+    console.log('🔍 Detectado sessionId:', sessionId ? 'Sí' : 'No');
+    
     if (sessionId) {
       crearPedidoDesdeStripe();
     } else {
-      // Si no hay session_id pero hay status=success, actualizar contador
-      if (location.search.includes('status=success')) {
-        let seconds = 5;
-        const countdownEl = document.getElementById('countdown');
-        
-        const interval = setInterval(() => {
-          seconds--;
-          if (countdownEl) countdownEl.textContent = seconds.toString();
-          
-          if (seconds <= 0) {
-            clearInterval(interval);
-            window.location.href = '/mis-pedidos';
-          }
-        }, 1000);
-      }
+      console.log('⚠️ No hay sessionId, mostrando estado');
     }
   </script>
 </Layout>

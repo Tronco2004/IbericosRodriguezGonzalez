@@ -10,6 +10,7 @@ export const GET: APIRoute = async ({ request, cookies }) => {
     const userId = request.headers.get('x-user-id');
 
     console.log('🔍 GET /api/pedidos - userId:', userId);
+    console.log('🔍 Tipo de userId:', typeof userId);
 
     if (!userId) {
       console.error('❌ Usuario no autenticado');
@@ -19,7 +20,15 @@ export const GET: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    // Obtener pedidos del usuario
+    // Primero, obtener TODOS los pedidos para debug
+    const { data: todosPedidos, error: errorTodos } = await supabaseClient
+      .from('pedidos')
+      .select('id, usuario_id, numero_pedido, estado');
+
+    console.log('📊 TODOS los pedidos en BD:', todosPedidos?.length ?? 0);
+    console.log('📊 Primeros 5 pedidos:', todosPedidos?.slice(0, 5));
+
+    // Obtener pedidos del usuario específico
     const { data: pedidos, error } = await supabaseClient
       .from('pedidos')
       .select(`
@@ -48,9 +57,10 @@ export const GET: APIRoute = async ({ request, cookies }) => {
       .eq('usuario_id', userId)
       .order('fecha_creacion', { ascending: false });
 
-    console.log('📦 Pedidos encontrados:', pedidos?.length ?? 0);
-    if (pedidos) {
-      console.log('📋 Primero pedido:', JSON.stringify(pedidos[0], null, 2));
+    console.log('🔍 Buscando pedidos con usuario_id:', userId);
+    console.log('📦 Pedidos encontrados para este usuario:', pedidos?.length ?? 0);
+    if (pedidos && pedidos.length > 0) {
+      console.log('📋 Primer pedido del usuario:', JSON.stringify(pedidos[0], null, 2));
     }
 
     if (error) {

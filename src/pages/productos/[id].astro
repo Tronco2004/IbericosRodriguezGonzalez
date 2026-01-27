@@ -1162,6 +1162,7 @@ export const prerender = false;
 
         // Guardar en localStorage
         localStorage.setItem('carrito_invitado', JSON.stringify(carrito));
+        localStorage.setItem('carrito_invitado_fecha', String(Date.now()));
         console.log('✅ Carrito invitado actualizado');
         
         // Disparar evento

@@ -93,6 +93,7 @@ import Layout from '../layouts/Layout.astro';
 
     function setCarritoLocal(items) {
       localStorage.setItem('carrito_invitado', JSON.stringify(items));
+      localStorage.setItem('carrito_invitado_fecha', String(Date.now()));
     }
 
     function esUsuarioLogueado() {
@@ -106,7 +107,7 @@ import Layout from '../layouts/Layout.astro';
         console.log('=== DEBUG CARRITO ===');
         console.log('Usuario logueado:', !!userId);
         
-        let items = [];
+        let items: any[] = [];
         let itemsExpirados = false;
 
         if (userId) {
@@ -128,10 +129,11 @@ import Layout from '../layouts/Layout.astro';
         }
 
         // Guardar items en variable global
-        window.carritoItems = items;
+        (window as any).carritoItems = items;
 
         if (!items || items.length === 0) {
-          document.getElementById('loadingMessage').style.display = 'none';
+          const loadingMsg = document.getElementById('loadingMessage') as HTMLDivElement | null;
+          if (loadingMsg) loadingMsg.style.display = 'none';
           
           let html = '';
           if (itemsExpirados) {
@@ -152,7 +154,9 @@ import Layout from '../layouts/Layout.astro';
             `;
           }
           
-          document.getElementById('carritoContent').innerHTML = html + `
+          const carritoContentEl = document.getElementById('carritoContent') as HTMLDivElement | null;
+          if (carritoContentEl) {
+            carritoContentEl.innerHTML = html + `
             <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; border-left: 4px solid #a89968;">
               <h2 style="color: #001a33; margin: 0 0 1rem 0;">Tu carrito está vacío</h2>
               <p style="color: #5c4a3d; margin: 0 0 1.5rem 0;">Empieza a agregar productos para tu compra.</p>
@@ -161,18 +165,15 @@ import Layout from '../layouts/Layout.astro';
               </a>
             </div>
           `;
+          }
           return;
         }
 
-        // Calcular totales
+        // Calcular totales (precios en centimos)
         const totalItems = items.reduce((total, item) => total + item.cantidad, 0);
         const subtotal = items.reduce((total, item) => {
-          // FIX: Si el precio es muy grande (> 100000), dividir por 100 automáticamente
-          let precioUnitario = item.precio_unitario;
-          if (precioUnitario > 100000) {
-            precioUnitario = Math.round(precioUnitario / 100);
-          }
-          let precioItem = precioUnitario * item.cantidad;
+          // El precio siempre viene en centimos como entero
+          let precioItem = item.precio_unitario * item.cantidad;
           // Agregar 20€ (2000 centimos) si tiene cortado
           if (item.cortado) {
             precioItem += 2000;
@@ -213,17 +214,13 @@ import Layout from '../layouts/Layout.astro';
               <div>
         `;
 
-        items.forEach(item => {
+        items.forEach((item: any) => {
           // Obtener nombre e imagen - compatible con usuarios (item.productos) e invitados (item directo)
           const nombre = item.productos?.nombre || item.nombre || 'Producto';
           const imagen = item.productos?.imagen_url || item.imagen || 'https://images.unsplash.com/photo-1557803104268-0ef0f060e15f?w=500&h=500&fit=crop';
           const categoria = item.productos?.categoria || item.categoria || '';
-          
-          // FIX: Si el precio es muy grande (> 100000), dividir por 100 automáticamente
-          let precioUnitario = item.precio_unitario;
-          if (precioUnitario > 100000) {
-            precioUnitario = Math.round(precioUnitario / 100);
-          }
+          // El precio siempre viene en centimos como entero
+          const precioUnitario = item.precio_unitario;
           
           console.log('🔍 Item en carrito:', { 
             id: item.id, 
@@ -231,8 +228,7 @@ import Layout from '../layouts/Layout.astro';
             categoria,
             esJamon: categoria === 'Jamones',
             cortado: item.cortado,
-            precioOriginal: item.precio_unitario,
-            precioCorregido: precioUnitario
+            precioCentimos: item.precio_unitario
           });
           
           htmlContent += `
@@ -455,23 +451,28 @@ import Layout from '../layouts/Layout.astro';
           </div>
         `;
 
-        document.getElementById('loadingMessage').style.display = 'none';
-        document.getElementById('carritoContent').innerHTML = htmlContent;
+        const loadingMsgEl = document.getElementById('loadingMessage');
+        if (loadingMsgEl) loadingMsgEl.style.display = 'none';
+        const carritoContentEl = document.getElementById('carritoContent');
+        if (carritoContentEl) {
+          carritoContentEl.innerHTML = htmlContent;
+        }
 
         // Event listeners
-        document.querySelectorAll('.btn-cantidad').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            const itemId = btn.getAttribute('data-item-id');
+        document.querySelectorAll('.btn-cantidad').forEach((btn: Element) => {
+          (btn as HTMLElement).addEventListener('click', async () => {
+            const itemId = btn.getAttribute('data-item-id') || '0';
             const action = btn.getAttribute('data-action');
-            const cartItem = btn.closest('.cart-item');
+            const cartItem = btn.closest('.cart-item') as HTMLElement | null;
+            if (!cartItem) return;
             
             // Buscar el span de cantidad que está entre los dos botones (no el countdown)
             const cantidadSpans = cartItem.querySelectorAll('span');
-            let cantidadSpan = null;
+            let cantidadSpan: HTMLSpanElement | null = null;
             for (const span of cantidadSpans) {
               // El span de cantidad tiene width: 40px
-              if (span.style.width === '40px') {
-                cantidadSpan = span;
+              if ((span as HTMLElement).style.width === '40px') {
+                cantidadSpan = span as HTMLSpanElement;
                 break;
               }
             }
@@ -481,7 +482,7 @@ import Layout from '../layouts/Layout.astro';
               return;
             }
 
-            let cantidad = parseInt(cantidadSpan.textContent);
+            let cantidad = parseInt(cantidadSpan.textContent || '0');
 
             if (action === 'increase') {
               cantidad++;
@@ -492,7 +493,7 @@ import Layout from '../layouts/Layout.astro';
               const userId = localStorage.getItem('user_id');
               if (!userId) {
                 const carrito = getCarritoLocal();
-                const itemAEliminar = carrito.find(item => item.id === parseInt(itemId));
+                const itemAEliminar = carrito.find((item: any) => item.id === parseInt(itemId));
                 if (itemAEliminar) {
                   // Devolver el stock
                   fetch('/api/carrito/reservar', {
@@ -512,7 +513,7 @@ import Layout from '../layouts/Layout.astro';
                     })
                     .catch(err => console.error('❌ Error devolviendo stock:', err));
                 }
-                const carritoActualizado = carrito.filter(item => item.id !== parseInt(itemId));
+                const carritoActualizado = carrito.filter((item: any) => item.id !== parseInt(itemId));
                 setCarritoLocal(carritoActualizado);
               } else {
                 await fetch(`/api/carrito/${itemId}`, {
@@ -565,9 +566,9 @@ import Layout from '../layouts/Layout.astro';
           });
         });
 
-        document.querySelectorAll('.btn-eliminar').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            const itemId = btn.getAttribute('data-item-id');
+        document.querySelectorAll('.btn-eliminar').forEach((btn: Element) => {
+          (btn as HTMLElement).addEventListener('click', async () => {
+            const itemId = (btn as HTMLElement).getAttribute('data-item-id') || '0';
             console.log('🗑️ Click en eliminar item:', itemId);
             if (confirm('¿Estás seguro de que deseas eliminar este producto?')) {
               const userId = localStorage.getItem('user_id');
@@ -579,7 +580,7 @@ import Layout from '../layouts/Layout.astro';
                 console.log('📦 Carrito antes:', carrito.length, 'items');
                 
                 // Encontrar el item a eliminar para devolver su stock
-                const itemAEliminar = carrito.find(item => item.id === parseInt(itemId));
+                const itemAEliminar = carrito.find((item: any) => item.id === parseInt(itemId));
                 if (itemAEliminar) {
                   // Devolver el stock
                   console.log('↩️ Devolviendo stock para item:', itemAEliminar);
@@ -603,7 +604,7 @@ import Layout from '../layouts/Layout.astro';
                     .catch(err => console.error('❌ Error en fetch:', err));
                 }
                 
-                const carritoActualizado = carrito.filter(item => item.id !== parseInt(itemId));
+                const carritoActualizado = carrito.filter((item: any) => item.id !== parseInt(itemId));
                 console.log('📦 Carrito después:', carritoActualizado.length, 'items');
                 setCarritoLocal(carritoActualizado);
                 console.log('✅ Item eliminado, localStorage actualizado');
@@ -631,26 +632,26 @@ import Layout from '../layouts/Layout.astro';
         });
 
         // Hover effects
-        document.querySelectorAll('.btn-cantidad').forEach(btn => {
-          btn.addEventListener('mouseover', () => {
-            btn.style.color = '#a89968';
+        document.querySelectorAll('.btn-cantidad').forEach((btn: Element) => {
+          (btn as HTMLElement).addEventListener('mouseover', () => {
+            (btn as HTMLElement).style.color = '#a89968';
           });
-          btn.addEventListener('mouseout', () => {
-            btn.style.color = '#5c4a3d';
+          (btn as HTMLElement).addEventListener('mouseout', () => {
+            (btn as HTMLElement).style.color = '#5c4a3d';
           });
         });
 
-        document.querySelectorAll('.btn-eliminar').forEach(btn => {
-          btn.addEventListener('mouseover', () => {
-            btn.style.background = '#d63e56';
+        document.querySelectorAll('.btn-eliminar').forEach((btn: Element) => {
+          (btn as HTMLElement).addEventListener('mouseover', () => {
+            (btn as HTMLElement).style.background = '#d63e56';
           });
-          btn.addEventListener('mouseout', () => {
-            btn.style.background = '#f5576c';
+          (btn as HTMLElement).addEventListener('mouseout', () => {
+            (btn as HTMLElement).style.background = '#f5576c';
           });
         });
 
         // Evento para el botón de checkout
-        const btnCheckout = document.getElementById('btnCheckout');
+        const btnCheckout = document.getElementById('btnCheckout') as HTMLButtonElement | null;
         if (btnCheckout) {
           btnCheckout.addEventListener('click', irAStripe);
           btnCheckout.addEventListener('mouseover', () => {
@@ -662,7 +663,7 @@ import Layout from '../layouts/Layout.astro';
         }
 
         // Event listener para validar código
-        const btnValidarCodigo = document.getElementById('btnValidarCodigo');
+        const btnValidarCodigo = document.getElementById('btnValidarCodigo') as HTMLButtonElement | null;
         if (btnValidarCodigo) {
           btnValidarCodigo.addEventListener('click', validarCodigo);
           btnValidarCodigo.addEventListener('mouseover', () => {
@@ -693,8 +694,11 @@ import Layout from '../layouts/Layout.astro';
 
       } catch (error) {
         console.error('Error:', error);
-        document.getElementById('loadingMessage').style.display = 'none';
-        document.getElementById('carritoContent').innerHTML = `
+        const loadingMsg = document.getElementById('loadingMessage') as HTMLDivElement | null;
+        if (loadingMsg) loadingMsg.style.display = 'none';
+        const carritoContentEl = document.getElementById('carritoContent') as HTMLDivElement | null;
+        if (carritoContentEl) {
+          carritoContentEl.innerHTML = `
           <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; border-left: 4px solid #f5576c;">
             <h2 style="color: #001a33; margin: 0 0 1rem 0;">Error</h2>
             <p style="color: #5c4a3d; margin: 0 0 1.5rem 0;">No se pudo cargar tu carrito. Por favor, intenta de nuevo.</p>
@@ -711,6 +715,7 @@ import Layout from '../layouts/Layout.astro';
             </a>
           </div>
         `;
+        }
       }
 
       // ⭐ IMPORTANTE: Inicializar event listeners DENTRO de cargarCarrito()
@@ -723,16 +728,18 @@ import Layout from '../layouts/Layout.astro';
       const cortadoCheckboxes = document.querySelectorAll('.cortado-checkbox');
       console.log('🎯 Inicializando', cortadoCheckboxes.length, 'checkboxes de cortado');
       
-      cortadoCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', async (e) => {
-          const itemId = parseInt(e.target.dataset.itemId);
-          const cortado = e.target.checked;
+      cortadoCheckboxes.forEach((checkbox: Element) => {
+        (checkbox as HTMLElement).addEventListener('change', async (e: Event) => {
+          const target = e.target as HTMLInputElement | null;
+          if (!target) return;
+          const itemId = parseInt(target.dataset.itemId || '0');
+          const cortado = target.checked;
           
           console.log(`📦 Cortado toggle para item ${itemId}: ${cortado}`);
           
           // Actualizar en memoria
-          const carritoItems = window.carritoItems || [];
-          const item = carritoItems.find(i => i.id === itemId);
+          const carritoItems = (window as any).carritoItems || [];
+          const item = carritoItems.find((i: any) => i.id === itemId);
           if (item) {
             item.cortado = cortado;
             
@@ -824,26 +831,29 @@ import Layout from '../layouts/Layout.astro';
 
     // Variables globales para el descuento
     let descuentoAplicado = 0;
-    let codigoValidado = null;
+    let codigoValidado: { id: any; codigo: any; descuento: any } | null = null;
 
     async function validarCodigo() {
-      const inputCodigo = document.getElementById('inputCodigo');
+      const inputCodigo = document.getElementById('inputCodigo') as HTMLInputElement | null;
+      if (!inputCodigo) return;
       const codigo = inputCodigo.value.trim().toUpperCase();
-      const statusDiv = document.getElementById('mensajeCodigoStatus');
-      const userId = localStorage.getItem('user_id');
+      const statusDiv = document.getElementById('mensajeCodigoStatus') as HTMLDivElement | null;
+      const userId = localStorage.getItem('user_id') || '';
 
       if (!codigo) {
-        statusDiv.textContent = 'Por favor ingresa un código';
-        statusDiv.style.display = 'block';
-        statusDiv.style.background = '#fef3c7';
-        statusDiv.style.color = '#92400e';
-        statusDiv.style.borderLeft = '4px solid #f59e0b';
+        if (statusDiv) {
+          statusDiv.textContent = 'Por favor ingresa un código';
+          statusDiv.style.display = 'block';
+          statusDiv.style.background = '#fef3c7';
+          statusDiv.style.color = '#92400e';
+          statusDiv.style.borderLeft = '4px solid #f59e0b';
+        }
         return;
       }
 
       try {
         // Calcular subtotal actual
-        const carritoItems = window.carritoItems || [];
+        const carritoItems = (window as any).carritoItems || [];
         const subtotal = carritoItems.reduce((total, item) => {
           let precioItem = item.precio_unitario * item.cantidad;
           if (item.cortado) {
@@ -857,7 +867,7 @@ import Layout from '../layouts/Layout.astro';
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-user-id': userId
+            'x-user-id': userId || ''
           },
           body: JSON.stringify({
             codigo,
@@ -868,12 +878,14 @@ import Layout from '../layouts/Layout.astro';
         const data = await response.json();
 
         if (!data.success) {
-          statusDiv.textContent = data.mensaje || 'Código inválido';
-          statusDiv.style.display = 'block';
-          statusDiv.style.background = '#fee2e2';
-          statusDiv.style.color = '#991b1b';
-          statusDiv.style.borderLeft = '4px solid #ef4444';
-          inputCodigo.value = '';
+          if (statusDiv) {
+            statusDiv.textContent = data.mensaje || 'Código inválido';
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#fee2e2';
+            statusDiv.style.color = '#991b1b';
+            statusDiv.style.borderLeft = '4px solid #ef4444';
+          }
+          if (inputCodigo) inputCodigo.value = '';
           descuentoAplicado = 0;
           codigoValidado = null;
           actualizarDescuentoUI();
@@ -884,7 +896,7 @@ import Layout from '../layouts/Layout.astro';
         // Consultamos si ya existe un registro de uso
         const verificarResponse = await fetch(`/api/codigos/verificar-uso?codigo_id=${data.codigo_id}&usuario_id=${userId}`, {
           headers: {
-            'x-user-id': userId
+            'x-user-id': userId || ''
           }
         });
 
@@ -893,8 +905,10 @@ import Layout from '../layouts/Layout.astro';
         if (verificarData.yaUsado) {
           // Mostrar popup de error
           mostrarPopupError('Este código de descuento ya ha sido utilizado');
-          inputCodigo.value = '';
-          statusDiv.style.display = 'none';
+          const inputEl = document.getElementById('inputCodigo') as HTMLInputElement | null;
+          if (inputEl) inputEl.value = '';
+          const statusEl = document.getElementById('statusDiv') as HTMLDivElement | null;
+          if (statusEl) statusEl.style.display = 'none';
           return;
         }
 
@@ -915,39 +929,49 @@ import Layout from '../layouts/Layout.astro';
           descuento: descuento
         };
 
-        statusDiv.textContent = `Código aplicado: ${descuento.toFixed(2)}€ de descuento`;
-        statusDiv.style.display = 'block';
-        statusDiv.style.background = '#d1fae5';
-        statusDiv.style.color = '#065f46';
-        statusDiv.style.borderLeft = '4px solid #10b981';
+        const statusDivSuccess = document.getElementById('statusDiv') as HTMLDivElement | null;
+        if (statusDivSuccess) {
+          statusDivSuccess.textContent = `Código aplicado: ${descuento.toFixed(2)}€ de descuento`;
+          statusDivSuccess.style.display = 'block';
+          statusDivSuccess.style.background = '#d1fae5';
+          statusDivSuccess.style.color = '#065f46';
+          statusDivSuccess.style.borderLeft = '4px solid #10b981';
+        }
 
         actualizarDescuentoUI();
-        inputCodigo.disabled = true;
-        document.getElementById('btnValidarCodigo').disabled = true;
-        document.getElementById('btnValidarCodigo').textContent = 'Código Aplicado';
+        const inputEl = document.getElementById('inputCodigo') as HTMLInputElement | null;
+        if (inputEl) inputEl.disabled = true;
+        const btnEl = document.getElementById('btnValidarCodigo') as HTMLButtonElement | null;
+        if (btnEl) {
+          btnEl.disabled = true;
+          btnEl.textContent = 'Código Aplicado';
+        }
 
       } catch (error) {
         console.error('Error:', error);
-        statusDiv.textContent = 'Error al validar el código';
-        statusDiv.style.display = 'block';
-        statusDiv.style.background = '#fee2e2';
-        statusDiv.style.color = '#991b1b';
-        statusDiv.style.borderLeft = '4px solid #ef4444';
+        const statusDiv2 = document.getElementById('statusDiv') as HTMLDivElement | null;
+        if (statusDiv2) {
+          statusDiv2.textContent = 'Error al validar el código';
+          statusDiv2.style.display = 'block';
+          statusDiv2.style.background = '#fee2e2';
+          statusDiv2.style.color = '#991b1b';
+          statusDiv2.style.borderLeft = '4px solid #ef4444';
+        }
       }
     }
 
     function actualizarDescuentoUI() {
-      const descuentoInfo = document.getElementById('descuentoInfo');
-      const descuentoAmount = document.getElementById('descuentoAmount');
-      const totalDisplay = document.getElementById('totalAmount');
+      const descuentoInfo = document.getElementById('descuentoInfo') as HTMLDivElement | null;
+      const descuentoAmount = document.getElementById('descuentoAmount') as HTMLDivElement | null;
+      const totalDisplay = document.getElementById('totalAmount') as HTMLDivElement | null;
 
       if (descuentoAplicado > 0) {
-        descuentoInfo.style.display = 'block';
-        descuentoAmount.textContent = `-${descuentoAplicado.toFixed(2)}€`;
+        if (descuentoInfo) descuentoInfo.style.display = 'block';
+        if (descuentoAmount) descuentoAmount.textContent = `-${descuentoAplicado.toFixed(2)}€`;
 
         // Obtener valores actuales
-        const carritoItems = window.carritoItems || [];
-        const subtotal = carritoItems.reduce((total, item) => {
+        const carritoItems = (window as any).carritoItems || [];
+        const subtotal = carritoItems.reduce((total: number, item: any) => {
           // El precio está guardado en centimos pero duplicado (17200 vs 1720000)
           // Detectar y corregir automáticamente
           let precio = item.precio_unitario;
@@ -974,13 +998,15 @@ import Layout from '../layouts/Layout.astro';
           totalEuros: totalConDescuento
         });
 
-        totalDisplay.textContent = `${totalConDescuento.toFixed(2)}€`;
+        const totalPrecio = document.getElementById('totalPrecio') as HTMLElement | null;
+        if (totalPrecio) totalPrecio.textContent = `${totalConDescuento.toFixed(2)}€`;
       } else {
-        descuentoInfo.style.display = 'none';
+        const descuentoInfoEl = document.getElementById('descuentoInfo') as HTMLElement | null;
+        if (descuentoInfoEl) descuentoInfoEl.style.display = 'none';
         
         // Restaurar total original
-        const carritoItems = window.carritoItems || [];
-        const subtotal = carritoItems.reduce((total, item) => {
+        const carritoItems = (window as any).carritoItems || [];
+        const subtotal = carritoItems.reduce((total: number, item: any) => {
           let precioItem = item.precio_unitario * item.cantidad;
           if (item.cortado) {
             precioItem += 2000;
@@ -990,11 +1016,12 @@ import Layout from '../layouts/Layout.astro';
         const envio = 500;
         const total = (subtotal + envio) / 100;
         
-        totalDisplay.textContent = `${total.toFixed(2)}€`;
+        const totalDisplay = document.getElementById('totalPrecio') as HTMLElement | null;
+        if (totalDisplay) totalDisplay.textContent = `${total.toFixed(2)}€`;
       }
     }
 
-    function mostrarPopupError(mensaje) {
+    function mostrarPopupError(mensaje: string) {
       const popup = document.createElement('div');
       popup.style.cssText = `
         position: fixed;
@@ -1047,10 +1074,13 @@ import Layout from '../layouts/Layout.astro';
       `;
       document.body.appendChild(overlay);
 
-      document.getElementById('btnCerrarPopup').addEventListener('click', () => {
-        popup.remove();
-        overlay.remove();
-      });
+      const btnCerrar = document.getElementById('btnCerrarPopup') as HTMLButtonElement | null;
+      if (btnCerrar) {
+        btnCerrar.addEventListener('click', () => {
+          popup.remove();
+          overlay.remove();
+        });
+      }
 
       overlay.addEventListener('click', () => {
         popup.remove();
@@ -1079,18 +1109,18 @@ import Layout from '../layouts/Layout.astro';
 
     // Mostrar modal para datos de invitado
     function mostrarModalInvitado() {
-      const modal = document.getElementById('modalInvitado');
-      modal.style.display = 'flex';
+      const modal = document.getElementById('modalInvitado') as HTMLDivElement | null;
+      if (modal) modal.style.display = 'flex';
     }
 
     // Cerrar modal
     function cerrarModalInvitado() {
-      const modal = document.getElementById('modalInvitado');
-      modal.style.display = 'none';
+      const modal = document.getElementById('modalInvitado') as HTMLDivElement | null;
+      if (modal) modal.style.display = 'none';
     }
 
     // Procesar checkout (para usuario logueado o invitado)
-    async function procesarCheckout(userId, datosInvitado) {
+    async function procesarCheckout(userId: string | null, datosInvitado: any) {
       try {
         let items = [];
 
@@ -1112,7 +1142,7 @@ import Layout from '../layouts/Layout.astro';
         }
 
         // Formatear items para Stripe
-        const cartItems = items.map(item => ({
+        const cartItems = (items as any[]).map((item: any) => ({
           producto_id: item.producto_id,
           producto_variante_id: item.producto_variante_id,
           nombre: userId ? item.productos?.nombre : item.nombre,
@@ -1121,6 +1151,20 @@ import Layout from '../layouts/Layout.astro';
           cantidad: item.cantidad,
           peso_kg: item.peso_kg
         }));
+
+        console.log('📤 Enviando a checkout:', {
+          cartItems,
+          codigoDescuento: codigoValidado ? codigoValidado.codigo : null,
+          descuentoAplicado: descuentoAplicado,
+          datosInvitado: datosInvitado
+        });
+
+        // Obtener email del usuario logueado
+        let userEmail = '';
+        if (userId) {
+          userEmail = localStorage.getItem('user_email') || '';
+          console.log('📧 Email del usuario logueado:', userEmail);
+        }
 
         // Crear sesión de pago
         const checkoutResponse = await fetch('/api/checkout/create-session', {
@@ -1135,7 +1179,9 @@ import Layout from '../layouts/Layout.astro';
             codigoDescuento: codigoValidado ? codigoValidado.codigo : null,
             descuentoAplicado: descuentoAplicado,
             // Datos de invitado si aplica
-            datosInvitado: datosInvitado
+            datosInvitado: datosInvitado,
+            // Email del usuario (para usuario logueado)
+            userEmail: userEmail
           })
         });
 
@@ -1179,7 +1225,7 @@ import Layout from '../layouts/Layout.astro';
 
       // Cerrar al hacer clic fuera del modal
       if (modal) {
-        modal.addEventListener('click', (e) => {
+        modal.addEventListener('click', (e: Event) => {
           if (e.target === modal) {
             cerrarModalInvitado();
           }
@@ -1188,12 +1234,16 @@ import Layout from '../layouts/Layout.astro';
 
       // Enviar formulario de invitado
       if (formInvitado) {
-        formInvitado.addEventListener('submit', async (e) => {
+        formInvitado.addEventListener('submit', async (e: Event) => {
           e.preventDefault();
           
-          const nombre = document.getElementById('guestNombre').value.trim();
-          const email = document.getElementById('guestEmail').value.trim();
-          const telefono = document.getElementById('guestTelefono').value.trim();
+          const nombreEl = document.getElementById('guestNombre') as HTMLInputElement | null;
+          const emailEl = document.getElementById('guestEmail') as HTMLInputElement | null;
+          const telefonoEl = document.getElementById('guestTelefono') as HTMLInputElement | null;
+          
+          const nombre = nombreEl?.value.trim() || '';
+          const email = emailEl?.value.trim() || '';
+          const telefono = telefonoEl?.value.trim() || '';
 
           if (!nombre || !email || !telefono) {
             alert('Por favor completa todos los campos');
@@ -1223,11 +1273,12 @@ import Layout from '../layouts/Layout.astro';
 
     // Función para actualizar contadores de expiración (CONTADOR GLOBAL)
     function actualizarContadores() {
-      if (!window.carritoItems || window.carritoItems.length === 0) return;
+      const carritoItems = (window as any).carritoItems || [];
+      if (!carritoItems || carritoItems.length === 0) return;
 
       // Encontrar el item más reciente
-      let itemMasReciente = window.carritoItems[0];
-      for (const item of window.carritoItems) {
+      let itemMasReciente = carritoItems[0];
+      for (const item of carritoItems) {
         const fecha1 = new Date(item.fecha_agregado);
         const fecha2 = new Date(itemMasReciente.fecha_agregado);
         if (fecha1 > fecha2) {
@@ -1242,7 +1293,7 @@ import Layout from '../layouts/Layout.astro';
       const diff = tiempoExpiracion - ahora.getTime();
 
       // Actualizar el countdown global con el tiempo del item más reciente
-      const countdownGlobal = document.getElementById('countdownGlobal');
+      const countdownGlobal = document.getElementById('countdownGlobal') as HTMLElement | null;
       if (countdownGlobal) {
         if (diff <= 0) {
           countdownGlobal.textContent = '⚠️ EXPIRADO';

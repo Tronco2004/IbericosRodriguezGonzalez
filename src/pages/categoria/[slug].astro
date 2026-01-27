@@ -1244,7 +1244,7 @@ const info = categoryInfo[slug as string] || {
       list.innerHTML = disponibles.map(v => {
         const precioEnEuros = (v.precio_total / 100).toFixed(2);
         return `
-          <button class="variante-option" data-variante-id="${v.id}" data-peso="${v.peso_kg}" data-precio="${v.precio_total}" style="
+          <button class="variante-option" data-variante-id="${v.id}" data-peso="${v.peso_kg}" data-precio="${v.precio_total}" data-cantidad="${v.cantidad_disponible}" style="
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -1272,7 +1272,7 @@ const info = categoryInfo[slug as string] || {
               </div>
               <div style="text-align: left;">
                 <div style="font-weight: 700; color: #1a1a1a; font-size: 1rem;">${v.peso_kg.toFixed(2)} kg</div>
-                <div style="font-size: 0.8rem; color: #666;">1 variante disponible</div>
+                <div style="font-size: 0.8rem; color: #666;">${v.cantidad_disponible || 1} disponible${v.cantidad_disponible > 1 ? 's' : ''}</div>
               </div>
             </div>
             <div style="
@@ -1342,28 +1342,68 @@ const info = categoryInfo[slug as string] || {
       }
     }
 
-    function agregarAlCarritoLocalVariante(varianteId, peso, precio) {
-      const carrito = JSON.parse(localStorage.getItem('carrito_invitado') || '[]');
-      
-      const nuevoItem = {
-        id: Date.now(),
-        producto_id: productoEnModal.id,
-        producto_variante_id: parseInt(varianteId),
-        nombre: productoEnModal.nombre,
-        imagen: productoEnModal.imagen,
-        cantidad: 1,
-        precio_unitario: parseInt(precio),
-        peso_kg: parseFloat(peso),
-        fecha_agregado: new Date().toISOString(),
-        categoria: productoEnModal.categoria
-      };
+    async function agregarAlCarritoLocalVariante(varianteId, peso, precio) {
+      try {
+        // Reservar stock en la base de datos primero
+        const reservaRes = await fetch('/api/carrito/reservar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            producto_id: productoEnModal.id,
+            producto_variante_id: parseInt(varianteId),
+            cantidad: 1
+          })
+        });
+        
+        const reservaData = await reservaRes.json();
+        if (!reservaData.success) {
+          console.error('❌ Error reservando stock:', reservaData.error);
+          mostrarNotificacion(reservaData.error || 'Este producto ya no está disponible', 'error');
+          cerrarModales();
+          return;
+        }
+        console.log('✅ Stock reservado:', reservaData);
 
-      carrito.push(nuevoItem);
-      localStorage.setItem('carrito_invitado', JSON.stringify(carrito));
-      
-      mostrarNotificacion('✓ Añadido al carrito');
-      cerrarModales();
-      window.dispatchEvent(new CustomEvent('carritoActualizado'));
+        const carrito = JSON.parse(localStorage.getItem('carrito_invitado') || '[]');
+        
+        const nuevoItem = {
+          id: Date.now(),
+          producto_id: productoEnModal.id,
+          producto_variante_id: parseInt(varianteId),
+          nombre: productoEnModal.nombre,
+          imagen: productoEnModal.imagen,
+          cantidad: 1,
+          precio_unitario: parseInt(precio),
+          peso_kg: parseFloat(peso),
+          fecha_agregado: new Date().toISOString(),
+          categoria: productoEnModal.categoria
+        };
+
+        carrito.push(nuevoItem);
+        localStorage.setItem('carrito_invitado', JSON.stringify(carrito));
+        localStorage.setItem('carrito_invitado_fecha', String(Date.now()));
+        
+        mostrarNotificacion('✓ Añadido al carrito');
+        
+        // Recargar variantes desde el servidor
+        console.log('🔄 Recargando variantes...');
+        const variantesRes = await fetch(`/api/variantes/obtener-disponibles?producto_id=${productoEnModal.id}`);
+        const variantesData = await variantesRes.json();
+        if (variantesData.success) {
+          // Actualizar el mapa de variantes
+          variantesMap[productoEnModal.id] = variantesData.variantes;
+          console.log('✅ Variantes actualizadas:', variantesData.variantes.length);
+          
+          // Re-abrir el modal con las variantes actualizadas
+          abrirModalVariantes(productoEnModal.id);
+        }
+        
+        cerrarModales();
+        window.dispatchEvent(new CustomEvent('carritoActualizado'));
+      } catch (error) {
+        console.error('❌ Error en agregarAlCarritoLocalVariante:', error);
+        mostrarNotificacion('Error al añadir al carrito', 'error');
+      }
     }
 
     async function agregarProductoAlCarrito(cantidad) {
@@ -1428,6 +1468,7 @@ const info = categoryInfo[slug as string] || {
       }
 
       localStorage.setItem('carrito_invitado', JSON.stringify(carrito));
+      localStorage.setItem('carrito_invitado_fecha', String(Date.now()));
       
       mostrarNotificacion(`✓ ${cantidad} ${cantidad > 1 ? 'unidades añadidas' : 'unidad añadida'}`);
       cerrarModales();

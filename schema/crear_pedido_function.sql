@@ -19,6 +19,7 @@ DECLARE
 BEGIN
   BEGIN
     -- Insertar el pedido
+    -- Nota: subtotal y total se recalculan automáticamente con trigger después de insertar items
     INSERT INTO pedidos (
       usuario_id,
       stripe_session_id,
@@ -39,8 +40,8 @@ BEGIN
       p_usuario_id,
       p_stripe_session_id,
       p_numero_pedido,
-      p_subtotal,
-      p_total,
+      0,  -- subtotal se recalculará con trigger
+      p_envio,  -- total inicial es solo el envío, se recalculará con trigger
       p_descuento_aplicado,
       p_nombre_cliente,
       p_email_cliente,

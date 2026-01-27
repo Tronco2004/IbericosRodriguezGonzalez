@@ -397,7 +397,8 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     function abrirModal() {
       const modal = document.getElementById('modalOferta') as HTMLDivElement;
       modal.style.display = 'flex';
-      document.getElementById('formOferta')?.reset();
+      const form = document.getElementById('formOferta') as HTMLFormElement | null;
+      if (form) form.reset();
     }
 
     function cerrarModal() {
