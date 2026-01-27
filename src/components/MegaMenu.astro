@@ -126,7 +126,7 @@ const otras = categorias.filter(c => !otrasIds.includes(c.id));
     border: none;
     font-size: 0.95rem;
     font-weight: 600;
-    color: #001a33;
+    color: var(--text-primary);
     padding: 0.5rem 0;
     cursor: pointer;
     transition: color 0.3s ease;
@@ -136,8 +136,8 @@ const otras = categorias.filter(c => !otrasIds.includes(c.id));
   }
 
   .mega-menu-trigger:hover {
-    color: #8b4513;
-    border-bottom-color: #000;
+    color: var(--color-accent);
+    border-bottom-color: var(--color-accent);
   }
 
   .chevron-icon {
@@ -157,14 +157,14 @@ const otras = categorias.filter(c => !otrasIds.includes(c.id));
     transform: translateX(-50%);
     width: 90%;
     max-width: 900px;
-    background: white;
+    background: var(--bg-card);
     border-radius: 12px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 20px 60px var(--shadow-medium);
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
     z-index: 1000;
-    border: 1px solid #e8e8e8;
+    border: 1px solid var(--border-color);
   }
 
   .mega-menu-container:hover .mega-menu-dropdown,
@@ -206,12 +206,12 @@ const otras = categorias.filter(c => !otrasIds.includes(c.id));
   .column-title {
     font-size: 0.75rem;
     font-weight: 700;
-    color: #8b4513;
+    color: var(--color-accent);
     text-transform: uppercase;
     letter-spacing: 1px;
     margin-bottom: 1.2rem;
     padding-bottom: 0.75rem;
-    border-bottom: 2px solid #f5f0eb;
+    border-bottom: 2px solid var(--border-light);
   }
 
   .category-list {
@@ -227,7 +227,7 @@ const otras = categorias.filter(c => !otrasIds.includes(c.id));
   .category-link {
     display: block;
     padding: 0.4rem 0;
-    color: #333;
+    color: var(--text-primary);
     font-size: 0.9rem;
     font-weight: 400;
     transition: all 0.2s ease;
@@ -235,13 +235,13 @@ const otras = categorias.filter(c => !otrasIds.includes(c.id));
   }
 
   .category-link:hover {
-    color: #8b4513;
+    color: var(--color-accent);
     font-weight: 500;
   }
 
   /* Banner promocional - ABAJO Y OCUPA TODO EL ANCHO */
   .mega-menu-banner {
-    background: linear-gradient(135deg, #001a33 0%, #2d4a5e 100%);
+    background: var(--gradient-cta);
     border-radius: 0 0 12px 12px;
     padding: 1.5rem 2rem;
   }
@@ -263,7 +263,7 @@ const otras = categorias.filter(c => !otrasIds.includes(c.id));
 
   .banner-tag {
     display: inline-block;
-    background: #d4a574;
+    background: var(--color-accent-light);
     color: white;
     font-size: 0.65rem;
     font-weight: 700;
@@ -289,8 +289,8 @@ const otras = categorias.filter(c => !otrasIds.includes(c.id));
 
   .banner-btn {
     display: inline-block;
-    background: white;
-    color: #001a33;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
     padding: 0.7rem 1.4rem;
     border-radius: 6px;
     font-size: 0.85rem;
@@ -302,7 +302,7 @@ const otras = categorias.filter(c => !otrasIds.includes(c.id));
   }
 
   .banner-btn:hover {
-    background: #f5f0eb;
+    background: var(--bg-tertiary);
     transform: translateY(-2px);
   }
 
@@ -324,7 +324,7 @@ const otras = categorias.filter(c => !otrasIds.includes(c.id));
       justify-content: space-between;
       padding: 1rem 0;
       font-size: 1.1rem;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid var(--border-light);
     }
 
     .mega-menu-dropdown {
@@ -356,7 +356,7 @@ const otras = categorias.filter(c => !otrasIds.includes(c.id));
       max-width: 100%;
       padding: 1rem 0 1rem 1rem;
       border-right: none;
-      border-bottom: 1px solid #f0f0f0;
+      border-bottom: 1px solid var(--border-light);
       text-align: left;
     }
 

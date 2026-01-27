@@ -3,275 +3,108 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 ---
 
 <ProtectedLayout requireAdmin={true}>
-  <div style="min-height: 100vh; background: linear-gradient(135deg, #fafbfc 0%, #f3f4f6 100%); padding: 3rem 2rem;">
-    <div style="max-width: 1400px; margin: 0 auto;">
+  <div class="admin-page">
+    <div class="admin-container">
       <!-- Header -->
-      <div style="margin-bottom: 3rem;">
-        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
-          <a href="/admin/dashboard" style="
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            color: #0f172a;
-            text-decoration: none;
-            font-size: 1.2rem;
-            transition: all 0.3s;
-          " onmouseover="this.style.background='#f1f5f9'; this.style.borderColor='#cbd5e1'" onmouseout="this.style.background='white'; this.style.borderColor='#e2e8f0'">←</a>
-        </div>
-        <h1 style="color: #0f172a; font-size: 2.5rem; margin: 0; font-weight: 900;">Gestión de Ofertas</h1>
-        <p style="color: #64748b; margin: 0.5rem 0 0 0; font-size: 1rem;">Crea y administra ofertas especiales para tus productos</p>
+      <div class="admin-header">
+        <a href="/admin/dashboard" class="admin-back-btn">←</a>
+        <h1 class="admin-title">Gestión de Ofertas</h1>
+        <p class="admin-subtitle">Crea y administra ofertas especiales para tus productos</p>
       </div>
 
       <!-- Panel de Bienvenida -->
-      <div style="
-        background: linear-gradient(135deg, #a89968 0%, #8b7355 100%);
-        border-radius: 16px;
-        padding: 3rem;
-        margin-bottom: 3rem;
-        box-shadow: 0 15px 40px rgba(168, 153, 104, 0.25);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 3rem;
-        align-items: center;
-      ">
-        <div>
-          <h2 style="color: white; font-size: 2rem; margin: 0 0 1rem 0; font-weight: 900;">Impulsa tus Ventas</h2>
-          <p style="color: rgba(255, 255, 255, 0.9); font-size: 1.1rem; margin: 0 0 1.5rem 0; line-height: 1.6;">Crea ofertas exclusivas y promociones especiales para atraer a más clientes. Gestiona descuentos, fechas y visibilidad desde un único panel intuitivo.</p>
-          <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-            <div style="background: rgba(255, 255, 255, 0.15); padding: 1rem; border-radius: 10px; flex: 1; min-width: 150px; text-align: center;">
-              <p style="color: rgba(255, 255, 255, 0.8); font-size: 0.9rem; margin: 0;">Ofertas Activas</p>
-              <p style="color: white; font-size: 1.8rem; margin: 0.5rem 0 0 0; font-weight: 900;" id="ofertasActivas">--</p>
+      <div class="ofertas-welcome-panel">
+        <div class="ofertas-welcome-content">
+          <h2>Impulsa tus Ventas</h2>
+          <p>Crea ofertas exclusivas y promociones especiales para atraer a más clientes. Gestiona descuentos, fechas y visibilidad desde un único panel intuitivo.</p>
+          <div class="ofertas-stats">
+            <div class="ofertas-stat-card">
+              <p class="ofertas-stat-label">Ofertas Activas</p>
+              <p class="ofertas-stat-value" id="ofertasActivas">--</p>
             </div>
-            <div style="background: rgba(255, 255, 255, 0.15); padding: 1rem; border-radius: 10px; flex: 1; min-width: 150px; text-align: center;">
-              <p style="color: rgba(255, 255, 255, 0.8); font-size: 0.9rem; margin: 0;">Total de Ofertas</p>
-              <p style="color: white; font-size: 1.8rem; margin: 0.5rem 0 0 0; font-weight: 900;" id="totalOfertas">--</p>
+            <div class="ofertas-stat-card">
+              <p class="ofertas-stat-label">Total de Ofertas</p>
+              <p class="ofertas-stat-value" id="totalOfertas">--</p>
             </div>
           </div>
         </div>
-        <div style="text-align: center;">
-          <button id="btnNuevaOferta" style="
-            background: white;
-            color: #8b7355;
-            padding: 1.5rem 2.5rem;
-            border: none;
-            border-radius: 12px;
-            font-size: 1.1rem;
-            font-weight: 800;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            white-space: nowrap;
-          " onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 30px rgba(0, 0, 0, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 20px rgba(0, 0, 0, 0.2)'">
-            <span style="font-size: 1.5rem;">+</span> Nueva Oferta
+        <div class="ofertas-welcome-action">
+          <button id="btnNuevaOferta" class="ofertas-btn-nueva">
+            <span>+</span> Nueva Oferta
           </button>
-          <p style="color: rgba(255, 255, 255, 0.7); font-size: 0.9rem; margin-top: 1rem;">Crea una promoción en segundos</p>
+          <p class="ofertas-action-hint">Crea una promoción en segundos</p>
         </div>
       </div>
 
       <!-- Tabla de Ofertas -->
-      <div style="
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        overflow: hidden;
-      ">
-        <div id="ofertasContainer" style="padding: 2rem;">
-          <p style="color: #64748b; text-align: center;">Cargando ofertas...</p>
+      <div class="admin-table-container">
+        <div id="ofertasContainer" class="admin-loading">
+          <p>Cargando ofertas...</p>
         </div>
       </div>
     </div>
   </div>
 
   <!-- Modal para crear/editar oferta -->
-  <div id="modalOferta" style="
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    z-index: 1000;
-    align-items: center;
-    justify-content: center;
-    animation: fadeIn 0.3s ease-in-out;
-  ">
-    <div style="
-      background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
-      border-radius: 16px;
-      padding: 2.5rem;
-      max-width: 700px;
-      width: 90%;
-      max-height: 90vh;
-      overflow-y: auto;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-      border: 1px solid rgba(168, 153, 104, 0.1);
-    ">
-      <div style="margin-bottom: 2rem; border-bottom: 2px solid rgba(168, 153, 104, 0.2); padding-bottom: 1.5rem;">
-        <h2 style="margin: 0; color: #0f172a; font-size: 1.8rem; font-weight: 900;">Nueva Oferta</h2>
-        <p style="margin: 0.5rem 0 0 0; color: #64748b; font-size: 0.9rem;">Crea una promoción especial para tus productos premium</p>
-      </div>
+  <div id="modalOferta" class="admin-modal-overlay">
+    <div class="admin-modal">
+      <h2 class="admin-modal-title">Nueva Oferta</h2>
+      <p class="admin-subtitle">Crea una promoción especial para tus productos premium</p>
       
-      <form id="formOferta" style="display: flex; flex-direction: column; gap: 1.5rem;">
+      <form id="formOferta" class="admin-form">
         
         <!-- Producto -->
-        <div>
-          <label style="display: block; margin-bottom: 0.75rem; font-weight: 700; color: #0f172a; font-size: 0.95rem;">Selecciona Producto</label>
-          <select id="productoSelect" required style="
-            width: 100%;
-            padding: 0.9rem 1rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            font-size: 1rem;
-            background: white;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            color: #0f172a;
-            font-weight: 500;
-          " onmouseover="this.style.borderColor='#a89968'; this.style.boxShadow='0 4px 12px rgba(168, 153, 104, 0.15)'" onmouseout="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'"></select>
+        <div class="admin-form-group">
+          <label class="admin-label">Selecciona Producto</label>
+          <select id="productoSelect" required class="admin-select"></select>
         </div>
 
         <!-- Nombre Oferta -->
-        <div>
-          <label style="display: block; margin-bottom: 0.75rem; font-weight: 700; color: #0f172a; font-size: 0.95rem;">Nombre de la Oferta</label>
-          <input type="text" id="nombreOferta" required placeholder="Ej: Black Friday 50% Off" style="
-            width: 100%;
-            padding: 0.9rem 1rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            font-size: 1rem;
-            box-sizing: border-box;
-            background: white;
-            color: #0f172a;
-            transition: all 0.3s ease;
-          " onfocus="this.style.borderColor='#a89968'; this.style.boxShadow='0 4px 12px rgba(168, 153, 104, 0.15)'" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'" />
+        <div class="admin-form-group">
+          <label class="admin-label">Nombre de la Oferta</label>
+          <input type="text" id="nombreOferta" required placeholder="Ej: Black Friday 50% Off" class="admin-input" />
         </div>
 
         <!-- Descripción -->
-        <div>
-          <label style="display: block; margin-bottom: 0.75rem; font-weight: 700; color: #0f172a; font-size: 0.95rem;">Descripción (opcional)</label>
-          <textarea id="descripcion" placeholder="Describe los detalles de la oferta..." style="
-            width: 100%;
-            padding: 0.9rem 1rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            font-size: 1rem;
-            min-height: 80px;
-            box-sizing: border-box;
-            background: white;
-            color: #0f172a;
-            resize: vertical;
-            transition: all 0.3s ease;
-            font-family: inherit;
-          " onfocus="this.style.borderColor='#a89968'; this.style.boxShadow='0 4px 12px rgba(168, 153, 104, 0.15)'" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'"></textarea>
+        <div class="admin-form-group">
+          <label class="admin-label">Descripción (opcional)</label>
+          <textarea id="descripcion" placeholder="Describe los detalles de la oferta..." class="admin-input ofertas-textarea"></textarea>
         </div>
 
         <!-- Precios -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; background: linear-gradient(135deg, rgba(168, 153, 104, 0.05) 0%, rgba(139, 115, 85, 0.05) 100%); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(168, 153, 104, 0.1);">
-          <div>
-            <label style="display: block; margin-bottom: 0.75rem; font-weight: 700; color: #0f172a; font-size: 0.95rem;">Precio Original (€)</label>
-            <input type="number" id="precioOriginal" required step="0.01" placeholder="0.00" readonly style="
-              width: 100%;
-              padding: 0.9rem 1rem;
-              border: 2px solid rgba(168, 153, 104, 0.3);
-              border-radius: 10px;
-              font-size: 1.1rem;
-              box-sizing: border-box;
-              background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-              cursor: not-allowed;
-              color: #64748b;
-              font-weight: 600;
-            " />
-            <p style="margin: 0.5rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">Auto-llenado desde el producto</p>
+        <div class="admin-form-row ofertas-precios-row">
+          <div class="admin-form-group">
+            <label class="admin-label">Precio Original (€)</label>
+            <input type="number" id="precioOriginal" required step="0.01" placeholder="0.00" readonly class="admin-input ofertas-input-readonly" />
+            <p class="ofertas-hint">Auto-llenado desde el producto</p>
           </div>
 
-          <div>
-            <label style="display: block; margin-bottom: 0.75rem; font-weight: 700; color: #0f172a; font-size: 0.95rem;">Precio Descuento (€)</label>
-            <input type="number" id="precioDescuento" required step="0.01" placeholder="0.00" style="
-              width: 100%;
-              padding: 0.9rem 1rem;
-              border: 2px solid #e2e8f0;
-              border-radius: 10px;
-              font-size: 1.1rem;
-              box-sizing: border-box;
-              background: white;
-              color: #0f172a;
-              font-weight: 600;
-              transition: all 0.3s ease;
-            " onfocus="this.style.borderColor='#a89968'; this.style.boxShadow='0 4px 12px rgba(168, 153, 104, 0.15)'" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'" />
-            <p style="margin: 0.5rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">Debe ser menor al original</p>
+          <div class="admin-form-group">
+            <label class="admin-label">Precio Descuento (€)</label>
+            <input type="number" id="precioDescuento" required step="0.01" placeholder="0.00" class="admin-input" />
+            <p class="ofertas-hint">Debe ser menor al original</p>
           </div>
         </div>
 
         <!-- Fechas -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-          <div>
-            <label style="display: block; margin-bottom: 0.75rem; font-weight: 700; color: #0f172a; font-size: 0.95rem;">Fecha Inicio</label>
-            <input type="datetime-local" id="fechaInicio" required style="
-              width: 100%;
-              padding: 0.9rem 1rem;
-              border: 2px solid #e2e8f0;
-              border-radius: 10px;
-              font-size: 1rem;
-              box-sizing: border-box;
-              background: white;
-              color: #0f172a;
-              transition: all 0.3s ease;
-            " onfocus="this.style.borderColor='#a89968'; this.style.boxShadow='0 4px 12px rgba(168, 153, 104, 0.15)'" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'" />
+        <div class="admin-form-row">
+          <div class="admin-form-group">
+            <label class="admin-label">Fecha Inicio</label>
+            <input type="datetime-local" id="fechaInicio" required class="admin-input" />
           </div>
 
-          <div>
-            <label style="display: block; margin-bottom: 0.75rem; font-weight: 700; color: #0f172a; font-size: 0.95rem;">Fecha Fin</label>
-            <input type="datetime-local" id="fechaFin" required style="
-              width: 100%;
-              padding: 0.9rem 1rem;
-              border: 2px solid #e2e8f0;
-              border-radius: 10px;
-              font-size: 1rem;
-              box-sizing: border-box;
-              background: white;
-              color: #0f172a;
-              transition: all 0.3s ease;
-            " onfocus="this.style.borderColor='#a89968'; this.style.boxShadow='0 4px 12px rgba(168, 153, 104, 0.15)'" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'" />
+          <div class="admin-form-group">
+            <label class="admin-label">Fecha Fin</label>
+            <input type="datetime-local" id="fechaFin" required class="admin-input" />
           </div>
         </div>
 
         <!-- Botones -->
-        <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0;">
-          <button type="button" id="btnCancelar" style="
-            padding: 0.85rem 2rem;
-            border: 2px solid #e2e8f0;
-            background: white;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            color: #64748b;
-            transition: all 0.3s ease;
-            font-size: 0.95rem;
-          " onmouseover="this.style.background='#f1f5f9'; this.style.borderColor='#cbd5e1'" onmouseout="this.style.background='white'; this.style.borderColor='#e2e8f0'">
+        <div class="admin-form-actions">
+          <button type="button" id="btnCancelar" class="admin-btn-secondary">
             Cancelar
           </button>
-          <button type="submit" style="
-            padding: 0.85rem 2rem;
-            background: linear-gradient(135deg, #a89968 0%, #8b7355 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 700;
-            transition: all 0.3s ease;
-            font-size: 0.95rem;
-            box-shadow: 0 4px 15px rgba(168, 153, 104, 0.3);
-          " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(168, 153, 104, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(168, 153, 104, 0.3)'">
+          <button type="submit" class="admin-btn-primary">
             Guardar Oferta
           </button>
         </div>
@@ -347,20 +180,21 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 
     function renderizarOfertas() {
       const container = document.getElementById('ofertasContainer') as HTMLDivElement;
+      container.className = '';
       
       if (ofertas.length === 0) {
-        container.innerHTML = '<p style="color: #64748b; text-align: center;">No hay ofertas creadas aún</p>';
+        container.innerHTML = '<div class="admin-empty-state"><p>No hay ofertas creadas aún</p></div>';
         return;
       }
 
-      let html = '<table style="width: 100%; border-collapse: collapse;">';
-      html += '<thead><tr style="background: #f8f7f4; border-bottom: 2px solid #e2e8f0;">';
-      html += '<th style="padding: 1rem; text-align: left; font-weight: 600;">Nombre</th>';
-      html += '<th style="padding: 1rem; text-align: left; font-weight: 600;">Producto</th>';
-      html += '<th style="padding: 1rem; text-align: left; font-weight: 600;">Descuento</th>';
-      html += '<th style="padding: 1rem; text-align: left; font-weight: 600;">Fecha Fin</th>';
-      html += '<th style="padding: 1rem; text-align: left; font-weight: 600;">Estado</th>';
-      html += '<th style="padding: 1rem; text-align: center; font-weight: 600;">Acciones</th>';
+      let html = '<div class="admin-table-scroll"><table class="admin-table">';
+      html += '<thead><tr>';
+      html += '<th>Nombre</th>';
+      html += '<th>Producto</th>';
+      html += '<th>Descuento</th>';
+      html += '<th>Fecha Fin</th>';
+      html += '<th>Estado</th>';
+      html += '<th class="center">Acciones</th>';
       html += '</tr></thead>';
       html += '<tbody>';
 
@@ -368,29 +202,24 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         const descuento = oferta.porcentaje_descuento || 0;
         const estado = oferta.activa ? 'Activa' : 'Inactiva';
         const fechaFin = new Date(oferta.fecha_fin).toLocaleDateString('es-ES');
+        const badgeClass = oferta.activa ? 'success' : 'danger';
         
-        html += `<tr style="border-bottom: 1px solid #e2e8f0;">
-          <td style="padding: 1rem;">${oferta.nombre_oferta}</td>
-          <td style="padding: 1rem;">${oferta.producto?.nombre || 'Sin producto'}</td>
-          <td style="padding: 1rem;"><strong style="color: #dc2626;">${descuento}%</strong></td>
-          <td style="padding: 1rem;">${fechaFin}</td>
-          <td style="padding: 1rem;">
-            <span style="
-              background: ${oferta.activa ? '#dcfce7' : '#fee2e2'};
-              color: ${oferta.activa ? '#15803d' : '#991b1b'};
-              padding: 0.25rem 0.75rem;
-              border-radius: 4px;
-              font-size: 0.875rem;
-            ">${estado}</span>
+        html += `<tr>
+          <td>${oferta.nombre_oferta}</td>
+          <td>${oferta.producto?.nombre || 'Sin producto'}</td>
+          <td><strong class="ofertas-descuento">${descuento}%</strong></td>
+          <td>${fechaFin}</td>
+          <td>
+            <span class="admin-badge ${badgeClass}">${estado}</span>
           </td>
-          <td style="padding: 1rem; text-align: center;">
-            <button onclick="editarOferta(${oferta.id})" style="background: none; border: none; color: #0f172a; cursor: pointer; font-weight: 600; margin-right: 0.5rem;">Editar</button>
-            <button onclick="eliminarOferta(${oferta.id})" style="background: none; border: none; color: #dc2626; cursor: pointer; font-weight: 600;">Eliminar</button>
+          <td class="center">
+            <button onclick="editarOferta(${oferta.id})" class="admin-btn-secondary ofertas-btn-accion">Editar</button>
+            <button onclick="eliminarOferta(${oferta.id})" class="admin-btn-danger ofertas-btn-accion">Eliminar</button>
           </td>
         </tr>`;
       });
 
-      html += '</tbody></table>';
+      html += '</tbody></table></div>';
       container.innerHTML = html;
     }
 
@@ -538,12 +367,150 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
   </script>
 
   <style>
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
+    /* Panel de bienvenida */
+    .ofertas-welcome-panel {
+      background: linear-gradient(135deg, #a89968 0%, #8b7355 100%);
+      border-radius: 16px;
+      padding: 3rem;
+      margin-bottom: 3rem;
+      box-shadow: 0 15px 40px rgba(168, 153, 104, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 3rem;
+      align-items: center;
+    }
+
+    .ofertas-welcome-content h2 {
+      color: white;
+      font-size: 2rem;
+      margin: 0 0 1rem 0;
+      font-weight: 900;
+    }
+
+    .ofertas-welcome-content > p {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 1.1rem;
+      margin: 0 0 1.5rem 0;
+      line-height: 1.6;
+    }
+
+    .ofertas-stats {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .ofertas-stat-card {
+      background: rgba(255, 255, 255, 0.15);
+      padding: 1rem;
+      border-radius: 10px;
+      flex: 1;
+      min-width: 150px;
+      text-align: center;
+    }
+
+    .ofertas-stat-label {
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 0.9rem;
+      margin: 0;
+    }
+
+    .ofertas-stat-value {
+      color: white;
+      font-size: 1.8rem;
+      margin: 0.5rem 0 0 0;
+      font-weight: 900;
+    }
+
+    .ofertas-welcome-action {
+      text-align: center;
+    }
+
+    .ofertas-btn-nueva {
+      background: white;
+      color: #8b7355;
+      padding: 1.5rem 2.5rem;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      white-space: nowrap;
+    }
+
+    .ofertas-btn-nueva:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .ofertas-btn-nueva span {
+      font-size: 1.5rem;
+    }
+
+    .ofertas-action-hint {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.9rem;
+      margin-top: 1rem;
+    }
+
+    /* Formulario */
+    .ofertas-textarea {
+      min-height: 80px;
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    .ofertas-precios-row {
+      background: linear-gradient(135deg, rgba(168, 153, 104, 0.05) 0%, rgba(139, 115, 85, 0.05) 100%);
+      padding: 1.5rem;
+      border-radius: 12px;
+      border: 1px solid rgba(168, 153, 104, 0.1);
+    }
+
+    .ofertas-input-readonly {
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+      cursor: not-allowed !important;
+      color: #64748b !important;
+      border-color: rgba(168, 153, 104, 0.3) !important;
+    }
+
+    .ofertas-hint {
+      margin: 0.5rem 0 0 0;
+      color: #94a3b8;
+      font-size: 0.85rem;
+    }
+
+    /* Tabla */
+    .ofertas-descuento {
+      color: #dc2626;
+    }
+
+    .ofertas-btn-accion {
+      padding: 0.35rem 0.75rem;
+      font-size: 0.85rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .ofertas-welcome-panel {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        padding: 2rem;
       }
-      to {
-        opacity: 1;
+
+      .ofertas-welcome-action {
+        text-align: left;
+      }
+
+      .ofertas-btn-nueva {
+        width: 100%;
+        justify-content: center;
       }
     }
   </style>

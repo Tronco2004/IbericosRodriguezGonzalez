@@ -3,28 +3,28 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 ---
 
 <ProtectedLayout requireAdmin={true}>
-  <div style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
+  <div class="admin-page">
     <!-- Header -->
-    <div style="margin-bottom: 2rem;">
-      <h1 style="color: #001a33; font-size: 2rem; margin: 0;">Gestionar Usuarios</h1>
-      <p style="color: #666; margin: 0.5rem 0 0 0;">Administra los usuarios del sistema</p>
+    <div class="admin-header">
+      <h1 class="admin-title">Gestionar Usuarios</h1>
+      <p class="admin-subtitle">Administra los usuarios del sistema</p>
     </div>
 
     <!-- Tabla de usuarios -->
-    <div style="background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden;">
-      <table id="usuariosTable" style="width: 100%; border-collapse: collapse;">
+    <div class="admin-table-container">
+      <table id="usuariosTable" class="admin-table">
         <thead>
-          <tr style="background: #f5f5f5; border-bottom: 2px solid #ddd;">
-            <th style="padding: 1rem; text-align: left; color: #001a33; font-weight: 600;">Nombre</th>
-            <th style="padding: 1rem; text-align: left; color: #001a33; font-weight: 600;">Email</th>
-            <th style="padding: 1rem; text-align: left; color: #001a33; font-weight: 600;">Rol</th>
-            <th style="padding: 1rem; text-align: left; color: #001a33; font-weight: 600;">Estado</th>
-            <th style="padding: 1rem; text-align: left; color: #001a33; font-weight: 600;">Acciones</th>
+          <tr>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Rol</th>
+            <th>Estado</th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody id="usuariosTableBody">
           <tr>
-            <td colspan="5" style="padding: 2rem; text-align: center; color: #999;">
+            <td colspan="5" class="admin-loading">
               Cargando usuarios...
             </td>
           </tr>
@@ -42,43 +42,20 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         if (data.success && data.usuarios) {
           const tableBody = document.getElementById('usuariosTableBody');
           tableBody.innerHTML = data.usuarios.map(usuario => `
-            <tr style="border-bottom: 1px solid #eee;">
-              <td style="padding: 1rem; color: #333; font-weight: 600;">${usuario.nombre}</td>
-              <td style="padding: 1rem; color: #666;">${usuario.email}</td>
-              <td style="padding: 1rem;">
-                <span style="
-                  background: ${usuario.rol === 'admin' ? '#ff6b6b' : '#a89968'};
-                  color: white;
-                  padding: 0.25rem 0.75rem;
-                  border-radius: 4px;
-                  font-size: 0.85rem;
-                  font-weight: 600;
-                ">${usuario.rol}</span>
+            <tr>
+              <td><strong>${usuario.nombre}</strong></td>
+              <td>${usuario.email}</td>
+              <td>
+                <span class="admin-badge ${usuario.rol === 'admin' ? 'danger' : 'info'}">${usuario.rol}</span>
               </td>
-              <td style="padding: 1rem;">
-                <select id="activo-${usuario.id}" onchange="cambiarEstado('${usuario.id}', this.value)" style="
-                  padding: 0.5rem;
-                  border: 1px solid #ddd;
-                  border-radius: 4px;
-                  background: white;
-                  cursor: pointer;
-                  font-size: 0.9rem;
-                ">
+              <td>
+                <select id="activo-${usuario.id}" onchange="cambiarEstado('${usuario.id}', this.value)" class="admin-select">
                   <option value="true" ${usuario.activo === true ? 'selected' : ''}>Activo</option>
                   <option value="false" ${usuario.activo === false ? 'selected' : ''}>Inactivo</option>
                 </select>
               </td>
-              <td style="padding: 1rem;">
-                <button onclick="eliminarUsuario('${usuario.id}')" style="
-                  background: #ff6b6b;
-                  color: white;
-                  border: none;
-                  padding: 0.5rem 1rem;
-                  border-radius: 4px;
-                  cursor: pointer;
-                  font-size: 0.85rem;
-                  transition: background 0.3s;
-                " onmouseover="this.style.background='#ff5252'" onmouseout="this.style.background='#ff6b6b'">
+              <td>
+                <button onclick="eliminarUsuario('${usuario.id}')" class="admin-btn-danger">
                   Eliminar
                 </button>
               </td>
@@ -86,12 +63,12 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           `).join('');
         } else {
           const tableBody = document.getElementById('usuariosTableBody');
-          tableBody.innerHTML = '<tr><td colspan="5" style="padding: 2rem; text-align: center; color: #999;">Error al cargar usuarios</td></tr>';
+          tableBody.innerHTML = '<tr><td colspan="5" class="admin-empty-state">Error al cargar usuarios</td></tr>';
         }
       } catch (error) {
         console.error('Error cargando usuarios:', error);
         const tableBody = document.getElementById('usuariosTableBody');
-        tableBody.innerHTML = '<tr><td colspan="5" style="padding: 2rem; text-align: center; color: #999;">Error al cargar usuarios</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="5" class="admin-empty-state">Error al cargar usuarios</td></tr>';
       }
     }
 

@@ -7,58 +7,637 @@ import Layout from '../layouts/Layout.astro';
 ---
 
 <Layout title="Mi Carrito">
-  <div style="min-height: 100vh; background: #f8f4f0; padding: 2rem 0; width: 100%; overflow-x: hidden;">
-    <div style="max-width: 1200px; margin: 0 auto; padding: 0 1rem; width: 100%; box-sizing: border-box;">
-      <p id="loadingMessage" style="color: #5c4a3d; font-size: 1.1rem; text-align: center;">Cargando tu carrito...</p>
+  <div class="carrito-page">
+    <div class="carrito-container">
+      <p id="loadingMessage" class="loading-message">Cargando tu carrito...</p>
       <div id="carritoContent" style="width: 100%; box-sizing: border-box;"></div>
     </div>
   </div>
 
+  <style>
+    .carrito-page {
+      min-height: 100vh;
+      background: var(--bg-tertiary);
+      padding: 2rem 0;
+      width: 100%;
+      overflow-x: hidden;
+    }
+    .carrito-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1rem;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .loading-message {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      text-align: center;
+    }
+    /* Modal de invitado adaptable al tema */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--overlay-dark);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-content {
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 450px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px var(--shadow-medium);
+    }
+    .modal-title {
+      color: var(--text-primary);
+      margin: 0 0 0.5rem 0;
+      font-family: 'Playfair Display', serif;
+    }
+    .modal-subtitle {
+      color: var(--text-secondary);
+      margin: 0 0 1.5rem 0;
+      font-size: 0.95rem;
+    }
+    .form-label {
+      display: block;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .form-input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 1rem;
+      box-sizing: border-box;
+      background: var(--bg-input);
+      color: var(--text-primary);
+    }
+    .form-input::placeholder {
+      color: var(--text-muted);
+    }
+    .form-hint {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      margin: 0.25rem 0 0 0;
+    }
+    .form-divider {
+      border-top: 1px solid var(--border-color);
+      padding-top: 1rem;
+      margin-top: 0.5rem;
+    }
+    .login-hint {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      margin: 0 0 1rem 0;
+    }
+    .login-hint a {
+      color: var(--color-accent);
+      text-decoration: underline;
+    }
+    .btn-cancel {
+      flex: 1;
+      padding: 0.75rem;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    .btn-submit {
+      flex: 2;
+      padding: 0.75rem;
+      background: var(--color-accent);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    /* ===== CARRITO GRID ===== */
+    :global(.carrito-grid-layout) {
+      display: grid;
+      grid-template-columns: 1fr 350px;
+      gap: 2rem;
+      align-items: start;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    :global(.carrito-main-panel) {
+      background: var(--bg-card);
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      width: 100%;
+      box-sizing: border-box;
+      transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+    :global(.carrito-header) {
+      padding: 1.5rem;
+      background: var(--bg-tertiary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+    :global(.carrito-title) {
+      color: var(--text-primary);
+      margin: 0;
+      font-family: 'Playfair Display', serif;
+      transition: color 0.3s ease;
+    }
+
+    :global(.carrito-expira-label) {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+    }
+
+    :global(.countdown-global) {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: #d97706;
+    }
+
+    /* ===== CART ITEM ===== */
+    :global(.cart-item) {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      align-items: flex-start;
+      width: 100%;
+      box-sizing: border-box;
+      transition: border-color 0.3s ease;
+    }
+
+    :global(.cart-item-img-wrap) {
+      width: 180px;
+      height: 180px;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      overflow: hidden;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 180px;
+    }
+
+    :global(.cart-item-img) {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    :global(.cart-item-info) {
+      flex: 1;
+      min-width: 200px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    :global(.cart-item-nombre) {
+      color: var(--text-primary);
+      margin: 0 0 0.5rem 0;
+      font-size: 1rem;
+      transition: color 0.3s ease;
+    }
+
+    :global(.cart-item-peso) {
+      color: var(--color-accent);
+      font-weight: 500;
+      font-size: 0.85rem;
+    }
+
+    :global(.cart-item-precio-line) {
+      color: var(--color-accent);
+      margin: 0 0 1rem 0;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    :global(.cart-item-controls) {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    :global(.cart-cantidad-wrap) {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      width: fit-content;
+      background: var(--bg-card);
+      transition: border-color 0.3s ease, background-color 0.3s ease;
+    }
+
+    :global(.btn-cantidad) {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.25rem 0.5rem;
+      cursor: pointer;
+      font-size: 1.2rem;
+      transition: color 0.2s;
+    }
+
+    :global(.btn-cantidad:hover) {
+      color: var(--color-accent);
+    }
+
+    :global(.cart-cantidad-num) {
+      width: 40px;
+      text-align: center;
+      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    :global(.cart-cortado-label) {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    :global(.cart-item-actions) {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      align-items: flex-end;
+      flex-shrink: 0;
+      width: auto;
+      white-space: nowrap;
+    }
+
+    :global(.cart-item-total) {
+      color: var(--text-primary);
+      font-weight: 600;
+      margin: 0;
+      transition: color 0.3s ease;
+    }
+
+    :global(.btn-eliminar) {
+      background: #f5576c;
+      color: white;
+      border: none;
+      padding: 0.5rem 0.75rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    :global(.btn-eliminar:hover) {
+      background: #e63950;
+    }
+
+    /* ===== RESUMEN PANEL ===== */
+    :global(.resumen-panel) {
+      background: var(--bg-card);
+      border-radius: 8px;
+      padding: 1.5rem;
+      border: 1px solid var(--border-color);
+      position: sticky;
+      top: 1rem;
+      width: 100%;
+      box-sizing: border-box;
+      transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+    :global(.resumen-title) {
+      color: var(--text-primary);
+      margin: 0 0 1.5rem 0;
+      font-size: 1.2rem;
+      transition: color 0.3s ease;
+    }
+
+    :global(.resumen-linea) {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    :global(.resumen-valor-accent) {
+      color: var(--color-accent);
+      font-weight: 600;
+    }
+
+    /* ===== CÓDIGO DESCUENTO ===== */
+    :global(.codigo-descuento-box) {
+      margin-bottom: 1.5rem;
+      padding: 1rem;
+      background: var(--bg-tertiary);
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+    :global(.codigo-descuento-label) {
+      display: block;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.75rem;
+      font-size: 0.95rem;
+    }
+
+    :global(.codigo-input) {
+      flex: 1;
+      padding: 0.65rem 0.75rem;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-size: 0.95rem;
+      box-sizing: border-box;
+      text-transform: uppercase;
+      background: var(--bg-card);
+      color: var(--text-primary);
+      transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+    }
+
+    :global(.codigo-input::placeholder) {
+      color: var(--text-muted);
+    }
+
+    :global(.btn-validar) {
+      padding: 0.65rem 1.25rem;
+      background: var(--color-accent);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    :global(.btn-validar:hover) {
+      opacity: 0.9;
+    }
+
+    :global(.descuento-aplicado) {
+      display: none;
+      margin-bottom: 1rem;
+      padding: 0.75rem;
+      background: #d1fae5;
+      border: 1px solid #a7f3d0;
+      border-radius: 4px;
+    }
+
+    :global(.descuento-row) {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    :global(.descuento-label) {
+      color: #065f46;
+      font-weight: 600;
+    }
+
+    :global(.descuento-valor) {
+      color: #065f46;
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    /* ===== TOTAL ===== */
+    :global(.resumen-total-wrap) {
+      padding: 1rem 0;
+      border-top: 2px solid var(--border-color);
+      border-bottom: 2px solid var(--border-color);
+      margin-bottom: 1.5rem;
+      transition: border-color 0.3s ease;
+    }
+
+    :global(.resumen-total-row) {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    :global(.resumen-total-label) {
+      color: var(--text-primary);
+      font-weight: 700;
+    }
+
+    :global(.resumen-total-valor) {
+      color: var(--color-accent);
+      font-weight: 700;
+      font-size: 1.3rem;
+    }
+
+    :global(.btn-checkout) {
+      display: block;
+      width: 100%;
+      background: var(--color-accent);
+      color: white;
+      padding: 1rem;
+      border-radius: 4px;
+      text-align: center;
+      text-decoration: none;
+      font-weight: 600;
+      transition: background 0.3s;
+      margin-bottom: 0.75rem;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    :global(.btn-checkout:hover) {
+      opacity: 0.9;
+    }
+
+    :global(.btn-seguir-comprando) {
+      display: block;
+      background: transparent;
+      color: var(--color-accent);
+      padding: 0.75rem 1rem;
+      border: 2px solid var(--color-accent);
+      border-radius: 4px;
+      text-align: center;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    :global(.btn-seguir-comprando:hover) {
+      background: var(--color-accent);
+      color: white;
+    }
+
+    /* ===== CARRITO VACÍO ===== */
+    :global(.carrito-vacio) {
+      background: var(--bg-card);
+      padding: 2rem;
+      border-radius: 8px;
+      text-align: center;
+      border-left: 4px solid var(--color-accent);
+      transition: background-color 0.3s ease;
+    }
+
+    :global(.carrito-vacio h2) {
+      color: var(--text-primary);
+      margin: 0 0 1rem 0;
+    }
+
+    :global(.carrito-vacio p) {
+      color: var(--text-muted);
+      margin: 0 0 1.5rem 0;
+    }
+
+    :global(.btn-ver-productos) {
+      display: inline-block;
+      background: var(--color-accent);
+      color: white;
+      padding: 0.75rem 2rem;
+      border-radius: 4px;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    /* ===== ALERTA EXPIRACIÓN ===== */
+    :global(.alerta-expiracion) {
+      background: #fef3c7;
+      border: 1px solid #fcd34d;
+      border-left: 4px solid #f59e0b;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    :global(.alerta-expiracion-content) {
+      display: flex;
+      gap: 1rem;
+    }
+
+    :global(.alerta-icon) {
+      font-size: 1.5rem;
+      color: #f59e0b;
+      flex-shrink: 0;
+    }
+
+    :global(.alerta-titulo) {
+      color: #92400e;
+      margin: 0 0 0.5rem 0;
+      font-weight: 700;
+    }
+
+    :global(.alerta-texto) {
+      color: #b45309;
+      margin: 0;
+    }
+
+    :global(.alerta-texto-mb) {
+      color: #b45309;
+      margin: 0 0 1rem 0;
+    }
+
+    :global(.btn-volver-seleccionar) {
+      display: inline-block;
+      background: #f59e0b;
+      color: white;
+      padding: 0.5rem 1.5rem;
+      border-radius: 4px;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 900px) {
+      :global(.carrito-grid-layout) {
+        grid-template-columns: 1fr !important;
+      }
+      :global(.resumen-panel) {
+        position: static !important;
+      }
+    }
+
+    @media (max-width: 600px) {
+      :global(.cart-item) {
+        flex-direction: column;
+      }
+      :global(.cart-item-img-wrap) {
+        width: 100%;
+        min-width: unset;
+        height: 200px;
+      }
+    }
+  </style>
+
   <!-- Modal para datos de invitado -->
-  <div id="modalInvitado" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
-    <div style="background: white; border-radius: 12px; padding: 2rem; max-width: 450px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
-      <h2 style="color: #001a33; margin: 0 0 0.5rem 0; font-family: 'Playfair Display', serif;">Datos de envío</h2>
-      <p style="color: #5c4a3d; margin: 0 0 1.5rem 0; font-size: 0.95rem;">Introduce tus datos para completar la compra</p>
+  <div id="modalInvitado" class="modal-overlay">
+    <div class="modal-content">
+      <h2 class="modal-title">Datos de envío</h2>
+      <p class="modal-subtitle">Introduce tus datos para completar la compra</p>
       
       <form id="formInvitado" style="display: flex; flex-direction: column; gap: 1rem;">
         <div>
-          <label style="display: block; font-weight: 600; color: #001a33; margin-bottom: 0.5rem; font-size: 0.9rem;">Nombre completo *</label>
+          <label class="form-label">Nombre completo *</label>
           <input 
             type="text" 
             id="guestNombre" 
             required 
             placeholder="Tu nombre y apellidos"
-            style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box;"
+            class="form-input"
           />
         </div>
         
         <div>
-          <label style="display: block; font-weight: 600; color: #001a33; margin-bottom: 0.5rem; font-size: 0.9rem;">Email *</label>
+          <label class="form-label">Email *</label>
           <input 
             type="email" 
             id="guestEmail" 
             required 
             placeholder="tu@email.com"
-            style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box;"
+            class="form-input"
           />
-          <p style="color: #666; font-size: 0.8rem; margin: 0.25rem 0 0 0;">Recibirás la confirmación del pedido aquí</p>
+          <p class="form-hint">Recibirás la confirmación del pedido aquí</p>
         </div>
         
         <div>
-          <label style="display: block; font-weight: 600; color: #001a33; margin-bottom: 0.5rem; font-size: 0.9rem;">Teléfono *</label>
+          <label class="form-label">Teléfono *</label>
           <input 
             type="tel" 
             id="guestTelefono" 
             required 
             placeholder="612 345 678"
-            style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box;"
+            class="form-input"
           />
         </div>
 
-        <div style="border-top: 1px solid #e0d5c7; padding-top: 1rem; margin-top: 0.5rem;">
-          <p style="color: #5c4a3d; font-size: 0.85rem; margin: 0 0 1rem 0;">
+        <div class="form-divider">
+          <p class="login-hint">
             <strong>¿Ya tienes cuenta?</strong> 
-            <a href="/login?redirect=/carrito" style="color: #a89968; text-decoration: underline;">Inicia sesión</a> 
+            <a href="/login?redirect=/carrito">Inicia sesión</a> 
             para guardar tus pedidos.
           </p>
         </div>
@@ -67,13 +646,13 @@ import Layout from '../layouts/Layout.astro';
           <button 
             type="button" 
             id="btnCancelarModal"
-            style="flex: 1; padding: 0.75rem; background: #f3f4f6; color: #374151; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 1rem;"
+            class="btn-cancel"
           >
             Cancelar
           </button>
           <button 
             type="submit" 
-            style="flex: 2; padding: 0.75rem; background: #a89968; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 1rem;"
+            class="btn-submit"
           >
             Continuar al pago
           </button>
@@ -139,13 +718,13 @@ import Layout from '../layouts/Layout.astro';
           if (itemsExpirados) {
             window.dispatchEvent(new CustomEvent('carritoActualizado'));
             html += `
-              <div style="background: #fef3c7; border: 1px solid #fcd34d; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
-                <div style="display: flex; gap: 1rem;">
-                  <div style="font-size: 1.5rem; color: #f59e0b; flex-shrink: 0;">⚠</div>
+              <div class="alerta-expiracion">
+                <div class="alerta-expiracion-content">
+                  <div class="alerta-icon">⚠</div>
                   <div>
-                    <h3 style="color: #92400e; margin: 0 0 0.5rem 0; font-weight: 700;">Tu carrito ha expirado</h3>
-                    <p style="color: #b45309; margin: 0 0 1rem 0;">Algunos productos fueron reservados por 15 minutos y han expirado.</p>
-                    <a href="/productos" style="display: inline-block; background: #f59e0b; color: white; padding: 0.5rem 1.5rem; border-radius: 4px; text-decoration: none; font-weight: 600;">
+                    <h3 class="alerta-titulo">Tu carrito ha expirado</h3>
+                    <p class="alerta-texto-mb">Algunos productos fueron reservados por 15 minutos y han expirado.</p>
+                    <a href="/productos" class="btn-volver-seleccionar">
                       Volver a Seleccionar
                     </a>
                   </div>
@@ -157,10 +736,10 @@ import Layout from '../layouts/Layout.astro';
           const carritoContentEl = document.getElementById('carritoContent') as HTMLDivElement | null;
           if (carritoContentEl) {
             carritoContentEl.innerHTML = html + `
-            <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; border-left: 4px solid #a89968;">
-              <h2 style="color: #001a33; margin: 0 0 1rem 0;">Tu carrito está vacío</h2>
-              <p style="color: #5c4a3d; margin: 0 0 1.5rem 0;">Empieza a agregar productos para tu compra.</p>
-              <a href="/productos" style="display: inline-block; background: #a89968; color: white; padding: 0.75rem 2rem; border-radius: 4px; text-decoration: none; font-weight: 600;">
+            <div class="carrito-vacio">
+              <h2>Tu carrito está vacío</h2>
+              <p>Empieza a agregar productos para tu compra.</p>
+              <a href="/productos" class="btn-ver-productos">
                 Ver Productos
               </a>
             </div>
@@ -189,12 +768,12 @@ import Layout from '../layouts/Layout.astro';
         // Agregar alerta de expiración si es necesario
         if (itemsExpirados) {
           htmlContent += `
-            <div style="background: #fef3c7; border: 1px solid #fcd34d; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
-              <div style="display: flex; gap: 1rem;">
-                <div style="font-size: 1.5rem; color: #f59e0b; flex-shrink: 0;">⚠</div>
+            <div class="alerta-expiracion">
+              <div class="alerta-expiracion-content">
+                <div class="alerta-icon">⚠</div>
                 <div>
-                  <h3 style="color: #92400e; margin: 0 0 0.5rem 0; font-weight: 700;">Tu carrito ha expirado parcialmente</h3>
-                  <p style="color: #b45309; margin: 0;">Algunos productos fueron reservados por 15 minutos y han expirado. Los productos que ves abajo siguen disponibles.</p>
+                  <h3 class="alerta-titulo">Tu carrito ha expirado parcialmente</h3>
+                  <p class="alerta-texto">Algunos productos fueron reservados por 15 minutos y han expirado. Los productos que ves abajo siguen disponibles.</p>
                 </div>
               </div>
             </div>
@@ -202,13 +781,13 @@ import Layout from '../layouts/Layout.astro';
         }
 
         htmlContent += `
-          <div class="carrito-grid-layout" style="display: grid; grid-template-columns: 1fr 350px; gap: 2rem; align-items: start; width: 100%; box-sizing: border-box;">
-            <div style="background: white; border-radius: 8px; overflow: hidden; border: 1px solid #e0d5c7; width: 100%; box-sizing: border-box;">
-              <div style="padding: 1.5rem; background: #f8f4f0; border-bottom: 1px solid #e0d5c7; display: flex; justify-content: space-between; align-items: center;">
-                <h2 style="color: #001a33; margin: 0;">Carrito (${totalItems} ${totalItems === 1 ? 'producto' : 'productos'})</h2>
+          <div class="carrito-grid-layout">
+            <div class="carrito-main-panel">
+              <div class="carrito-header">
+                <h2 class="carrito-title">Carrito (${totalItems} ${totalItems === 1 ? 'producto' : 'productos'})</h2>
                 <div style="text-align: right;">
-                  <div style="font-size: 0.9rem; color: #5c4a3d; margin-bottom: 0.25rem;">Expira en:</div>
-                  <span id="countdownGlobal" class="countdown-global" style="font-size: 1.3rem; font-weight: 600; color: #d97706;">cargando...</span>
+                  <div class="carrito-expira-label">Expira en:</div>
+                  <span id="countdownGlobal" class="countdown-global">cargando...</span>
                 </div>
               </div>
               <div>
@@ -232,99 +811,43 @@ import Layout from '../layouts/Layout.astro';
           });
           
           htmlContent += `
-            <div class="cart-item" data-item-id="${item.id}" style="
-              padding: 1.5rem;
-              border-bottom: 1px solid #e0d5c7;
-              display: flex;
-              flex-wrap: wrap;
-              gap: 1.5rem;
-              align-items: flex-start;
-              width: 100%;
-              box-sizing: border-box;
-            ">
-              <div style="
-                width: 180px;
-                height: 180px;
-                background: #f8f4f0;
-                border-radius: 8px;
-                overflow: hidden;
-                flex-shrink: 0;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                min-width: 180px;
-              ">
+            <div class="cart-item" data-item-id="${item.id}">
+              <div class="cart-item-img-wrap">
                 <img 
                   src="${imagen}" 
                   alt="${nombre}"
-                  style="
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                  "
+                  class="cart-item-img"
                 />
               </div>
-              <div style="flex: 1; min-width: 200px; width: 100%; box-sizing: border-box;">
-                <h3 style="color: #001a33; margin: 0 0 0.5rem 0; font-size: 1rem;">
+              <div class="cart-item-info">
+                <h3 class="cart-item-nombre">
                   ${nombre}
-                  ${item.peso_kg ? ` <span style="color: #a89968; font-weight: 500; font-size: 0.85rem;">(${item.peso_kg.toFixed(3)} kg)</span>` : ''}
+                  ${item.peso_kg ? ` <span class="cart-item-peso">(${item.peso_kg.toFixed(3)} kg)</span>` : ''}
                 </h3>
-                <p style="color: #a89968; margin: 0 0 1rem 0; font-weight: 600; font-size: 0.95rem;">
+                <p class="cart-item-precio-line">
                   ${(precioUnitario / 100).toFixed(2)}€ x ${item.cantidad}
                 </p>
-                <div style="display: flex; flex-direction: column; gap: 1rem;">
-                  <div style="display: flex; align-items: center; gap: 0.5rem; border: 1px solid #e0d5c7; border-radius: 4px; width: fit-content;">
-                    <button class="btn-cantidad" data-item-id="${item.id}" data-action="decrease" style="
-                      background: none;
-                      border: none;
-                      color: #5c4a3d;
-                      padding: 0.25rem 0.5rem;
-                      cursor: pointer;
-                      font-size: 1.2rem;
-                      transition: color 0.2s;
-                    ">−</button>
-                    <span style="
-                      width: 40px;
-                      text-align: center;
-                      color: #001a33;
-                      font-weight: 600;
-                      font-size: 0.9rem;
-                    ">${item.cantidad}</span>
-                    <button class="btn-cantidad" data-item-id="${item.id}" data-action="increase" style="
-                      background: none;
-                      border: none;
-                      color: #5c4a3d;
-                      padding: 0.25rem 0.5rem;
-                      cursor: pointer;
-                      font-size: 1.2rem;
-                      transition: color 0.2s;
-                    ">+</button>
+                <div class="cart-item-controls">
+                  <div class="cart-cantidad-wrap">
+                    <button class="btn-cantidad" data-item-id="${item.id}" data-action="decrease">−</button>
+                    <span class="cart-cantidad-num">${item.cantidad}</span>
+                    <button class="btn-cantidad" data-item-id="${item.id}" data-action="increase">+</button>
                   </div>
                   ${categoria === 'Jamones' && item.productos ? `
-                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.9rem;">
+                    <label class="cart-cortado-label">
                       <input type="checkbox" class="cortado-checkbox" data-item-id="${item.id}" ${item.cortado ? 'checked' : ''} style="width: 16px; height: 16px; cursor: pointer;">
-                      <span style="color: #5c4a3d;">¿Cortado?</span>
+                      <span>¿Cortado?</span>
                     </label>
                   ` : ''}
                 </div>
               </div>
-              <div style="display: flex; flex-direction: column; gap: 1rem; align-items: flex-end; flex-shrink: 0; width: auto; white-space: nowrap;">
+              <div class="cart-item-actions">
                 <div style="text-align: right;">
-                  <p style="color: #001a33; font-weight: 600; margin: 0;">
+                  <p class="cart-item-total">
                     ${((precioUnitario * item.cantidad + (item.cortado ? 2000 : 0)) / 100).toFixed(2)}€
                   </p>
                 </div>
-                <button class="btn-eliminar" data-item-id="${item.id}" style="
-                  background: #f5576c;
-                  color: white;
-                  border: none;
-                  padding: 0.5rem 0.75rem;
-                  border-radius: 4px;
-                  cursor: pointer;
-                  font-size: 0.85rem;
-                  transition: background 0.2s;
-                  white-space: nowrap;
-                ">
+                <button class="btn-eliminar" data-item-id="${item.id}">
                   Eliminar
                 </button>
               </div>
@@ -335,59 +858,34 @@ import Layout from '../layouts/Layout.astro';
         htmlContent += `
               </div>
             </div>
-            <div style="background: white; border-radius: 8px; padding: 1.5rem; border: 1px solid #e0d5c7; position: sticky; top: 1rem; width: 100%; box-sizing: border-box;">
-              <h3 style="color: #001a33; margin: 0 0 1.5rem 0; font-size: 1.2rem;">Resumen</h3>
+            <div class="resumen-panel">
+              <h3 class="resumen-title">Resumen</h3>
               <div style="margin-bottom: 1rem;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; color: #5c4a3d;">
+                <div class="resumen-linea">
                   <span>Subtotal (${totalItems} ${totalItems === 1 ? 'producto' : 'productos'})</span>
                   <span id="subtotalAmount">${(subtotal / 100).toFixed(2)}€</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; color: #5c4a3d;">
+                <div class="resumen-linea">
                   <span>Envío</span>
-                  <span style="color: #a89968; font-weight: 600;">${(envio / 100).toFixed(2)}€</span>
+                  <span class="resumen-valor-accent">${(envio / 100).toFixed(2)}€</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; color: #5c4a3d;">
+                <div class="resumen-linea">
                   <span>Impuestos</span>
-                  <span style="color: #a89968; font-weight: 600;">Incluidos</span>
+                  <span class="resumen-valor-accent">Incluidos</span>
                 </div>
               </div>
 
               <!-- Campo de Código de Descuento -->
-              <div style="margin-bottom: 1.5rem; padding: 1rem; background: #f8f7f4; border-radius: 6px; border: 1px solid #e0d5c7;">
-                <label style="display: block; font-weight: 600; color: #001a33; margin-bottom: 0.75rem; font-size: 0.95rem;">Código de Descuento</label>
+              <div class="codigo-descuento-box">
+                <label class="codigo-descuento-label">Código de Descuento</label>
                 <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                   <input 
                     id="inputCodigo"
                     type="text"
                     placeholder="Ingresa tu código"
-                    style="
-                      flex: 1;
-                      padding: 0.65rem 0.75rem;
-                      border: 1px solid #d1d5db;
-                      border-radius: 4px;
-                      font-size: 0.95rem;
-                      box-sizing: border-box;
-                      text-transform: uppercase;
-                      background: white;
-                    "
+                    class="codigo-input"
                   />
-                  <button 
-                    id="btnValidarCodigo"
-                    style="
-                      padding: 0.65rem 1.25rem;
-                      background: #a89968;
-                      color: white;
-                      border: none;
-                      border-radius: 4px;
-                      font-weight: 600;
-                      cursor: pointer;
-                      font-size: 0.9rem;
-                      white-space: nowrap;
-                      transition: all 0.2s;
-                      text-transform: uppercase;
-                      letter-spacing: 0.5px;
-                    "
-                  >
+                  <button id="btnValidarCodigo" class="btn-validar">
                     Validar
                   </button>
                 </div>
@@ -395,56 +893,25 @@ import Layout from '../layouts/Layout.astro';
               </div>
 
               <!-- Descuento aplicado -->
-              <div id="descuentoInfo" style="display: none; margin-bottom: 1rem; padding: 0.75rem; background: #d1fae5; border: 1px solid #a7f3d0; border-radius: 4px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span style="color: #065f46; font-weight: 600;">Descuento aplicado</span>
-                  <span id="descuentoAmount" style="color: #065f46; font-weight: 700; font-size: 1.1rem;">-0.00€</span>
+              <div id="descuentoInfo" class="descuento-aplicado">
+                <div class="descuento-row">
+                  <span class="descuento-label">Descuento aplicado</span>
+                  <span id="descuentoAmount" class="descuento-valor">-0.00€</span>
                 </div>
               </div>
 
-              <div style="
-                padding: 1rem 0;
-                border-top: 2px solid #e0d5c7;
-                border-bottom: 2px solid #e0d5c7;
-                margin-bottom: 1.5rem;
-              ">
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="color: #001a33; font-weight: 700;">Total</span>
-                  <span id="totalAmount" style="color: #a89968; font-weight: 700; font-size: 1.3rem;">
+              <div class="resumen-total-wrap">
+                <div class="resumen-total-row">
+                  <span class="resumen-total-label">Total</span>
+                  <span id="totalAmount" class="resumen-total-valor">
                     ${(total / 100).toFixed(2)}€
                   </span>
                 </div>
               </div>
-              <button id="btnCheckout" style="
-                display: block;
-                width: 100%;
-                background: #a89968;
-                color: white;
-                padding: 1rem;
-                border-radius: 4px;
-                text-align: center;
-                text-decoration: none;
-                font-weight: 600;
-                transition: background 0.3s;
-                margin-bottom: 0.75rem;
-                border: none;
-                cursor: pointer;
-                font-size: 1rem;
-              ">
+              <button id="btnCheckout" class="btn-checkout">
                 Proceder al Checkout
               </button>
-              <a href="/productos" style="
-                display: block;
-                background: transparent;
-                color: #a89968;
-                padding: 0.75rem 1rem;
-                border: 2px solid #a89968;
-                border-radius: 4px;
-                text-align: center;
-                text-decoration: none;
-                font-weight: 600;
-                transition: all 0.3s;
-              ">
+              <a href="/productos" class="btn-seguir-comprando">
                 Seguir Comprando
               </a>
             </div>
@@ -466,16 +933,8 @@ import Layout from '../layouts/Layout.astro';
             const cartItem = btn.closest('.cart-item') as HTMLElement | null;
             if (!cartItem) return;
             
-            // Buscar el span de cantidad que está entre los dos botones (no el countdown)
-            const cantidadSpans = cartItem.querySelectorAll('span');
-            let cantidadSpan: HTMLSpanElement | null = null;
-            for (const span of cantidadSpans) {
-              // El span de cantidad tiene width: 40px
-              if ((span as HTMLElement).style.width === '40px') {
-                cantidadSpan = span as HTMLSpanElement;
-                break;
-              }
-            }
+            // Buscar el span de cantidad con clase cart-cantidad-num
+            const cantidadSpan = cartItem.querySelector('.cart-cantidad-num') as HTMLSpanElement | null;
             
             if (!cantidadSpan) {
               console.error('No se encontró el span de cantidad');

@@ -12,12 +12,17 @@ export const prerender = false;
       gap: 0.3rem;
       margin-bottom: 1.5rem;
       font-size: 0.85rem;
+      color: var(--text-muted);
     }
 
     .breadcrumb a {
-      color: #a89968;
+      color: var(--color-accent);
       text-decoration: none;
       font-weight: 600;
+    }
+
+    .breadcrumb a:hover {
+      color: var(--color-accent-light);
     }
 
     .product-hero {
@@ -39,8 +44,8 @@ export const prerender = false;
       height: 500px;
       border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 12px 40px rgba(0, 26, 51, 0.15);
-      background: linear-gradient(135deg, #f8f7f4 0%, #e8e6e0 100%);
+      box-shadow: 0 12px 40px var(--shadow-color);
+      background: var(--bg-tertiary);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -84,7 +89,7 @@ export const prerender = false;
       overflow: hidden;
       cursor: pointer;
       border: 2px solid transparent;
-      background: #f8f7f4;
+      background: var(--bg-tertiary);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -93,7 +98,7 @@ export const prerender = false;
 
     .thumbnail:hover,
     .thumbnail.active {
-      border-color: #a89968;
+      border-color: var(--color-accent);
       transform: scale(1.05);
     }
 
@@ -111,12 +116,12 @@ export const prerender = false;
     }
 
     .product-header {
-      border-bottom: 1px solid #e0e0e0;
+      border-bottom: 1px solid var(--border-color);
       padding-bottom: 1.5rem;
     }
 
     .category-label {
-      color: #a89968;
+      color: var(--color-accent);
       font-size: 0.75rem;
       text-transform: uppercase;
       font-weight: 800;
@@ -126,7 +131,7 @@ export const prerender = false;
     .product-title {
       font-size: 2rem;
       font-weight: 800;
-      color: #001a33;
+      color: var(--text-primary);
       line-height: 1.2;
       margin: 0.8rem 0;
     }
@@ -149,31 +154,32 @@ export const prerender = false;
     }
 
     .stars {
-      color: #a89968;
+      color: var(--color-accent);
       font-size: 1rem;
     }
 
     .rating-text {
-      color: #666;
+      color: var(--text-muted);
       font-weight: 600;
     }
 
     .price-section {
-      background: #f8f7f4;
+      background: var(--bg-tertiary);
       padding: 1.5rem;
       border-radius: 8px;
+      border: 1px solid var(--border-light);
     }
 
     .current-price {
       font-size: 2.5rem;
       font-weight: 800;
-      color: #001a33;
+      color: var(--text-primary);
       margin-bottom: 0.5rem;
     }
 
     .original-price {
       font-size: 1rem;
-      color: #999;
+      color: var(--text-muted);
       text-decoration: line-through;
       margin-bottom: 1rem;
     }
@@ -181,13 +187,14 @@ export const prerender = false;
     .description {
       font-size: 0.95rem;
       line-height: 1.6;
-      color: #666;
+      color: var(--text-secondary);
     }
 
     .options-section {
-      border: 1px solid #e0e0e0;
+      border: 1px solid var(--border-color);
       padding: 1.5rem;
       border-radius: 8px;
+      background: var(--bg-secondary);
     }
 
     .option-group {
@@ -197,7 +204,7 @@ export const prerender = false;
     .option-label {
       display: block;
       font-weight: 700;
-      color: #001a33;
+      color: var(--text-primary);
       margin-bottom: 0.75rem;
       font-size: 0.95rem;
     }
@@ -220,27 +227,30 @@ export const prerender = false;
       border-radius: 6px;
       cursor: pointer;
       transition: all 0.3s;
+      border: 1px solid transparent;
     }
 
     .radio-option:hover {
-      background: #f8f7f4;
+      background: var(--bg-tertiary);
+      border-color: var(--border-light);
     }
 
     .radio-option input {
       cursor: pointer;
       width: 18px;
       height: 18px;
+      accent-color: var(--color-accent);
     }
 
     .radio-label {
       flex: 1;
       cursor: pointer;
       font-size: 0.95rem;
-      color: #333;
+      color: var(--text-primary);
     }
 
     .price-modifier {
-      color: #a89968;
+      color: var(--color-accent);
       font-weight: 600;
       font-size: 0.9rem;
     }
@@ -253,17 +263,24 @@ export const prerender = false;
 
     .quantity-label {
       font-weight: 700;
-      color: #001a33;
+      color: var(--text-primary);
       font-size: 0.95rem;
     }
 
     .quantity-input {
       width: 80px;
       padding: 0.75rem;
-      border: 1px solid #ddd;
+      border: 1px solid var(--border-color);
       border-radius: 6px;
       font-size: 1rem;
       text-align: center;
+      background: var(--bg-input);
+      color: var(--text-primary);
+    }
+
+    .quantity-input:focus {
+      outline: none;
+      border-color: var(--color-accent);
     }
 
     .btn-add-cart {
@@ -330,16 +347,16 @@ export const prerender = false;
       gap: 1rem;
       margin-top: 1rem;
       padding-top: 1rem;
-      border-top: 1px solid #e0e0e0;
+      border-top: 1px solid var(--border-color);
     }
 
     .benefit-item {
       display: flex;
       gap: 0.75rem;
       padding: 1rem;
-      background: #f8f7f4;
+      background: var(--bg-tertiary);
       border-radius: 8px;
-      border-left: 3px solid #a89968;
+      border-left: 3px solid var(--color-accent);
     }
 
     .benefit-icon {
@@ -356,13 +373,13 @@ export const prerender = false;
 
     .benefit-title {
       font-weight: 700;
-      color: #001a33;
+      color: var(--text-primary);
       font-size: 0.8rem;
     }
 
     .benefit-desc {
       font-size: 0.75rem;
-      color: #666;
+      color: var(--text-muted);
     }
 
     .loading {
@@ -377,10 +394,14 @@ export const prerender = false;
     .loading-spinner {
       width: 40px;
       height: 40px;
-      border: 3px solid #f0f0f0;
-      border-top-color: #a89968;
+      border: 3px solid var(--border-light);
+      border-top-color: var(--color-accent);
       border-radius: 50%;
       animation: spin 1s linear infinite;
+    }
+
+    .loading-text {
+      color: var(--text-muted);
     }
 
     @keyframes spin {
@@ -836,13 +857,387 @@ export const prerender = false;
     }
   </style>
 
+  <!-- Estilos globales para HTML generado dinámicamente por JavaScript -->
+  <style is:global>
+    /* ===== ESTILOS PARA HTML GENERADO POR JS ===== */
+    .js-breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.85rem;
+    }
+
+    .js-breadcrumb-link {
+      color: var(--color-accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .js-breadcrumb-link:hover {
+      text-decoration: underline;
+    }
+
+    .js-breadcrumb-sep {
+      color: var(--text-muted);
+    }
+
+    .js-breadcrumb-current {
+      color: var(--text-secondary);
+    }
+
+    .js-main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.3fr;
+      gap: 3rem;
+      align-items: flex-start;
+    }
+
+    .js-images-column {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .js-main-image-container {
+      position: relative;
+      width: 100%;
+      height: 500px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 12px 40px var(--shadow-color);
+      background: var(--bg-tertiary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .js-discount-badge {
+      position: absolute;
+      top: 1.5rem;
+      right: 1.5rem;
+      background: #dc2626;
+      color: white;
+      padding: 0.6rem 1.2rem;
+      border-radius: 50px;
+      font-weight: 800;
+      font-size: 0.75rem;
+      z-index: 10;
+    }
+
+    .js-main-image {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      padding: 1rem;
+      transition: transform 0.3s ease;
+    }
+
+    .js-thumbnails-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+    }
+
+    .js-thumbnail {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: pointer;
+      border: 2px solid var(--border-color);
+      background: var(--bg-tertiary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+    }
+
+    .js-thumbnail.active,
+    .js-thumbnail:hover {
+      border-color: var(--color-accent);
+    }
+
+    .js-thumb-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      padding: 0.5rem;
+    }
+
+    .js-details-column {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+
+    .js-product-header {
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 1.5rem;
+    }
+
+    .js-category-badge {
+      color: var(--color-accent);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+    }
+
+    .js-product-title {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      line-height: 1.2;
+      margin: 0.8rem 0;
+    }
+
+    .js-stock-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      color: #22c55e;
+      font-weight: 600;
+    }
+
+    .js-rating {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.9rem;
+      margin-top: 0.75rem;
+    }
+
+    .js-rating-stars {
+      color: var(--color-accent);
+      font-size: 1rem;
+    }
+
+    .js-rating-text {
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .js-price-section {
+      background: var(--bg-tertiary);
+      padding: 1.5rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-light);
+    }
+
+    .js-price-main {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .js-price-original {
+      font-size: 1rem;
+      color: var(--text-muted);
+      text-decoration: line-through;
+    }
+
+    .js-description {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+
+    .js-options-section {
+      border: 1px solid var(--border-color);
+      padding: 1.5rem;
+      border-radius: 8px;
+      background: var(--bg-secondary);
+    }
+
+    .js-option-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .js-option-label {
+      display: block;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 0.75rem;
+      font-size: 0.95rem;
+    }
+
+    .js-required {
+      color: #dc2626;
+    }
+
+    .js-radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .js-radio-option {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .js-radio-option:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .js-radio-input {
+      cursor: pointer;
+      width: 18px;
+      height: 18px;
+      accent-color: var(--color-accent);
+    }
+
+    .js-radio-label {
+      flex: 1;
+      cursor: pointer;
+      font-size: 0.95rem;
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+    .js-price-extra {
+      color: var(--color-accent);
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .js-quantity-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .js-quantity-label {
+      font-weight: 700;
+      color: var(--text-primary);
+      font-size: 0.95rem;
+    }
+
+    .js-quantity-input {
+      width: 80px;
+      padding: 0.75rem;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 1rem;
+      text-align: center;
+      background: var(--bg-input);
+      color: var(--text-primary);
+    }
+
+    .js-quantity-input:focus {
+      outline: none;
+      border-color: var(--color-accent);
+    }
+
+    .js-add-to-cart {
+      width: 100%;
+      padding: 1.2rem;
+      background: linear-gradient(135deg, #a89968, #9a8560);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      box-shadow: 0 6px 20px rgba(168, 153, 104, 0.25);
+      margin-top: 1rem;
+    }
+
+    .js-add-to-cart:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 28px rgba(168, 153, 104, 0.35);
+    }
+
+    .js-benefits-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1rem;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .js-benefit-item {
+      display: flex;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      border-left: 3px solid var(--color-accent);
+    }
+
+    .js-benefit-icon {
+      font-size: 1.4rem;
+      flex-shrink: 0;
+      font-weight: 700;
+      color: var(--color-accent);
+    }
+
+    .js-benefit-content {
+      flex: 1;
+    }
+
+    .js-benefit-title {
+      font-weight: 700;
+      color: var(--text-primary);
+      font-size: 0.8rem;
+    }
+
+    .js-benefit-desc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Responsive para contenido generado por JS */
+    @media (max-width: 1024px) {
+      .js-main-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+
+      .js-main-image-container {
+        height: 400px;
+      }
+
+      .js-benefits-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .js-thumbnails-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.5rem;
+      }
+
+      .js-product-title {
+        font-size: 1.5rem;
+      }
+
+      .js-price-main {
+        font-size: 2rem;
+      }
+    }
+  </style>
+
   <div id="productDetails" style="display: none; padding: 2rem;">
     <!-- Se llena con JavaScript -->
   </div>
 
-  <div id="loadingMessage" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 1.5rem;">
-    <div style="width: 40px; height: 40px; border: 3px solid #f0f0f0; border-top-color: #a89968; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-    <p style="color: #999; font-size: 1.1rem; font-weight: 600;">Cargando producto...</p>
+  <div id="loadingMessage" class="loading">
+    <div class="loading-spinner"></div>
+    <p class="loading-text" style="font-size: 1.1rem; font-weight: 600;">Cargando producto...</p>
   </div>
 
   <style>
@@ -887,114 +1282,85 @@ export const prerender = false;
 
         const html = `
           <!-- BREADCRUMB -->
-          <div style="display: flex; align-items: center; gap: 0.3rem; margin-bottom: 1.5rem; font-size: 0.85rem;">
-            <a href="/productos" style="color: #a89968; text-decoration: none; font-weight: 600;">Catálogo</a>
-            <span style="color: #ccc;">/</span>
-            <span style="color: #666;">${producto.nombre}</span>
+          <div class="js-breadcrumb">
+            <a href="/productos" class="js-breadcrumb-link">Catálogo</a>
+            <span class="js-breadcrumb-sep">/</span>
+            <span class="js-breadcrumb-current">${producto.nombre}</span>
           </div>
 
           <!-- MAIN CONTAINER -->
-          <div style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 3rem; align-items: flex-start;">
+          <div class="js-main-grid">
             
             <!-- LEFT: IMAGES -->
-            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <div class="js-images-column">
               
               <!-- MAIN IMAGE -->
-              <div style="position: relative; width: 100%; height: 500px; border-radius: 12px; overflow: hidden; box-shadow: 0 12px 40px rgba(0, 26, 51, 0.15); background: linear-gradient(135deg, #f8f7f4 0%, #e8e6e0 100%); display: flex; align-items: center; justify-content: center;">
-                ${oferta ? `<div style="position: absolute; top: 1.5rem; right: 1.5rem; background: #dc2626; color: white; padding: 0.6rem 1.2rem; border-radius: 50px; font-weight: 800; font-size: 0.75rem; z-index: 10;">-${porcentajeDescuento}% OFF</div>` : ''}
-                <img id="mainImage" src="${producto.imagen_url}" alt="${producto.nombre}" style="width: 100%; height: 100%; object-fit: contain; padding: 1rem; transition: transform 0.3s ease;" />
+              <div class="js-main-image-container">
+                ${oferta ? `<div class="js-discount-badge">-${porcentajeDescuento}% OFF</div>` : ''}
+                <img id="mainImage" src="${producto.imagen_url}" alt="${producto.nombre}" class="js-main-image" />
               </div>
 
               <!-- THUMBNAILS -->
-              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem;">
-                <div class="thumbnail" onclick="cambiarImagen('${producto.imagen_url}', this)" style="width: 100%; aspect-ratio: 1; border-radius: 8px; overflow: hidden; cursor: pointer; border: 2px solid #a89968; background: #f8f7f4; display: flex; align-items: center; justify-content: center; transition: all 0.3s;">
-                  <img src="${producto.imagen_url}" alt="Vista 1" style="width: 100%; height: 100%; object-fit: contain; padding: 0.5rem;" />
+              <div class="js-thumbnails-grid">
+                <div class="thumbnail js-thumbnail active" onclick="cambiarImagen('${producto.imagen_url}', this)">
+                  <img src="${producto.imagen_url}" alt="Vista 1" class="js-thumb-img" />
                 </div>
-                <div class="thumbnail" onclick="cambiarImagen('${producto.imagen_url}', this)" style="width: 100%; aspect-ratio: 1; border-radius: 8px; overflow: hidden; cursor: pointer; border: 2px solid #ddd; background: #f8f7f4; display: flex; align-items: center; justify-content: center; transition: all 0.3s;">
-                  <img src="${producto.imagen_url}" alt="Vista 2" style="width: 100%; height: 100%; object-fit: contain; padding: 0.5rem;" />
+                <div class="thumbnail js-thumbnail" onclick="cambiarImagen('${producto.imagen_url}', this)">
+                  <img src="${producto.imagen_url}" alt="Vista 2" class="js-thumb-img" />
                 </div>
-                <div class="thumbnail" onclick="cambiarImagen('${producto.imagen_url}', this)" style="width: 100%; aspect-ratio: 1; border-radius: 8px; overflow: hidden; cursor: pointer; border: 2px solid #ddd; background: #f8f7f4; display: flex; align-items: center; justify-content: center; transition: all 0.3s;">
-                  <img src="${producto.imagen_url}" alt="Vista 3" style="width: 100%; height: 100%; object-fit: contain; padding: 0.5rem;" />
+                <div class="thumbnail js-thumbnail" onclick="cambiarImagen('${producto.imagen_url}', this)">
+                  <img src="${producto.imagen_url}" alt="Vista 3" class="js-thumb-img" />
                 </div>
-                <div class="thumbnail" onclick="cambiarImagen('${producto.imagen_url}', this)" style="width: 100%; aspect-ratio: 1; border-radius: 8px; overflow: hidden; cursor: pointer; border: 2px solid #ddd; background: #f8f7f4; display: flex; align-items: center; justify-content: center; transition: all 0.3s;">
-                  <img src="${producto.imagen_url}" alt="Vista 4" style="width: 100%; height: 100%; object-fit: contain; padding: 0.5rem;" />
+                <div class="thumbnail js-thumbnail" onclick="cambiarImagen('${producto.imagen_url}', this)">
+                  <img src="${producto.imagen_url}" alt="Vista 4" class="js-thumb-img" />
                 </div>
               </div>
             </div>
 
             <!-- RIGHT: DETAILS -->
-            <div style="display: flex; flex-direction: column; gap: 1.2rem;">
+            <div class="js-details-column">
               
               <!-- HEADER -->
-              <div style="border-bottom: 1px solid #e0e0e0; padding-bottom: 1.5rem;">
-                <span style="color: #a89968; font-size: 0.75rem; text-transform: uppercase; font-weight: 800; letter-spacing: 1.5px;">${producto.categorias?.nombre || 'Producto Premium'}</span>
-                <h1 style="font-size: 2rem; font-weight: 800; color: #001a33; line-height: 1.2; margin: 0.8rem 0;">${producto.nombre}</h1>
-                <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: #22c55e; font-weight: 600;">✓ En stock</div>
-                <div style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.9rem; margin-top: 0.75rem;">
-                  <span style="color: #a89968; font-size: 1rem;">★ ★ ★ ★ ★</span>
-                  <span style="color: #666; font-weight: 600;">${producto.rating || 4.9}/5 (${Math.floor(Math.random() * 100) + 50} reseñas)</span>
+              <div class="js-product-header">
+                <span class="js-category-badge">${producto.categorias?.nombre || 'Producto Premium'}</span>
+                <h1 class="js-product-title">${producto.nombre}</h1>
+                <div class="js-stock-badge">✓ En stock</div>
+                <div class="js-rating">
+                  <span class="js-rating-stars">★ ★ ★ ★ ★</span>
+                  <span class="js-rating-text">${producto.rating || 4.9}/5 (${Math.floor(Math.random() * 100) + 50} reseñas)</span>
                 </div>
               </div>
 
               <!-- PRICE -->
-              <div style="background: #f8f7f4; padding: 1.5rem; border-radius: 8px;">
-                <div style="font-size: 2.5rem; font-weight: 800; color: #001a33; margin-bottom: 0.5rem;">€${precioFinal.toFixed(2)}</div>
-                ${oferta ? `<div style="font-size: 1rem; color: #999; text-decoration: line-through;">€${precioOriginal.toFixed(2)}</div>` : ''}
+              <div class="js-price-section">
+                <div class="js-price-main">€${precioFinal.toFixed(2)}</div>
+                ${oferta ? `<div class="js-price-original">€${precioOriginal.toFixed(2)}</div>` : ''}
               </div>
 
               <!-- DESCRIPTION -->
-              <p style="font-size: 0.95rem; line-height: 1.6; color: #666;">${producto.descripcion || 'Producto de calidad premium seleccionado especialmente para usted.'}</p>
-
-              <!-- OPTIONS -->
-              <div style="border: 1px solid #e0e0e0; padding: 1.5rem; border-radius: 8px;">
-                <div style="margin-bottom: 1.5rem;">
-                  <label style="display: block; font-weight: 700; color: #001a33; margin-bottom: 0.75rem; font-size: 0.95rem;">
-                    Elija la opción de corte <span style="color: #dc2626;">*</span>
-                  </label>
-                  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; border-radius: 6px; cursor: pointer; transition: all 0.3s;">
-                      <input type="radio" id="corte1" name="corte" value="entero" checked style="cursor: pointer; width: 18px; height: 18px;" />
-                      <label for="corte1" style="flex: 1; cursor: pointer; font-size: 0.95rem; color: #333; margin: 0;">Pieza entera sin corte</label>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; border-radius: 6px; cursor: pointer; transition: all 0.3s;">
-                      <input type="radio" id="corte2" name="corte" value="cortado" style="cursor: pointer; width: 18px; height: 18px;" />
-                      <label for="corte2" style="flex: 1; cursor: pointer; font-size: 0.95rem; color: #333; margin: 0;">Corte a máquina <span style="color: #a89968; font-weight: 600; font-size: 0.9rem;">(+€45,00)</span></label>
-                    </div>
-                  </div>
-                </div>
-
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                  <label style="font-weight: 700; color: #001a33; font-size: 0.95rem;">Cantidad:</label>
-                  <input type="number" id="cantidad" min="1" value="1" style="width: 80px; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem; text-align: center;" />
-                </div>
-              </div>
-
-              <!-- BUTTON -->
-              <button onclick="agregarAlCarrito(${producto.id})" style="width: 100%; padding: 1.2rem; background: linear-gradient(135deg, #a89968, #9a8560); color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 1rem; cursor: pointer; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 6px 20px rgba(168, 153, 104, 0.25); margin-top: 1rem;">
-                Añadir al Carrito
-              </button>
+              <p class="js-description">${producto.descripcion || 'Producto de calidad premium seleccionado especialmente para usted.'}</p>
 
               <!-- BENEFITS -->
-              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e0e0e0;">
-                <div style="display: flex; gap: 0.75rem; padding: 1rem; background: #f8f7f4; border-radius: 8px; border-left: 3px solid #a89968;">
-                  <div style="font-size: 1.4rem; flex-shrink: 0; font-weight: 700; color: #a89968;">G</div>
-                  <div style="flex: 1;">
-                    <div style="font-weight: 700; color: #001a33; font-size: 0.8rem;">Garantizado</div>
-                    <div style="font-size: 0.75rem; color: #666;">Frescura asegurada</div>
+              <div class="js-benefits-grid">
+                <div class="js-benefit-item">
+                  <div class="js-benefit-icon">G</div>
+                  <div class="js-benefit-content">
+                    <div class="js-benefit-title">Garantizado</div>
+                    <div class="js-benefit-desc">Frescura asegurada</div>
                   </div>
                 </div>
-                <div style="display: flex; gap: 0.75rem; padding: 1rem; background: #f8f7f4; border-radius: 8px; border-left: 3px solid #a89968;">
-                  <div style="font-size: 1.4rem; flex-shrink: 0; font-weight: 700; color: #a89968;">E</div>
-                  <div style="flex: 1;">
-                    <div style="font-weight: 700; color: #001a33; font-size: 0.8rem;">Entrega Rápida</div>
-                    <div style="font-size: 0.75rem; color: #666;">2-3 días laborales</div>
+                <div class="js-benefit-item">
+                  <div class="js-benefit-icon">E</div>
+                  <div class="js-benefit-content">
+                    <div class="js-benefit-title">Entrega Rápida</div>
+                    <div class="js-benefit-desc">2-3 días laborales</div>
                   </div>
                 </div>
-                <div style="display: flex; gap: 0.75rem; padding: 1rem; background: #f8f7f4; border-radius: 8px; border-left: 3px solid #a89968;">
-                  <div style="font-size: 1.4rem; flex-shrink: 0; font-weight: 700; color: #a89968;">P</div>
-                  <div style="flex: 1;">
-                    <div style="font-weight: 700; color: #001a33; font-size: 0.8rem;">Pago Seguro</div>
-                    <div style="font-size: 0.75rem; color: #666;">100% protegido</div>
+                <div class="js-benefit-item">
+                  <div class="js-benefit-icon">P</div>
+                  <div class="js-benefit-content">
+                    <div class="js-benefit-title">Pago Seguro</div>
+                    <div class="js-benefit-desc">100% protegido</div>
                   </div>
                 </div>
               </div>
@@ -1014,10 +1380,10 @@ export const prerender = false;
 
     function cambiarImagen(url, thumbElement) {
       document.getElementById('mainImage').src = url;
-      document.querySelectorAll('.thumbnail').forEach(thumb => {
-        thumb.style.borderColor = '#ddd';
+      document.querySelectorAll('.js-thumbnail').forEach(thumb => {
+        thumb.classList.remove('active');
       });
-      thumbElement.style.borderColor = '#a89968';
+      thumbElement.classList.add('active');
     }
 
     function mostrarNotificacion(mensaje, esError = false) {
