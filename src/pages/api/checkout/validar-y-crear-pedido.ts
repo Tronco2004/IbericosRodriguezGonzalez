@@ -70,6 +70,27 @@ export const POST: APIRoute = async ({ request }) => {
     console.log('📧 Email del cliente:', customerEmail);
     console.log('👤 UserId:', userId || 'Sin usuario (invitado)');
 
+    // ✅ BUSCAR SI EXISTE UN USUARIO CON ESTE EMAIL (para vincular pedidos de invitados)
+    let finalUserId = userId;
+    let esInvitado = !userId;
+    
+    if (!userId && customerEmail) {
+      console.log('🔍 Buscando usuario existente con email:', customerEmail);
+      const { data: usuarioExistente, error: errorBusqueda } = await supabaseClient
+        .from('usuarios')
+        .select('id')
+        .eq('email', customerEmail)
+        .single();
+      
+      if (!errorBusqueda && usuarioExistente) {
+        console.log('✅ Usuario encontrado con este email. Vinculando pedido a usuario:', usuarioExistente.id);
+        finalUserId = usuarioExistente.id;
+        esInvitado = false; // Ya no es invitado, tiene cuenta
+      } else {
+        console.log('ℹ️ No se encontró usuario con este email. Será pedido de invitado.');
+      }
+    }
+
     // Calcular totales (todos en centimos)
     // NOTA: Los precios del carrito YA vienen en céntimos desde la BD
     const subtotalCentimos = cartItems.reduce((sum: number, item: any) => {
@@ -105,7 +126,7 @@ export const POST: APIRoute = async ({ request }) => {
     const { data: pedidoCreado, error: pedidoError } = await supabaseClient
       .from('pedidos')
       .insert({
-        usuario_id: userId || null, // null si es invitado
+        usuario_id: finalUserId || null, // null si es invitado sin cuenta
         stripe_session_id: sessionId,
         numero_pedido: numeroPedido,
         estado: 'pagado',
@@ -116,7 +137,7 @@ export const POST: APIRoute = async ({ request }) => {
         email_cliente: customerEmail,
         telefono_cliente: datosInvitado?.telefono || null,
         fecha_pago: new Date().toISOString(),
-        es_invitado: !userId // true si no hay userId
+        es_invitado: esInvitado // true solo si no tiene cuenta
       })
       .select('id');
 
@@ -185,15 +206,15 @@ export const POST: APIRoute = async ({ request }) => {
       // Productos normales: el stock ya se descontó al añadir al carrito
     }
 
-    // ✅ VACIAR EL CARRITO DEL USUARIO
-    if (userId) {
-      console.log('🗑️ Vaciando carrito del usuario:', userId);
+    // ✅ VACIAR EL CARRITO DEL USUARIO (si tiene cuenta)
+    if (finalUserId) {
+      console.log('🗑️ Vaciando carrito del usuario:', finalUserId);
       
       // Obtener el carrito del usuario
       const { data: carrito } = await supabaseClient
         .from('carritos')
         .select('id')
-        .eq('usuario_id', userId)
+        .eq('usuario_id', finalUserId)
         .single();
       
       if (carrito) {
