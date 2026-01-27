@@ -16,6 +16,8 @@ DROP POLICY IF EXISTS "pedidos_update_own_cancelar" ON pedidos;
 DROP POLICY IF EXISTS "pedidos_update_own_devolver" ON pedidos;
 DROP POLICY IF EXISTS "pedidos_update_admin" ON pedidos;
 DROP POLICY IF EXISTS "pedidos_insert_admin" ON pedidos;
+DROP POLICY IF EXISTS "pedidos_insert_usuarios_e_invitados" ON pedidos;
+DROP POLICY IF EXISTS "pedidos_insert_allow_all" ON pedidos;
 DROP POLICY IF EXISTS "pedidos_delete_admin" ON pedidos;
 DROP POLICY IF EXISTS "pedidos_insert_allow" ON pedidos;
 DROP POLICY IF EXISTS "pedidos_delete_allow" ON pedidos;
@@ -38,56 +40,27 @@ ON pedidos
 FOR SELECT
 USING (
   auth.uid() = usuario_id
+  OR (auth.jwt()->>'rol') = 'admin'
 );
 
-CREATE POLICY "pedidos_select_admin"
-ON pedidos
-FOR SELECT
-USING (
-  (auth.jwt()->>'rol') = 'admin'
-);
-
--- 2. POLÍTICA UPDATE: Usuarios pueden cambiar estado de sus pedidos con restricciones
--- - CANCELAR: solo si estado actual es 'pagado'
--- - DEVOLVER: solo si estado actual es 'entregado'
-CREATE POLICY "pedidos_update_own_cancelar"
+-- 2. POLÍTICA UPDATE: Usuarios pueden actualizar sus propios pedidos, Admin todo
+CREATE POLICY "pedidos_update_own"
 ON pedidos
 FOR UPDATE
 USING (
-  estado = 'pagado'
+  auth.uid() = usuario_id
+  OR (auth.jwt()->>'rol') = 'admin'
 )
 WITH CHECK (
-  estado = 'cancelado'
+  auth.uid() = usuario_id
+  OR (auth.jwt()->>'rol') = 'admin'
 );
 
-CREATE POLICY "pedidos_update_own_devolver"
-ON pedidos
-FOR UPDATE
-USING (
-  estado = 'entregado'
-)
-WITH CHECK (
-  estado = 'devolucion_solicitada'
-);
-
--- 3. POLÍTICA UPDATE: Admin puede editar todo
-CREATE POLICY "pedidos_update_admin"
-ON pedidos
-FOR UPDATE
-USING (
-  (auth.jwt()->>'rol') = 'admin'
-)
-WITH CHECK (
-  (auth.jwt()->>'rol') = 'admin'
-);
-
--- 4. POLÍTICA INSERT: Solo admin crea pedidos
-CREATE POLICY "pedidos_insert_admin"
+-- 4. POLÍTICA INSERT: Permitir inserción de pedidos sin restricción
+CREATE POLICY "pedidos_insert_allow_all"
 ON pedidos
 FOR INSERT
-WITH CHECK (
-  (auth.jwt()->>'rol') = 'admin'
-);
+WITH CHECK (true);
 
 -- 5. POLÍTICA DELETE: Solo admin elimina pedidos
 CREATE POLICY "pedidos_delete_admin"

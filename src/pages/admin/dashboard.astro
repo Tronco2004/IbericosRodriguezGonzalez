@@ -465,30 +465,34 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script>
     const hamburgerBtn = document.getElementById('hamburgerBtn');
-    const sideMenu = document.getElementById('sideMenu');
+    const sideMenu = document.getElementById('sideMenu') as HTMLElement | null;
     const closeMenuBtn = document.getElementById('closeMenuBtn');
-    const menuOverlay = document.getElementById('menuOverlay');
+    const menuOverlay = document.getElementById('menuOverlay') as HTMLElement | null;
 
     // Abrir menú
-    hamburgerBtn.addEventListener('click', () => {
-      sideMenu.style.right = '0';
-      menuOverlay.style.display = 'block';
-      menuOverlay.style.pointerEvents = 'auto';
-      menuOverlay.style.background = 'rgba(0, 0, 0, 0.5)';
+    hamburgerBtn?.addEventListener('click', () => {
+      if (sideMenu) sideMenu.style.right = '0';
+      if (menuOverlay) {
+        menuOverlay.style.display = 'block';
+        menuOverlay.style.pointerEvents = 'auto';
+        menuOverlay.style.background = 'rgba(0, 0, 0, 0.5)';
+      }
     });
 
     // Cerrar menú
     const closeMenu = () => {
-      sideMenu.style.right = '-350px';
-      menuOverlay.style.background = 'rgba(0, 0, 0, 0)';
-      menuOverlay.style.pointerEvents = 'none';
+      if (sideMenu) sideMenu.style.right = '-350px';
+      if (menuOverlay) {
+        menuOverlay.style.background = 'rgba(0, 0, 0, 0)';
+        menuOverlay.style.pointerEvents = 'none';
+      }
     };
 
-    closeMenuBtn.addEventListener('click', closeMenu);
-    menuOverlay.addEventListener('click', closeMenu);
+    closeMenuBtn?.addEventListener('click', closeMenu);
+    menuOverlay?.addEventListener('click', closeMenu);
 
     // Cerrar menú al hacer clic en un enlace
-    sideMenu.querySelectorAll('a').forEach(link => {
+    sideMenu?.querySelectorAll('a').forEach(link => {
       link.addEventListener('click', closeMenu);
     });
 
@@ -499,10 +503,15 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 
         if (data.success) {
           // Actualizar cards principales
-          document.getElementById('productosCount').textContent = data.stockTotal || 0;
-          document.getElementById('pedidosCount').textContent = data.pedidosPendientes || 0;
-          document.getElementById('clientesCount').textContent = data.clientesActivos || 0;
-          document.getElementById('ingresosCount').textContent = '€' + (data.ingresosTotal || '0.00');
+          const productosEl = document.getElementById('productosCount');
+          const pedidosEl = document.getElementById('pedidosCount');
+          const clientesEl = document.getElementById('clientesCount');
+          const ingresosEl = document.getElementById('ingresosCount');
+          
+          if (productosEl) productosEl.textContent = String(data.stockTotal || 0);
+          if (pedidosEl) pedidosEl.textContent = String(data.pedidosPendientes || 0);
+          if (clientesEl) clientesEl.textContent = String(data.clientesActivos || 0);
+          if (ingresosEl) ingresosEl.textContent = '€' + (data.ingresosTotal || '0.00');
           
           console.log('✅ Estadísticas cargadas:', data);
         }
@@ -527,8 +536,12 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     // Crear gráfico de ingresos
     function crearGraficoIngresos() {
       const { dias, ingresos } = generarDatosIngresos();
-      const ctx = document.getElementById('ingresosChart').getContext('2d');
+      const canvas = document.getElementById('ingresosChart') as HTMLCanvasElement | null;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
       
+      // @ts-ignore
       new Chart(ctx, {
         type: 'line',
         data: {
@@ -597,17 +610,25 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 
       // Calcular totales
       const totalIngresos = ingresos.reduce((a, b) => a + b, 0);
-      const promedioPedidos = ingresos.length > 0 ? (totalIngresos / 20).toFixed(2) : 0;
-      document.getElementById('ingresosCount').textContent = '€' + totalIngresos.toFixed(2);
-      document.getElementById('ticketPromedio').textContent = '€' + promedioPedidos;
-      document.getElementById('ingresosHoy').textContent = '€' + (ingresos[29] || 0).toFixed(2);
+      const promedioPedidos = ingresos.length > 0 ? (totalIngresos / 20).toFixed(2) : '0';
+      const ingresosCountEl = document.getElementById('ingresosCount');
+      const ticketPromedioEl = document.getElementById('ticketPromedio');
+      const ingresosHoyEl = document.getElementById('ingresosHoy');
+      
+      if (ingresosCountEl) ingresosCountEl.textContent = '€' + totalIngresos.toFixed(2);
+      if (ticketPromedioEl) ticketPromedioEl.textContent = '€' + promedioPedidos;
+      if (ingresosHoyEl) ingresosHoyEl.textContent = '€' + (ingresos[29] || 0).toFixed(2);
     }
 
     // Crear gráfico de pedidos
     function crearGraficoPedidos() {
       const { dias, pedidos } = generarDatosPedidos();
-      const ctx = document.getElementById('pedidosChart').getContext('2d');
+      const canvas = document.getElementById('pedidosChart') as HTMLCanvasElement | null;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
       
+      // @ts-ignore
       new Chart(ctx, {
         type: 'bar',
         data: {
@@ -672,9 +693,13 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 
       // Calcular totales
       const totalPedidos = pedidos.reduce((a, b) => a + b, 0);
-      document.getElementById('pedidosCount').textContent = totalPedidos;
-      document.getElementById('pedidosHoy').textContent = (pedidos[29] || 0);
-      document.getElementById('crecimiento').textContent = '+' + Math.floor(Math.random() * 25 + 5) + '%';
+      const pedidosCountEl = document.getElementById('pedidosCount');
+      const pedidosHoyEl = document.getElementById('pedidosHoy');
+      const crecimientoEl = document.getElementById('crecimiento');
+      
+      if (pedidosCountEl) pedidosCountEl.textContent = String(totalPedidos);
+      if (pedidosHoyEl) pedidosHoyEl.textContent = String(pedidos[29] || 0);
+      if (crecimientoEl) crecimientoEl.textContent = '+' + Math.floor(Math.random() * 25 + 5) + '%';
     }
 
     // Cargar al iniciar la página

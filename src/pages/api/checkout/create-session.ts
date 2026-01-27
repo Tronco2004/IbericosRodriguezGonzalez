@@ -1,13 +1,27 @@
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY || '');
+const STRIPE_SECRET_KEY = import.meta.env.STRIPE_SECRET_KEY;
+if (!STRIPE_SECRET_KEY) {
+  console.error('❌ STRIPE_SECRET_KEY no está configurada');
+}
+
+const stripe = new Stripe(STRIPE_SECRET_KEY || '');
 const SHIPPING_COST = 500; // 5€ en centimos
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
+    // Validar que STRIPE_SECRET_KEY existe
+    if (!STRIPE_SECRET_KEY) {
+      console.error('❌ STRIPE_SECRET_KEY no está configurada en variables de entorno');
+      return new Response(
+        JSON.stringify({ error: 'Configuración de pago no disponible. Contacta soporte.' }),
+        { status: 500 }
+      );
+    }
+
     // Obtener el carrito del cliente (con posibles datos de invitado)
-    const { cartItems, codigoDescuento, descuentoAplicado, datosInvitado } = await request.json();
+    const { cartItems, codigoDescuento, descuentoAplicado, datosInvitado, userEmail } = await request.json();
 
     console.log('📦 Creando sesión Stripe...');
     console.log('Carrito items:', cartItems);
@@ -34,21 +48,28 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         console.log('⚠️  Precio demasiado alto, dividiendo:', { original: item.precio, corregido: precioEnCentimos });
       }
       
-      // El precio unitario * cantidad es lo que se cobra
+      // Validar que la imagen sea una URL válida
+      let validImages: string[] = [];
+      if (item.imagen && typeof item.imagen === 'string' && item.imagen.startsWith('http')) {
+        validImages = [item.imagen];
+      }
+      
       console.log('💰 Item Stripe:', { 
         nombre: item.nombre, 
         precio_unitario_centimos: precioEnCentimos,
         cantidad: item.cantidad,
-        total_item: precioEnCentimos * item.cantidad
+        total_item: precioEnCentimos * item.cantidad,
+        imagen: item.imagen,
+        imagenes_válidas: validImages
       });
       
       return {
         price_data: {
           currency: 'eur',
           product_data: {
-            name: item.nombre,
+            name: item.nombre || 'Producto sin nombre',
             description: item.peso_kg ? `Peso: ${item.peso_kg} kg` : undefined,
-            images: item.imagen ? [item.imagen] : [],
+            images: validImages.length > 0 ? validImages : undefined,
           },
           unit_amount: Math.round(precioEnCentimos), // Precio unitario en centimos
         },
@@ -92,12 +113,25 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
     }
 
-    // Determinar email del cliente (invitado o usuario logueado)
-    const customerEmail = datosInvitado?.email || cookies.get('user_email')?.value;
+    // Determinar email del cliente
+    let customerEmail: string | undefined;
+    
+    if (datosInvitado?.email) {
+      // Es invitado
+      customerEmail = datosInvitado.email;
+      console.log('👻 Invitado - Email:', customerEmail);
+    } else if (userEmail) {
+      // Es usuario logueado
+      customerEmail = userEmail;
+      console.log('👤 Usuario logueado - Email:', customerEmail);
+    }
 
-    // Crear sesión de Stripe
-    console.log('🔗 Creando sesión Stripe...');
-    console.log('📧 Email del cliente:', customerEmail);
+    if (!customerEmail) {
+      return new Response(
+        JSON.stringify({ error: 'Email del cliente no disponible' }),
+        { status: 400 }
+      );
+    }
 
     // Construir URL de éxito con parámetro de invitado si aplica
     let successUrl = `${new URL(request.url).origin}/checkout/exito?session_id={CHECKOUT_SESSION_ID}`;
@@ -138,10 +172,27 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
     );
   } catch (error: any) {
-    console.error('❌ Error creando sesión Stripe:', error.message || error);
-    console.error('Detalles del error:', error);
+    console.error('❌ Error creando sesión Stripe:', error);
+    console.error('Stack:', error?.stack);
+    console.error('Mensaje:', error?.message);
+    
+    // Log más detalles del error de Stripe
+    if (error?.type) {
+      console.error('Tipo de error Stripe:', error.type);
+    }
+    if (error?.param) {
+      console.error('Parámetro problemático:', error.param);
+    }
+    if (error?.requestId) {
+      console.error('Request ID:', error.requestId);
+    }
+    
     return new Response(
-      JSON.stringify({ error: error.message || 'Error creando sesión de pago' }),
+      JSON.stringify({ 
+        error: error.message || 'Error creando sesión de pago',
+        type: error.type,
+        param: error.param
+      }),
       { status: 500 }
     );
   }

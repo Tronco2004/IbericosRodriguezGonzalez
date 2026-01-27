@@ -601,18 +601,109 @@ const { data: categorias } = await supabaseClient
         });
       }
 
-      // Función para actualizar el contador del carrito
+      const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000; // 15 minutos
+
+      // Función para actualizar el contador del carrito (INVITADOS Y USUARIOS)
       async function actualizarContadorCarrito() {
         try {
           const userId = localStorage.getItem('user_id');
+          const contador = document.getElementById('carritoCount');
+          const timer = document.getElementById('carritoTimer');
+          
+          let totalItems = 0;
+          let fechaMasReciente: number | null = null;
+
+          // Si es INVITADO, usar localStorage
           if (!userId) {
-            const contador = document.getElementById('carritoCount');
-            if (contador) contador.style.display = 'none';
-            const timer = document.getElementById('carritoTimer');
-            if (timer) timer.style.display = 'none';
+            let carritoInvitado = JSON.parse(localStorage.getItem('carrito_invitado') || '[]');
+            
+            // Verificar expiración de items
+            if (carritoInvitado.length > 0) {
+              const ahora = Date.now();
+              const fechaCarrito = localStorage.getItem('carrito_invitado_fecha');
+              
+              if (fechaCarrito) {
+                const tiempoTranscurrido = ahora - parseInt(fechaCarrito);
+                
+                if (tiempoTranscurrido >= TIEMPO_EXPIRACION_MS) {
+                  // Carrito expirado - liberar stock de variantes antes de limpiar
+                  for (const item of carritoInvitado) {
+                    if (item.producto_variante_id) {
+                      fetch('/api/carrito/reservar', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          producto_id: item.producto_id,
+                          producto_variante_id: item.producto_variante_id,
+                          cantidad: item.cantidad || 1
+                        })
+                      }).catch(err => console.error('Error liberando stock:', err));
+                    }
+                  }
+                  localStorage.removeItem('carrito_invitado');
+                  localStorage.removeItem('carrito_invitado_fecha');
+                  carritoInvitado = [];
+                  if (contador) contador.style.display = 'none';
+                  if (timer) timer.style.display = 'none';
+                  return;
+                }
+                
+                fechaMasReciente = parseInt(fechaCarrito);
+              }
+            }
+            
+            totalItems = carritoInvitado.reduce((sum, item) => sum + (item.cantidad || 1), 0);
+            
+            if (contador) {
+              if (totalItems > 0) {
+                contador.textContent = String(totalItems);
+                contador.style.display = 'flex';
+              } else {
+                contador.style.display = 'none';
+              }
+            }
+            
+            // Mostrar timer para invitados
+            if (timer && totalItems > 0 && fechaMasReciente) {
+              const ahora = Date.now();
+              const tiempoExpiracion = fechaMasReciente + TIEMPO_EXPIRACION_MS;
+              const diff = tiempoExpiracion - ahora;
+              
+              if (diff <= 0) {
+                timer.textContent = '⚠️ Expirado';
+                timer.style.color = '#dc2626';
+                timer.style.display = 'block';
+                // Liberar stock de variantes antes de limpiar
+                for (const item of carritoInvitado) {
+                  if (item.producto_variante_id) {
+                    fetch('/api/carrito/reservar', {
+                      method: 'DELETE',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        producto_id: item.producto_id,
+                        producto_variante_id: item.producto_variante_id,
+                        cantidad: item.cantidad || 1
+                      })
+                    }).catch(err => console.error('Error liberando stock:', err));
+                  }
+                }
+                // Limpiar carrito expirado
+                localStorage.removeItem('carrito_invitado');
+                localStorage.removeItem('carrito_invitado_fecha');
+              } else {
+                const minutos = Math.floor(diff / (1000 * 60));
+                const segundos = Math.floor((diff % (1000 * 60)) / 1000);
+                timer.textContent = `${minutos}:${segundos.toString().padStart(2, '0')}`;
+                timer.style.color = diff < 60000 ? '#dc2626' : '#d97706';
+                timer.style.display = 'block';
+              }
+            } else if (timer) {
+              timer.style.display = 'none';
+            }
             return;
           }
 
+          // Usuario logueado - usar API
           const response = await fetch('/api/carrito', {
             credentials: 'include',
             headers: {
@@ -621,21 +712,18 @@ const { data: categorias } = await supabaseClient
           });
           
           if (response.status === 401 || !response.ok) {
-            const contador = document.getElementById('carritoCount');
             if (contador) contador.style.display = 'none';
-            const timer = document.getElementById('carritoTimer');
             if (timer) timer.style.display = 'none';
             return;
           }
 
           const data = await response.json();
           const items = data.items || [];
-          const totalItems = items.reduce((sum, item) => sum + item.cantidad, 0);
+          totalItems = items.reduce((sum, item) => sum + item.cantidad, 0);
           
-          const contador = document.getElementById('carritoCount');
           if (contador) {
             if (totalItems > 0) {
-              contador.textContent = totalItems;
+              contador.textContent = String(totalItems);
               contador.style.display = 'flex';
             } else {
               contador.style.display = 'none';
@@ -643,7 +731,6 @@ const { data: categorias } = await supabaseClient
           }
 
           // Actualizar el timer si hay items
-          const timer = document.getElementById('carritoTimer');
           if (timer && totalItems > 0 && items.length > 0) {
             const itemMasReciente = items.reduce((prev, current) => {
               return new Date(current.fecha_agregado) > new Date(prev.fecha_agregado) ? current : prev;
@@ -651,7 +738,7 @@ const { data: categorias } = await supabaseClient
             
             const ahora = new Date();
             const fechaAgregado = new Date(itemMasReciente.fecha_agregado);
-            const tiempoExpiracion = fechaAgregado.getTime() + (15 * 60 * 1000);
+            const tiempoExpiracion = fechaAgregado.getTime() + TIEMPO_EXPIRACION_MS;
             const diff = tiempoExpiracion - ahora.getTime();
             
             if (diff <= 0) {
@@ -662,12 +749,7 @@ const { data: categorias } = await supabaseClient
               const minutos = Math.floor(diff / (1000 * 60));
               const segundos = Math.floor((diff % (1000 * 60)) / 1000);
               timer.textContent = `${minutos}:${segundos.toString().padStart(2, '0')}`;
-              
-              if (diff < 60000) {
-                timer.style.color = '#dc2626';
-              } else {
-                timer.style.color = '#d97706';
-              }
+              timer.style.color = diff < 60000 ? '#dc2626' : '#d97706';
               timer.style.display = 'block';
             }
           } else if (timer) {
@@ -681,11 +763,12 @@ const { data: categorias } = await supabaseClient
       // Actualizar contador al cargar la página
       actualizarContadorCarrito();
 
-      // Actualizar contador cada segundo (para el timer)
+      // Actualizar cada segundo (para el timer de TODOS)
       setInterval(actualizarContadorCarrito, 1000);
 
-      // Escuchar eventos de carrito actualizado
+      // Escuchar eventos de carrito actualizado (desde document Y window)
       document.addEventListener('carritoActualizado', actualizarContadorCarrito);
+      window.addEventListener('carritoActualizado', actualizarContadorCarrito);
 
       // Renderizar navbar dinámicamente
       const authContainer = document.getElementById('authContainer');
@@ -693,7 +776,7 @@ const { data: categorias } = await supabaseClient
       const userName = localStorage.getItem('user_name');
       const userRole = localStorage.getItem('user_role');
 
-      if (token && userName) {
+      if (token && userName && authContainer) {
         // Usuario autenticado - mostrar nombre y menú
         authContainer.innerHTML = `
           <div style="position: relative;">
@@ -762,13 +845,13 @@ const { data: categorias } = await supabaseClient
           const adminArrow = document.getElementById('adminArrow');
 
           userBtn?.addEventListener('click', () => {
-            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+            if (menu) menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
           });
 
           adminMenuBtn?.addEventListener('click', (e) => {
             e.preventDefault();
-            adminSubMenu.style.display = adminSubMenu.style.display === 'none' ? 'block' : 'none';
-            adminArrow.style.transform = adminSubMenu.style.display === 'block' ? 'rotate(180deg)' : 'rotate(0deg)';
+            if (adminSubMenu) adminSubMenu.style.display = adminSubMenu.style.display === 'none' ? 'block' : 'none';
+            if (adminArrow && adminSubMenu) adminArrow.style.transform = adminSubMenu.style.display === 'block' ? 'rotate(180deg)' : 'rotate(0deg)';
           });
 
           logoutBtn?.addEventListener('click', async () => {
@@ -778,14 +861,15 @@ const { data: categorias } = await supabaseClient
           });
 
           document.addEventListener('click', (e) => {
-            if (!userBtn?.contains(e.target) && !menu?.contains(e.target)) {
-              menu.style.display = 'none';
+            const target = e.target as Node;
+            if (!userBtn?.contains(target) && !menu?.contains(target)) {
+              if (menu) menu.style.display = 'none';
             }
           });
         }, 0);
       } else {
         // No autenticado
-        authContainer.innerHTML = `
+        if (authContainer) authContainer.innerHTML = `
           <a href="/login" style="
             background: linear-gradient(135deg, #a89968, #8b7a5f);
             color: white;

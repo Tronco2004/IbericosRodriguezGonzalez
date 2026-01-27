@@ -331,8 +331,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         );
       }
 
-      precioUnitario = Math.round(variante.precio_total * 100); // Convertir euros a centimos
-      console.log('✅ Precio variante:', precioUnitario);
+      // precio_total ya está en centimos en la BD
+      precioUnitario = Math.round(variante.precio_total);
+      console.log('✅ Precio variante (centimos):', precioUnitario);
     } else {
       // Obtener precio del producto normal
       console.log('🔍 Buscando producto:', producto_id);

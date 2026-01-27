@@ -76,6 +76,16 @@ import Layout from '../layouts/Layout.astro';
           return;
         }
 
+        // Función para formatear precio (detecta si está en centimos o euros)
+        function formatPrice(value) {
+          const num = parseFloat(value) || 0;
+          // Si el valor es mayor a 500, probablemente está en centimos
+          if (num > 500) {
+            return (num / 100).toFixed(2);
+          }
+          return num.toFixed(2);
+        }
+
         let html = '<div style="display: grid; gap: 1.5rem;">';
 
         pedidos.forEach(pedido => {
@@ -111,7 +121,7 @@ import Layout from '../layouts/Layout.astro';
                 </div>
                 <div style="text-align: right;">
                   <p style="color: #a89968; font-weight: 700; font-size: 1.2rem; margin: 0;">
-                    ${(pedido.total / 100).toFixed(2)}€
+                    ${parseFloat(pedido.total).toFixed(2)}€
                   </p>
                 </div>
               </div>
@@ -136,12 +146,12 @@ import Layout from '../layouts/Layout.astro';
                     </div>
                     <div style="text-align: right;">
                       <p style="color: #5c4a3d; margin: 0; font-size: 0.9rem;">
-                        ${(item.precio_unitario / 100).toFixed(2)}€ c/u
+                        ${formatPrice(item.precio_unitario)}€ c/u
                       </p>
                     </div>
                     <div style="text-align: right;">
                       <p style="color: #001a33; font-weight: 600; margin: 0;">
-                        ${(item.subtotal / 100).toFixed(2)}€
+                        ${formatPrice(item.subtotal)}€
                       </p>
                     </div>
                   </div>
@@ -150,23 +160,23 @@ import Layout from '../layouts/Layout.astro';
                 <div style="padding: 1rem 0; border-top: 2px solid #e0d5c7; margin-top: 1rem;">
                   <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; margin-bottom: 0.5rem;">
                     <span style="color: #5c4a3d;">Subtotal</span>
-                    <span style="color: #001a33; font-weight: 600;">${(pedido.subtotal / 100).toFixed(2)}€</span>
+                    <span style="color: #001a33; font-weight: 600;">${formatPrice(pedido.subtotal)}€</span>
                   </div>
                   ${pedido.envio > 0 ? `
                     <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; margin-bottom: 0.5rem;">
                       <span style="color: #5c4a3d;">Envío</span>
-                      <span style="color: #001a33; font-weight: 600;">${(pedido.envio / 100).toFixed(2)}€</span>
+                      <span style="color: #001a33; font-weight: 600;">${formatPrice(pedido.envio)}€</span>
                     </div>
                   ` : ''}
                   ${pedido.impuestos > 0 ? `
                     <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; margin-bottom: 0.5rem;">
                       <span style="color: #5c4a3d;">Impuestos</span>
-                      <span style="color: #001a33; font-weight: 600;">${(pedido.impuestos / 100).toFixed(2)}€</span>
+                      <span style="color: #001a33; font-weight: 600;">${formatPrice(pedido.impuestos)}€</span>
                     </div>
                   ` : ''}
                   <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; border-top: 1px solid #e0d5c7; padding-top: 0.75rem; margin-top: 0.75rem;">
                     <span style="color: #001a33; font-weight: 700;">Total</span>
-                    <span style="color: #a89968; font-weight: 700; font-size: 1.1rem;">${(pedido.total / 100).toFixed(2)}€</span>
+                    <span style="color: #a89968; font-weight: 700; font-size: 1.1rem;">${formatPrice(pedido.total)}€</span>
                   </div>
                 </div>
               </div>

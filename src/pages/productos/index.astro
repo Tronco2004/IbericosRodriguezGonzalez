@@ -1186,6 +1186,7 @@ import Layout from '../../layouts/Layout.astro';
           btn.setAttribute('data-producto-id', productoId);
           btn.setAttribute('data-peso', v.peso_kg);
           btn.setAttribute('data-precio', v.precio_total);
+          btn.setAttribute('data-cantidad', v.cantidad_disponible);
           
           btn.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: linear-gradient(135deg, #faf9f7 0%, #f5f3ef 100%); border: 2px solid #e5e2dd; border-radius: 12px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); width: 100%; font-family: Inter, sans-serif;";
           
@@ -1236,7 +1237,7 @@ import Layout from '../../layouts/Layout.astro';
         // Si es invitado, guardar en localStorage
         if (!userId) {
           console.log('👻 Invitado detectado - guardando en localStorage');
-          agregarAlCarritoLocal(productoId, varianteId, peso);
+          await agregarAlCarritoLocal(productoId, varianteId, peso);
           return;
         }
 
@@ -1287,7 +1288,7 @@ import Layout from '../../layouts/Layout.astro';
     }
 
     // Agregar al carrito local para invitados
-    function agregarAlCarritoLocal(productoId, varianteId, peso) {
+    async function agregarAlCarritoLocal(productoId, varianteId, peso) {
       try {
         // Buscar el producto en el array global
         const producto = productosGlobal.find(p => p.id === parseInt(productoId));
@@ -1305,7 +1306,7 @@ import Layout from '../../layouts/Layout.astro';
         }
 
         // Reservar stock en la base de datos (para invitados)
-        fetch('/api/carrito/reservar', {
+        const reservaRes = await fetch('/api/carrito/reservar', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1313,17 +1314,15 @@ import Layout from '../../layouts/Layout.astro';
             producto_variante_id: parseInt(varianteId),
             cantidad: 1
           })
-        })
-          .then(res => res.json())
-          .then(data => {
-            if (!data.success) {
-              console.error('❌ Error reservando stock:', data.error);
-              mostrarNotificacion(data.error || 'Error al reservar stock', 'error');
-              return;
-            }
-            console.log('✅ Stock reservado:', data);
-          })
-          .catch(err => console.error('❌ Error en fetch reservar:', err));
+        });
+
+        const reservaData = await reservaRes.json();
+        if (!reservaData.success) {
+          console.error('❌ Error reservando stock:', reservaData.error);
+          mostrarNotificacion(reservaData.error || 'Error al reservar stock', 'error');
+          return;
+        }
+        console.log('✅ Stock reservado:', reservaData);
 
         // Obtener carrito actual de localStorage
         let carrito = JSON.parse(localStorage.getItem('carrito_invitado') || '[]');
@@ -1367,7 +1366,22 @@ import Layout from '../../layouts/Layout.astro';
 
         // Guardar en localStorage
         localStorage.setItem('carrito_invitado', JSON.stringify(carrito));
+        // Guardar/actualizar fecha de expiración (se resetea cada vez que se añade)
+        localStorage.setItem('carrito_invitado_fecha', String(Date.now()));
         console.log('✅ Carrito invitado actualizado:', carrito.length, 'items');
+        
+        // Recargar variantes desde el servidor
+        console.log('🔄 Recargando variantes...');
+        const variantesRes = await fetch(`/api/variantes/obtener-disponibles?producto_id=${productoId}`);
+        const variantesData = await variantesRes.json();
+        if (variantesData.success) {
+          // Actualizar el mapa de variantes
+          variantesMap[parseInt(productoId)] = variantesData.variantes;
+          console.log('✅ Variantes actualizadas:', variantesData.variantes.length);
+          
+          // Re-renderizar las variantes en la UI
+          abrirModalVariantes(parseInt(productoId));
+        }
         
         // Actualizar cantidad disponible de la variante
         variante.cantidad_disponible -= 1;
@@ -1583,6 +1597,7 @@ import Layout from '../../layouts/Layout.astro';
 
         // Guardar en localStorage
         localStorage.setItem('carrito_invitado', JSON.stringify(carrito));
+        localStorage.setItem('carrito_invitado_fecha', String(Date.now()));
         
         // Actualizar stock local en productosGlobal
         producto.stock -= cantidad;
