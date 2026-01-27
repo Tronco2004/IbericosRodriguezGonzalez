@@ -33,6 +33,60 @@ const productos = [
 ---
 
 <Layout>
+  <!-- Banner de Ofertas con Temporizador -->
+  <div id="urgencyBanner" class="urgency-banner" style="display: none;">
+    <div class="urgency-content">
+      <div class="urgency-left">
+        <span class="urgency-fire">🔥</span>
+        <div class="urgency-text">
+          <span class="urgency-label">¡OFERTA FLASH!</span>
+          <span class="urgency-product" id="urgencyProduct">Cargando...</span>
+        </div>
+      </div>
+      
+      <div class="urgency-center">
+        <div class="urgency-discount" id="urgencyDiscount">-00%</div>
+        <div class="urgency-timer">
+          <span class="timer-label">Termina en:</span>
+          <div class="timer-boxes">
+            <div class="timer-box">
+              <span class="timer-value" id="timerDays">00</span>
+              <span class="timer-unit">días</span>
+            </div>
+            <span class="timer-separator">:</span>
+            <div class="timer-box">
+              <span class="timer-value" id="timerHours">00</span>
+              <span class="timer-unit">hrs</span>
+            </div>
+            <span class="timer-separator">:</span>
+            <div class="timer-box">
+              <span class="timer-value" id="timerMinutes">00</span>
+              <span class="timer-unit">min</span>
+            </div>
+            <span class="timer-separator">:</span>
+            <div class="timer-box">
+              <span class="timer-value" id="timerSeconds">00</span>
+              <span class="timer-unit">seg</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <a href="/ofertas" class="urgency-cta">
+        Ver Oferta
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </a>
+    </div>
+    
+    <button class="urgency-close" id="urgencyClose" aria-label="Cerrar">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+
   <!-- Hero Section Mejorado -->
   <section class="hero-section">
     <div class="hero-bg"></div>
@@ -65,6 +119,92 @@ const productos = [
   </div>
 
   <script>
+    // ===== BANNER DE URGENCIA CON TEMPORIZADOR =====
+    let timerInterval = null;
+    
+    async function cargarBannerUrgencia() {
+      try {
+        const response = await fetch('/api/ofertas?limit=10');
+        const { data: ofertas } = await response.json();
+        
+        if (ofertas && ofertas.length > 0) {
+          // Filtrar ofertas con fecha de fin y ordenar por la que expira primero
+          const ofertasConFin = ofertas.filter(o => o.fecha_fin);
+          
+          if (ofertasConFin.length > 0) {
+            // Ordenar por fecha de fin (la más próxima primero)
+            ofertasConFin.sort((a, b) => new Date(a.fecha_fin) - new Date(b.fecha_fin));
+            
+            const ofertaUrgente = ofertasConFin[0];
+            const fechaFin = new Date(ofertaUrgente.fecha_fin);
+            
+            // Si la oferta ya expiró, no mostrar el banner
+            if (fechaFin <= new Date()) {
+              return;
+            }
+            
+            // Mostrar el banner
+            const banner = document.getElementById('urgencyBanner');
+            const productEl = document.getElementById('urgencyProduct');
+            const discountEl = document.getElementById('urgencyDiscount');
+            
+            // El producto puede venir como 'producto' o 'productos' según la API
+            const nombreProducto = ofertaUrgente.producto?.nombre || 
+                                   ofertaUrgente.productos?.nombre || 
+                                   ofertaUrgente.nombre_oferta ||
+                                   'Producto en oferta';
+            
+            productEl.textContent = nombreProducto;
+            discountEl.textContent = `-${ofertaUrgente.porcentaje_descuento}%`;
+            
+            banner.style.display = 'block';
+            
+            // Iniciar el temporizador
+            actualizarTemporizador(fechaFin);
+            timerInterval = setInterval(() => actualizarTemporizador(fechaFin), 1000);
+          }
+        }
+      } catch (error) {
+        console.error('Error cargando banner de urgencia:', error);
+      }
+    }
+    
+    function actualizarTemporizador(fechaFin) {
+      const ahora = new Date();
+      const diferencia = fechaFin - ahora;
+      
+      if (diferencia <= 0) {
+        // La oferta ha expirado
+        clearInterval(timerInterval);
+        document.getElementById('urgencyBanner').style.display = 'none';
+        return;
+      }
+      
+      const dias = Math.floor(diferencia / (1000 * 60 * 60 * 24));
+      const horas = Math.floor((diferencia % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutos = Math.floor((diferencia % (1000 * 60 * 60)) / (1000 * 60));
+      const segundos = Math.floor((diferencia % (1000 * 60)) / 1000);
+      
+      document.getElementById('timerDays').textContent = dias.toString().padStart(2, '0');
+      document.getElementById('timerHours').textContent = horas.toString().padStart(2, '0');
+      document.getElementById('timerMinutes').textContent = minutos.toString().padStart(2, '0');
+      document.getElementById('timerSeconds').textContent = segundos.toString().padStart(2, '0');
+    }
+    
+    // Cerrar el banner
+    document.getElementById('urgencyClose')?.addEventListener('click', () => {
+      document.getElementById('urgencyBanner').style.display = 'none';
+      clearInterval(timerInterval);
+      // Guardar en sessionStorage para no mostrar de nuevo en esta sesión
+      sessionStorage.setItem('urgencyBannerClosed', 'true');
+    });
+    
+    // Cargar el banner solo si no fue cerrado en esta sesión
+    if (!sessionStorage.getItem('urgencyBannerClosed')) {
+      cargarBannerUrgencia();
+    }
+
+    // ===== CONTADOR DE OFERTAS =====
     async function cargarOfertasInfo() {
       try {
         const response = await fetch('/api/ofertas?limit=100');
@@ -595,6 +735,338 @@ const productos = [
     .btn {
       font-size: 0.8rem;
       padding: 0.6rem 1rem;
+    }
+  }
+
+  /* ===== URGENCY BANNER ===== */
+  .urgency-banner {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 50%, #991b1b 100%);
+    color: white;
+    padding: 0.75rem 1rem;
+    position: relative;
+    overflow: hidden;
+    animation: bannerPulse 3s ease-in-out infinite;
+    margin-bottom: 1rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(220, 38, 38, 0.3);
+  }
+
+  [data-theme="dark"] .urgency-banner {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%);
+    box-shadow: 0 4px 25px rgba(239, 68, 68, 0.4);
+  }
+
+  @keyframes bannerPulse {
+    0%, 100% { box-shadow: 0 4px 20px rgba(220, 38, 38, 0.3); }
+    50% { box-shadow: 0 4px 30px rgba(220, 38, 38, 0.5); }
+  }
+
+  .urgency-banner::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    animation: shimmer 3s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
+
+  .urgency-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+    flex-wrap: wrap;
+  }
+
+  .urgency-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .urgency-fire {
+    font-size: 1.5rem;
+    animation: fireFlicker 0.5s ease-in-out infinite alternate;
+  }
+
+  @keyframes fireFlicker {
+    0% { transform: scale(1) rotate(-5deg); }
+    100% { transform: scale(1.1) rotate(5deg); }
+  }
+
+  .urgency-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .urgency-label {
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    opacity: 0.9;
+    background: rgba(255,255,255,0.2);
+    padding: 2px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    width: fit-content;
+  }
+
+  .urgency-product {
+    font-size: 0.95rem;
+    font-weight: 700;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .urgency-center {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .urgency-discount {
+    font-size: 1.75rem;
+    font-weight: 900;
+    background: rgba(255,255,255,0.2);
+    padding: 0.25rem 1rem;
+    border-radius: 8px;
+    animation: discountPop 2s ease-in-out infinite;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+
+  @keyframes discountPop {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  .urgency-timer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .timer-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.85;
+    font-weight: 600;
+  }
+
+  .timer-boxes {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .timer-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(0,0,0,0.25);
+    padding: 6px 10px;
+    border-radius: 6px;
+    min-width: 44px;
+  }
+
+  [data-theme="dark"] .timer-box {
+    background: rgba(0,0,0,0.35);
+  }
+
+  .timer-value {
+    font-size: 1.1rem;
+    font-weight: 900;
+    font-family: 'Inter', monospace;
+    line-height: 1;
+  }
+
+  .timer-unit {
+    font-size: 0.55rem;
+    text-transform: uppercase;
+    opacity: 0.8;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  .timer-separator {
+    font-size: 1.25rem;
+    font-weight: 700;
+    opacity: 0.7;
+    animation: blink 1s step-end infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 0.3; }
+  }
+
+  .urgency-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: white;
+    color: #dc2626;
+    padding: 0.6rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 800;
+    font-size: 0.85rem;
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    white-space: nowrap;
+  }
+
+  [data-theme="dark"] .urgency-cta {
+    background: #1e1e1e;
+    color: #ef4444;
+  }
+
+  .urgency-cta:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+  }
+
+  .urgency-cta svg {
+    transition: transform 0.3s;
+  }
+
+  .urgency-cta:hover svg {
+    transform: translateX(3px);
+  }
+
+  .urgency-close {
+    position: absolute;
+    top: 50%;
+    right: 0.75rem;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.15);
+    border: none;
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    opacity: 0.7;
+  }
+
+  .urgency-close:hover {
+    opacity: 1;
+    background: rgba(255,255,255,0.25);
+    transform: translateY(-50%) scale(1.1);
+  }
+
+  /* Responsive */
+  @media (max-width: 1024px) {
+    .urgency-content {
+      gap: 1rem;
+    }
+    
+    .urgency-product {
+      max-width: 150px;
+    }
+    
+    .urgency-discount {
+      font-size: 1.5rem;
+      padding: 0.2rem 0.75rem;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .urgency-banner {
+      padding: 0.75rem 2.5rem 0.75rem 1rem;
+    }
+    
+    .urgency-content {
+      flex-direction: column;
+      gap: 0.75rem;
+      text-align: center;
+    }
+    
+    .urgency-left {
+      justify-content: center;
+    }
+    
+    .urgency-product {
+      max-width: 100%;
+    }
+    
+    .urgency-center {
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    
+    .timer-box {
+      padding: 4px 8px;
+      min-width: 38px;
+    }
+    
+    .timer-value {
+      font-size: 1rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .urgency-banner {
+      border-radius: 8px;
+      margin-bottom: 0.75rem;
+    }
+    
+    .urgency-fire {
+      font-size: 1.25rem;
+    }
+    
+    .urgency-label {
+      font-size: 0.6rem;
+    }
+    
+    .urgency-product {
+      font-size: 0.85rem;
+    }
+    
+    .urgency-discount {
+      font-size: 1.25rem;
+    }
+    
+    .timer-box {
+      padding: 3px 6px;
+      min-width: 32px;
+    }
+    
+    .timer-value {
+      font-size: 0.9rem;
+    }
+    
+    .timer-unit {
+      font-size: 0.5rem;
+    }
+    
+    .urgency-cta {
+      padding: 0.5rem 1rem;
+      font-size: 0.75rem;
     }
   }
 </style>
