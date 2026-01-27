@@ -72,12 +72,20 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     // Calcular precio_total como peso * precio_por_kg
-    const precioCalculado = peso_kg * (producto.precio_por_kg || 0);
+    let precioPorKg = producto.precio_por_kg || 0;
+    
+    // Si precio_por_kg es mayor a 100, probablemente está en céntimos, convertir a euros
+    if (precioPorKg > 100) {
+      precioPorKg = precioPorKg / 100;
+    }
+    
+    const precioCalculado = peso_kg * precioPorKg;
     
     console.log('📦 Creando variante:', { 
       producto_id, 
       peso_kg, 
-      precio_por_kg: producto.precio_por_kg, 
+      precio_por_kg_original: producto.precio_por_kg,
+      precio_por_kg_usado: precioPorKg,
       precio_calculado: precioCalculado,
       precio_recibido: precio_total
     });

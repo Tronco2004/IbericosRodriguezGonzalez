@@ -188,7 +188,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           row.style.borderBottom = '1px solid #e0d5c7';
           row.innerHTML = `
             <td style="padding: 1rem;">${v.peso_kg.toFixed(3)}kg</td>
-            <td style="padding: 1rem;">${v.precio_total}€</td>
+            <td style="padding: 1rem;">${(v.precio_total / 100).toFixed(2)}€</td>
             <td style="padding: 1rem;">
               <span style="
                 padding: 0.25rem 0.75rem;
