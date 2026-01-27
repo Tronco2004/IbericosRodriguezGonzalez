@@ -1,9 +1,37 @@
+# Robots.txt para Ibéricos RG
+# https://ibericosrodriguezgonzalez.victoriafp.online
+
 User-agent: *
 Allow: /
+Allow: /productos/
+Allow: /categoria/
+Allow: /ofertas
+
+# Páginas privadas - no indexar
 Disallow: /admin/
 Disallow: /api/
 Disallow: /login
 Disallow: /registro
 Disallow: /carrito
-Disallow: /checkout
-Sitemap: https://ibericos-rodriguez.com/sitemap.xml
+Disallow: /checkout/
+Disallow: /mi-perfil
+Disallow: /mis-pedidos
+
+# Bloquear bots de IA para entrenamiento (opcional)
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+# Sitemap
+Sitemap: https://ibericosrodriguezgonzalez.victoriafp.online/sitemap.xml
