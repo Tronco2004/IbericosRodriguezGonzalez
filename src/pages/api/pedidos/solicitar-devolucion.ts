@@ -40,65 +40,9 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // ✅ RESTAURAR STOCK INMEDIATAMENTE
-    console.log('🔵 Restaurando stock de productos del pedido:', pedido_id);
-    
-    // Obtener los items del pedido
-    const { data: pedidoItems, error: itemsError } = await supabaseClient
-      .from('pedido_items')
-      .select('producto_id, producto_variante_id, cantidad, precio_unitario, peso_kg, nombre_producto')
-      .eq('pedido_id', pedido_id);
-
-    if (itemsError) {
-      console.error('❌ Error obteniendo items del pedido:', itemsError);
-    } else if (pedidoItems && pedidoItems.length > 0) {
-      for (const item of pedidoItems) {
-        if (item.producto_variante_id) {
-          // Era una variante: recrearla en la BD
-          console.log('🔵 Recreando variante para producto:', item.producto_id);
-          
-          const { error: varianteError } = await supabaseClient
-            .from('producto_variantes')
-            .insert({
-              producto_id: item.producto_id,
-              peso_kg: item.peso_kg,
-              precio_total: item.precio_unitario * 100, // Convertir a centimos
-              disponible: true,
-              cantidad_disponible: 1
-            });
-          
-          if (varianteError) {
-            console.error('❌ Error recreando variante:', varianteError);
-          } else {
-            console.log('✅ Variante recreada para producto:', item.producto_id);
-          }
-        } else {
-          // Producto normal: incrementar stock
-          console.log('🔵 Incrementando stock para producto:', item.producto_id, 'cantidad:', item.cantidad);
-          
-          // Obtener stock actual
-          const { data: producto, error: getError } = await supabaseClient
-            .from('productos')
-            .select('stock')
-            .eq('id', item.producto_id)
-            .single();
-          
-          if (!getError && producto) {
-            const nuevoStock = (producto.stock || 0) + item.cantidad;
-            const { error: stockError } = await supabaseClient
-              .from('productos')
-              .update({ stock: nuevoStock })
-              .eq('id', item.producto_id);
-            
-            if (stockError) {
-              console.error('❌ Error incrementando stock:', stockError);
-            } else {
-              console.log('✅ Stock incrementado para producto:', item.producto_id, 'nuevo stock:', nuevoStock);
-            }
-          }
-        }
-      }
-    }
+    // NOTA: El stock NO se restaura aquí. Se restaurará cuando el admin valide la devolución
+    // después de recibir físicamente el producto.
+    console.log('🔵 Solicitud de devolución recibida para pedido:', pedido_id);
 
     // Actualizar estado a "devolucion_solicitada"
     const { error: errorUpdate } = await supabaseClient

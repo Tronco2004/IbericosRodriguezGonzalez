@@ -64,16 +64,19 @@ export const POST: APIRoute = async ({ request }) => {
       console.error('❌ Error obteniendo items del pedido:', itemsError);
     } else if (pedidoItems && pedidoItems.length > 0) {
       for (const item of pedidoItems) {
-        if (item.producto_variante_id) {
-          // Era una variante: recrearla en la BD
-          console.log('🔵 Recreando variante para producto:', item.producto_id);
+        if (item.producto_variante_id || item.peso_kg) {
+          // Era una variante de peso variable: recrearla en la BD
+          console.log('🔵 Recreando variante para producto:', item.producto_id, 'peso:', item.peso_kg, 'kg');
+          
+          // precio_unitario está en euros, convertir a céntimos para precio_total
+          const precioTotalCentimos = Math.round((item.precio_unitario || 0) * 100);
           
           const { error: varianteError } = await supabaseClient
             .from('producto_variantes')
             .insert({
               producto_id: item.producto_id,
               peso_kg: item.peso_kg,
-              precio_total: item.precio_unitario * 100, // Convertir a centimos
+              precio_total: precioTotalCentimos,
               disponible: true,
               cantidad_disponible: 1
             });
@@ -81,7 +84,7 @@ export const POST: APIRoute = async ({ request }) => {
           if (varianteError) {
             console.error('❌ Error recreando variante:', varianteError);
           } else {
-            console.log('✅ Variante recreada para producto:', item.producto_id);
+            console.log('✅ Variante recreada para producto:', item.producto_id, 'peso:', item.peso_kg, 'kg, precio:', precioTotalCentimos, 'céntimos');
           }
         } else {
           // Producto normal: incrementar stock
@@ -95,7 +98,7 @@ export const POST: APIRoute = async ({ request }) => {
             .single();
           
           if (!getError && producto) {
-            const nuevoStock = (producto.stock || 0) + item.cantidad;
+            const nuevoStock = (producto.stock || 0) + (item.cantidad || 1);
             const { error: stockError } = await supabaseClient
               .from('productos')
               .update({ stock: nuevoStock })

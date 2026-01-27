@@ -71,14 +71,11 @@ export const POST: APIRoute = async ({ request }) => {
     console.log('👤 UserId:', userId || 'Sin usuario (invitado)');
 
     // Calcular totales (todos en centimos)
+    // NOTA: Los precios del carrito YA vienen en céntimos desde la BD
     const subtotalCentimos = cartItems.reduce((sum: number, item: any) => {
-      // Detectar si el precio está en centimos o euros
-      let price = parseFloat(item.precio) || 0;
-      // Si el precio es menor a 500, probablemente está en euros, convertir a centimos
-      if (price < 500) {
-        price = Math.round(price * 100);
-      }
-      return sum + (price * (item.cantidad || 1));
+      // El precio ya viene en céntimos desde el carrito
+      const precioCentimos = Math.round(parseFloat(item.precio) || 0);
+      return sum + (precioCentimos * (item.cantidad || 1));
     }, 0);
 
     const envioCentimos = Math.round(SHIPPING_COST * 100); // 500 centimos
@@ -136,14 +133,10 @@ export const POST: APIRoute = async ({ request }) => {
 
     // ✅ CREAR ITEMS DEL PEDIDO
     const itemsData = cartItems.map((item: any) => {
-      // Detectar si el precio está en centimos o euros
-      let precio = parseFloat(item.precio) || 0;
-      // Si el precio es menor a 500, probablemente está en euros, convertir a centimos
-      if (precio < 500) {
-        precio = Math.round(precio * 100);
-      }
+      // El precio ya viene en céntimos desde el carrito
+      const precioCentimos = Math.round(parseFloat(item.precio) || 0);
       // Convertir centimos a euros para guardar en BD
-      const precioUnitarioEuros = precio / 100;
+      const precioUnitarioEuros = precioCentimos / 100;
 
       return {
         pedido_id: pedidoId,
@@ -172,32 +165,10 @@ export const POST: APIRoute = async ({ request }) => {
 
     console.log(`✅ ${itemsCreated?.length || 0} items creados`);
 
-    // ✅ DESCONTAR STOCK DE PRODUCTOS NORMALES (sin variante)
-    // Las variantes se eliminan automáticamente por trigger en la BD
+    // ✅ ELIMINAR VARIANTES VENDIDAS DE LA BD
+    // El stock de productos normales ya se restó al añadir al carrito
     for (const item of cartItems) {
-      if (!item.producto_variante_id) {
-        // Producto normal: descontar del stock
-        // Primero obtener el stock actual
-        const { data: producto, error: getError } = await supabaseClient
-          .from('productos')
-          .select('stock')
-          .eq('id', item.producto_id)
-          .single();
-        
-        if (!getError && producto) {
-          const nuevoStock = Math.max(0, (producto.stock || 0) - (item.cantidad || 1));
-          const { error: stockError } = await supabaseClient
-            .from('productos')
-            .update({ stock: nuevoStock })
-            .eq('id', item.producto_id);
-          
-          if (stockError) {
-            console.warn('⚠️ Error descontando stock del producto:', item.producto_id, stockError);
-          } else {
-            console.log('✅ Stock descontado para producto:', item.producto_id, 'cantidad:', item.cantidad, 'nuevo stock:', nuevoStock);
-          }
-        }
-      } else {
+      if (item.producto_variante_id) {
         // Producto con variante: eliminar la variante de la BD
         console.log('🗑️ Eliminando variante vendida:', item.producto_variante_id);
         const { error: deleteError } = await supabaseClient
@@ -209,6 +180,33 @@ export const POST: APIRoute = async ({ request }) => {
           console.warn('⚠️ Error eliminando variante:', item.producto_variante_id, deleteError);
         } else {
           console.log('✅ Variante eliminada:', item.producto_variante_id);
+        }
+      }
+      // Productos normales: el stock ya se descontó al añadir al carrito
+    }
+
+    // ✅ VACIAR EL CARRITO DEL USUARIO
+    if (userId) {
+      console.log('🗑️ Vaciando carrito del usuario:', userId);
+      
+      // Obtener el carrito del usuario
+      const { data: carrito } = await supabaseClient
+        .from('carritos')
+        .select('id')
+        .eq('usuario_id', userId)
+        .single();
+      
+      if (carrito) {
+        // Eliminar todos los items del carrito
+        const { error: deleteItemsError } = await supabaseClient
+          .from('carrito_items')
+          .delete()
+          .eq('carrito_id', carrito.id);
+        
+        if (deleteItemsError) {
+          console.warn('⚠️ Error eliminando items del carrito:', deleteItemsError);
+        } else {
+          console.log('✅ Items del carrito eliminados');
         }
       }
     }

@@ -45,10 +45,10 @@ export const POST: APIRoute = async ({ request }) => {
 
     console.log('🔵 Restaurando stock de los productos del pedido...');
 
-    // Obtener todos los items del pedido
+    // Obtener todos los items del pedido con más información
     const { data: items, error: errorItems } = await supabaseClient
       .from('pedido_items')
-      .select('producto_id, cantidad, peso_kg')
+      .select('producto_id, producto_variante_id, cantidad, precio_unitario, peso_kg')
       .eq('pedido_id', pedido.id);
 
     console.log('🔵 Items encontrados:', JSON.stringify(items, null, 2));
@@ -65,113 +65,60 @@ export const POST: APIRoute = async ({ request }) => {
 
         console.log('🔵 Restaurando stock para producto:', item.producto_id, 'cantidad:', item.cantidad, 'peso_kg:', item.peso_kg);
 
-        // Primero verificar si el producto tiene variantes
-        const { data: variantes, error: errorVariantes } = await supabaseClient
-          .from('producto_variantes')
-          .select('id, disponible')
-          .eq('producto_id', item.producto_id);
+        // Verificar si es un producto de peso variable (tiene peso_kg o producto_variante_id)
+        if (item.producto_variante_id || item.peso_kg) {
+          // Producto de peso variable: recrear la variante en la BD
+          console.log('🔵 Recreando variante para producto:', item.producto_id, 'peso:', item.peso_kg, 'kg');
+          
+          // precio_unitario está en euros, convertir a céntimos para precio_total
+          const precioTotalCentimos = Math.round((item.precio_unitario || 0) * 100);
+          
+          const { data: nuevaVariante, error: insertError } = await supabaseClient
+            .from('producto_variantes')
+            .insert({
+              producto_id: item.producto_id,
+              peso_kg: item.peso_kg,
+              precio_total: precioTotalCentimos,
+              disponible: true,
+              cantidad_disponible: 1
+            })
+            .select()
+            .single();
 
-        if (!errorVariantes && variantes && variantes.length > 0) {
-          // Producto con variantes: restaurar stock en cada variante
-          console.log('🔵 Producto con variantes encontradas:', variantes.length);
-
-          for (const variante of variantes) {
-            // Para productos con variantes de peso, restaurar el peso_kg, no la cantidad
-            const cantidadARestaurar = item.peso_kg || item.cantidad;
-            
-            // Si disponible es booleano, solo marcar true. Si es número, sumar.
-            let nuevoDisponible = cantidadARestaurar > 0 ? true : false;
-            if (typeof variante.disponible === 'number') {
-              nuevoDisponible = (variante.disponible || 0) + cantidadARestaurar;
-            }
-            
-            console.log('🔵 Actualizando variante', variante.id, 'disponible de', variante.disponible, 'a', nuevoDisponible);
-            
-            const { error: errorRestore } = await supabaseClient
-              .from('producto_variantes')
-              .update({ disponible: nuevoDisponible })
-              .eq('id', variante.id);
-            
-            if (errorRestore) {
-              console.error('❌ Error restaurando stock para variante', variante.id, ':', errorRestore);
-            } else {
-              console.log('✅ Stock restaurado para variante', variante.id);
-              restaurados++;
-            }
+          if (insertError) {
+            console.error('❌ Error recreando variante:', insertError);
+          } else {
+            console.log('✅ Variante recreada:', nuevaVariante.id, 'peso:', item.peso_kg, 'kg, precio:', precioTotalCentimos, 'céntimos');
+            restaurados++;
           }
         } else {
-          // Producto sin variantes: verificar si es de peso variable o normal
-          console.log('🔵 Producto sin variantes, verificando tipo...');
+          // Producto normal: incrementar stock
+          console.log('🔵 Producto normal, incrementando stock...');
           
           const { data: producto, error: errorGetProducto } = await supabaseClient
             .from('productos')
-            .select('es_variable, stock')
+            .select('stock')
             .eq('id', item.producto_id)
             .single();
-
-          console.log('🔵 Producto obtenido:', { producto, error: errorGetProducto });
 
           if (errorGetProducto || !producto) {
             console.warn('⚠️ No se encontró el producto:', item.producto_id, errorGetProducto);
             continue;
           }
 
-          console.log('🔵 es_variable =', producto.es_variable, ', stock actual =', producto.stock);
+          const nuevoStock = (producto.stock || 0) + (item.cantidad || 1);
+          console.log('🔵 Actualizando producto', item.producto_id, 'stock de', producto.stock, 'a', nuevoStock);
+          
+          const { error: errorRestore } = await supabaseClient
+            .from('productos')
+            .update({ stock: nuevoStock })
+            .eq('id', item.producto_id);
 
-          if (producto.es_variable) {
-            // Producto de peso variable: crear nueva variante
-            console.log('🔵 Es producto de peso variable, creando nueva variante con peso:', item.peso_kg);
-            
-            const pesoARestaurar = item.peso_kg || item.cantidad;
-            
-            // Obtener precio del producto para calcular precio_total
-            const { data: productoCompleto } = await supabaseClient
-              .from('productos')
-              .select('precio_centimos')
-              .eq('id', item.producto_id)
-              .single();
-            
-            // Calcular precio total: precio por kg * peso
-            const precioTotal = productoCompleto ? (productoCompleto.precio_centimos / 100) * pesoARestaurar : 0;
-            console.log('🔵 Precio calculado:', precioTotal, 'euros para', pesoARestaurar, 'kg');
-            
-            const { data: nuevaVariante, error: insertError } = await supabaseClient
-              .from('producto_variantes')
-              .insert({
-                producto_id: item.producto_id,
-                peso_kg: pesoARestaurar,
-                disponible: true,
-                precio_total: precioTotal
-              })
-              .select()
-              .single();
-
-            if (insertError) {
-              console.error('❌ Error creando nueva variante:', insertError);
-            } else {
-              console.log('✅ Nueva variante creada:', nuevaVariante.id, 'con peso:', pesoARestaurar, 'precio:', precioTotal);
-              restaurados++;
-            }
+          if (errorRestore) {
+            console.error('❌ Error restaurando stock:', errorRestore);
           } else {
-            // Producto normal: actualizar stock
-            console.log('🔵 Es producto normal, actualizando stock...');
-            
-            const nuevoStock = (producto.stock || 0) + item.cantidad;
-            console.log('🔵 Actualizando producto', item.producto_id, 'stock de', producto.stock, 'a', nuevoStock);
-            
-            const { error: errorRestore } = await supabaseClient
-              .from('productos')
-              .update({ stock: nuevoStock })
-              .eq('id', item.producto_id);
-
-            console.log('🔵 Error del update:', errorRestore);
-
-            if (errorRestore) {
-              console.error('❌ Error restaurando stock:', errorRestore);
-            } else {
-              console.log('✅ Stock restaurado para producto', item.producto_id);
-              restaurados++;
-            }
+            console.log('✅ Stock restaurado para producto', item.producto_id);
+            restaurados++;
           }
         }
       }
