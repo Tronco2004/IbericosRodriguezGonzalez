@@ -3,22 +3,145 @@ import Layout from '../layouts/Layout.astro';
 ---
 
 <Layout>
-  <div style="max-width: 800px; margin: 4rem auto; padding: 0 2rem;">
+  <style>
+    .contact-page {
+      max-width: 800px;
+      margin: 4rem auto;
+      padding: 0 2rem;
+    }
+    .contact-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    .contact-title {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, var(--text-primary), var(--color-accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .contact-subtitle {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
+    .contact-form {
+      background: var(--bg-tertiary);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px var(--shadow-color);
+    }
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    .form-label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .form-label span {
+      color: var(--color-accent);
+    }
+    .form-input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 2px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 1rem;
+      font-family: 'Inter', sans-serif;
+      box-sizing: border-box;
+      transition: border-color 0.3s;
+      background: var(--bg-input);
+      color: var(--text-primary);
+    }
+    .form-input::placeholder {
+      color: var(--text-muted);
+    }
+    .form-input:focus {
+      outline: none;
+      border-color: var(--color-accent);
+    }
+    .form-textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 2px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 1rem;
+      font-family: 'Inter', sans-serif;
+      box-sizing: border-box;
+      resize: vertical;
+      min-height: 150px;
+      transition: border-color 0.3s;
+      background: var(--bg-input);
+      color: var(--text-primary);
+    }
+    .form-textarea::placeholder {
+      color: var(--text-muted);
+    }
+    .form-textarea:focus {
+      outline: none;
+      border-color: var(--color-accent);
+    }
+    .submit-btn {
+      width: 100%;
+      padding: 1rem;
+      background: var(--gradient-cta);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px var(--shadow-medium);
+    }
+    .form-message {
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: 6px;
+      display: none;
+      text-align: center;
+      font-weight: 600;
+    }
+    .contact-info {
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 2px solid var(--border-color);
+    }
+    .contact-info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+    }
+    .contact-info-item {
+      text-align: center;
+    }
+    .contact-info-title {
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+    .contact-info-text {
+      color: var(--text-muted);
+    }
+  </style>
+
+  <div class="contact-page">
     <!-- Header -->
-    <div style="text-align: center; margin-bottom: 3rem;">
-      <h1 style="font-size: 2.5rem; margin-bottom: 1rem; background: linear-gradient(135deg, #001a33, #a89968); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-        Contáctanos
-      </h1>
-      <p style="color: #666; font-size: 1.1rem;">
+    <div class="contact-header">
+      <h1 class="contact-title">Contáctanos</h1>
+      <p class="contact-subtitle">
         ¿Tienes dudas o sugerencias? Nos gustaría saber de ti. Completa el formulario y nos pondremos en contacto pronto.
       </p>
     </div>
 
     <!-- Formulario -->
-    <form id="contactForm" style="background: #f8f4f0; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-      <div style="margin-bottom: 1.5rem;">
-        <label for="email" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #001a33;">
-          Email <span style="color: #a89968;">*</span>
+    <form id="contactForm" class="contact-form">
+      <div class="form-group">
+        <label for="email" class="form-label">
+          Email <span>*</span>
         </label>
         <input 
           type="email" 
@@ -26,22 +149,13 @@ import Layout from '../layouts/Layout.astro';
           name="email" 
           required
           placeholder="tu@email.com"
-          style="
-            width: 100%;
-            padding: 0.75rem;
-            border: 2px solid #e5e1dd;
-            border-radius: 6px;
-            font-size: 1rem;
-            font-family: 'Inter', sans-serif;
-            box-sizing: border-box;
-            transition: border-color 0.3s;
-          "
+          class="form-input"
         >
       </div>
 
-      <div style="margin-bottom: 1.5rem;">
-        <label for="asunto" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #001a33;">
-          Asunto <span style="color: #a89968;">*</span>
+      <div class="form-group">
+        <label for="asunto" class="form-label">
+          Asunto <span>*</span>
         </label>
         <input 
           type="text" 
@@ -49,22 +163,13 @@ import Layout from '../layouts/Layout.astro';
           name="asunto" 
           required
           placeholder="¿Cuál es el tema de tu consulta?"
-          style="
-            width: 100%;
-            padding: 0.75rem;
-            border: 2px solid #e5e1dd;
-            border-radius: 6px;
-            font-size: 1rem;
-            font-family: 'Inter', sans-serif;
-            box-sizing: border-box;
-            transition: border-color 0.3s;
-          "
+          class="form-input"
         >
       </div>
 
-      <div style="margin-bottom: 1.5rem;">
-        <label for="mensaje" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #001a33;">
-          Mensaje <span style="color: #a89968;">*</span>
+      <div class="form-group">
+        <label for="mensaje" class="form-label">
+          Mensaje <span>*</span>
         </label>
         <textarea 
           id="mensaje" 
@@ -72,60 +177,32 @@ import Layout from '../layouts/Layout.astro';
           required
           rows="6"
           placeholder="Cuéntanos en detalle..."
-          style="
-            width: 100%;
-            padding: 0.75rem;
-            border: 2px solid #e5e1dd;
-            border-radius: 6px;
-            font-size: 1rem;
-            font-family: 'Inter', sans-serif;
-            box-sizing: border-box;
-            resize: vertical;
-            min-height: 150px;
-            transition: border-color 0.3s;
-          "
+          class="form-textarea"
         ></textarea>
       </div>
 
-      <button 
-        type="submit" 
-        id="submitBtn"
-        style="
-          width: 100%;
-          padding: 1rem;
-          background: linear-gradient(135deg, #001a33, #2d2d2d);
-          color: white;
-          border: none;
-          border-radius: 6px;
-          font-size: 1rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: transform 0.2s, box-shadow 0.2s;
-        "
-        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 12px rgba(0, 26, 51, 0.2)'"
-        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'"
-      >
+      <button type="submit" id="submitBtn" class="submit-btn">
         Enviar Mensaje
       </button>
 
       <!-- Mensaje de respuesta -->
-      <div id="formMessage" style="margin-top: 1rem; padding: 1rem; border-radius: 6px; display: none; text-align: center; font-weight: 600;"></div>
+      <div id="formMessage" class="form-message"></div>
     </form>
 
     <!-- Info de contacto adicional -->
-    <div style="margin-top: 4rem; padding-top: 2rem; border-top: 2px solid #e5e1dd;">
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem;">
-        <div style="text-align: center;">
-          <h3 style="color: #001a33; margin-bottom: 0.5rem;">Email</h3>
-          <p style="color: #666;">contacto@ibericorg.es</p>
+    <div class="contact-info">
+      <div class="contact-info-grid">
+        <div class="contact-info-item">
+          <h3 class="contact-info-title">Email</h3>
+          <p class="contact-info-text">contacto@ibericorg.es</p>
         </div>
-        <div style="text-align: center;">
-          <h3 style="color: #001a33; margin-bottom: 0.5rem;">Teléfono</h3>
-          <p style="color: #666;">+34 XXX XX XX XX</p>
+        <div class="contact-info-item">
+          <h3 class="contact-info-title">Teléfono</h3>
+          <p class="contact-info-text">+34 XXX XX XX XX</p>
         </div>
-        <div style="text-align: center;">
-          <h3 style="color: #001a33; margin-bottom: 0.5rem;">Horario</h3>
-          <p style="color: #666;">L-V: 9:00 - 18:00 CET</p>
+        <div class="contact-info-item">
+          <h3 class="contact-info-title">Horario</h3>
+          <p class="contact-info-text">L-V: 9:00 - 18:00 CET</p>
         </div>
       </div>
     </div>

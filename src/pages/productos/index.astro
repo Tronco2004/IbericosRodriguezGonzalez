@@ -120,50 +120,22 @@ import Layout from '../../layouts/Layout.astro';
 
       <!-- NUEVA SECCIÓN DE FILTRO DE PRECIO CON SLIDER -->
       <div class="filtro-precio-container">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
-          <label style="font-weight: 700; color: #001a33; font-size: 0.9rem;">Rango de Precio</label>
-          <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <span style="color: #001a33; font-weight: 600; font-size: 0.95rem;">
-              <span id="precioMinDisplay">€0</span>
-            </span>
-            <span style="color: #a89968; font-weight: 400;">—</span>
-            <span style="color: #001a33; font-weight: 600; font-size: 0.95rem;">
-              <span id="precioMaxDisplay">€1000</span>
-            </span>
+        <div class="precio-header">
+          <label class="precio-label">Rango de Precio</label>
+          <div class="precio-values">
+            <span class="precio-value" id="precioMinDisplay">€0</span>
+            <span class="precio-separator">—</span>
+            <span class="precio-value" id="precioMaxDisplay">€1000</span>
           </div>
         </div>
         
-        <div style="position: relative; width: 100%; height: 50px; display: flex; align-items: center; padding: 0 4px;">
+        <div class="slider-container">
           <!-- Línea de track de fondo -->
-          <div style="position: absolute; width: 100%; height: 2px; background: #d4c4b0; border-radius: 1px; top: 50%; transform: translateY(-50%); left: 0;"></div>
+          <div class="slider-track"></div>
           
           <!-- Sliders -->
-          <input type="range" id="sliderPrecioMin" min="0" max="1000" value="0" style="
-            position: absolute;
-            width: 100%;
-            height: 50px;
-            outline: none;
-            -webkit-appearance: none;
-            pointer-events: auto;
-            z-index: 5;
-            background: transparent;
-            padding: 0;
-            margin: 0;
-            left: 0;
-          " />
-          <input type="range" id="sliderPrecioMax" min="0" max="1000" value="1000" style="
-            position: absolute;
-            width: 100%;
-            height: 50px;
-            outline: none;
-            -webkit-appearance: none;
-            pointer-events: auto;
-            z-index: 6;
-            background: transparent;
-            padding: 0;
-            margin: 0;
-            left: 0;
-          " />
+          <input type="range" id="sliderPrecioMin" min="0" max="1000" value="0" class="price-slider" />
+          <input type="range" id="sliderPrecioMax" min="0" max="1000" value="1000" class="price-slider" />
         </div>
       </div>
 
@@ -238,10 +210,11 @@ import Layout from '../../layouts/Layout.astro';
   <style>
     /* ===== FILTERS BAR ===== */
     .filters-bar {
-      background: #fff;
+      background: var(--bg-secondary);
       padding: 1.5rem 0;
       margin-bottom: 2rem;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid var(--border-light);
+      transition: background-color 0.3s ease, border-color 0.3s ease;
     }
 
     .filters-container {
@@ -256,25 +229,30 @@ import Layout from '../../layouts/Layout.astro';
 
     .filter-select {
       padding: 0.75rem 1rem;
-      background: #f5f5f5;
-      border: 1px solid #ddd;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
       font-size: 0.9rem;
-      color: #333;
+      color: var(--text-primary);
       cursor: pointer;
       transition: all 0.2s;
       min-width: 180px;
     }
 
     .filter-select:hover {
-      border-color: #a89968;
-      background: #faf9f7;
+      border-color: var(--color-accent);
+      background: var(--bg-card);
     }
 
     .filter-select:focus {
       outline: none;
-      border-color: #a89968;
+      border-color: var(--color-accent);
       box-shadow: 0 0 0 3px rgba(168, 153, 104, 0.1);
+    }
+
+    .filter-select option {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
     }
 
     .btn-reset-filters {
@@ -283,9 +261,9 @@ import Layout from '../../layouts/Layout.astro';
       gap: 0.5rem;
       padding: 0.75rem 1.25rem;
       background: transparent;
-      border: 1px solid #ddd;
+      border: 1px solid var(--border-color);
       border-radius: 8px;
-      color: #666;
+      color: var(--text-muted);
       font-size: 0.9rem;
       font-weight: 500;
       cursor: pointer;
@@ -294,9 +272,9 @@ import Layout from '../../layouts/Layout.astro';
     }
 
     .btn-reset-filters:hover {
-      border-color: #a89968;
-      color: #a89968;
-      background: #faf9f7;
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+      background: var(--bg-tertiary);
     }
 
     /* ===== FILTER PRECIO SLIDER ===== */
@@ -312,10 +290,87 @@ import Layout from '../../layouts/Layout.astro';
       max-width: 350px;
     }
 
-    #sliderPrecioMin, #sliderPrecioMax {
-      -webkit-appearance: none;
+    .filtro-precio-container label {
+      color: var(--text-primary) !important;
+    }
+
+    .filtro-precio-container span {
+      color: var(--text-primary) !important;
+    }
+
+    .filtro-precio-container .precio-separator {
+      color: var(--color-accent) !important;
+    }
+
+    .precio-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+
+    .precio-label {
+      font-weight: 700;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+    }
+
+    .precio-values {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .precio-value {
+      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .precio-separator {
+      color: var(--color-accent);
+      font-weight: 400;
+    }
+
+    .slider-container {
+      position: relative;
       width: 100%;
-      cursor: pointer;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      padding: 0 4px;
+    }
+
+    .slider-track {
+      position: absolute;
+      width: 100%;
+      height: 2px;
+      background: var(--border-color);
+      border-radius: 1px;
+      top: 50%;
+      transform: translateY(-50%);
+      left: 0;
+    }
+
+    .price-slider {
+      position: absolute;
+      width: 100%;
+      height: 50px;
+      outline: none;
+      -webkit-appearance: none;
+      pointer-events: auto;
+      background: transparent;
+      padding: 0;
+      margin: 0;
+      left: 0;
+    }
+
+    #sliderPrecioMin {
+      z-index: 5;
+    }
+
+    #sliderPrecioMax {
+      z-index: 6;
     }
 
     #sliderPrecioMin::-webkit-slider-thumb, #sliderPrecioMax::-webkit-slider-thumb {
@@ -430,7 +485,7 @@ import Layout from '../../layouts/Layout.astro';
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0, 20, 40, 0.6);
+      background: rgba(0, 26, 51, 0.6);
       backdrop-filter: blur(4px);
       z-index: 2000;
       align-items: center;
@@ -439,7 +494,7 @@ import Layout from '../../layouts/Layout.astro';
     }
 
     .modal-container {
-      background: white;
+      background: var(--bg-card);
       border-radius: 16px;
       padding: 0;
       max-width: 420px;
@@ -447,6 +502,8 @@ import Layout from '../../layouts/Layout.astro';
       box-shadow: 0 25px 80px rgba(0, 0, 0, 0.25);
       animation: modalSlideIn 0.3s ease-out;
       overflow: hidden;
+      border: 1px solid var(--border-color);
+      transition: background-color 0.3s ease, border-color 0.3s ease;
     }
 
     @keyframes modalSlideIn {
@@ -465,31 +522,33 @@ import Layout from '../../layouts/Layout.astro';
       justify-content: space-between;
       align-items: center;
       padding: 1.25rem 1.5rem;
-      border-bottom: 1px solid #f0ede8;
-      background: linear-gradient(135deg, #faf9f7 0%, #f5f3ef 100%);
+      border-bottom: 1px solid var(--border-color);
+      background: var(--bg-tertiary);
+      transition: background-color 0.3s ease, border-color 0.3s ease;
     }
 
     .modal-title {
       margin: 0;
-      color: #001a33;
+      color: var(--text-primary);
       font-size: 1.25rem;
       font-weight: 700;
+      transition: color 0.3s ease;
     }
 
     .modal-close-btn {
-      background: white;
-      border: 1px solid #e5e2dd;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
       padding: 0.5rem;
-      color: #666;
+      color: var(--text-muted);
       cursor: pointer;
       transition: all 0.2s;
     }
 
     .modal-close-btn:hover {
-      background: #f5f3ef;
-      color: #333;
-      border-color: #d5d2cd;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border-color: var(--color-accent);
     }
 
     .variantes-list {
@@ -499,6 +558,73 @@ import Layout from '../../layouts/Layout.astro';
       padding: 1.25rem 1.5rem;
       max-height: 350px;
       overflow-y: auto;
+      background: var(--bg-card);
+    }
+
+    :global(.variante-option) {
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      padding: 14px 16px !important;
+      background: var(--bg-tertiary) !important;
+      border: 2px solid var(--border-color) !important;
+      border-radius: 12px !important;
+      cursor: pointer !important;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      width: 100% !important;
+      font-family: Inter, sans-serif !important;
+    }
+
+    :global(.variante-option:hover) {
+      border-color: var(--color-accent) !important;
+      background: var(--bg-secondary) !important;
+      transform: translateX(4px) !important;
+      box-shadow: 0 4px 12px rgba(168, 153, 104, 0.2) !important;
+    }
+
+    :global(.variante-info) {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 4px !important;
+      text-align: left !important;
+    }
+
+    :global(.variante-peso) {
+      font-size: 0.95rem !important;
+      font-weight: 700 !important;
+      color: var(--text-primary) !important;
+    }
+
+    :global(.variante-tipo) {
+      font-size: 0.7rem !important;
+      color: var(--text-muted) !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.3px !important;
+      font-weight: 500 !important;
+    }
+
+    :global(.variante-precio-wrap) {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: flex-end !important;
+      gap: 2px !important;
+    }
+
+    :global(.variante-precio) {
+      font-size: 1.2rem !important;
+      font-weight: 800 !important;
+      color: var(--color-accent) !important;
+    }
+
+    :global(.variante-arrow) {
+      color: var(--color-accent) !important;
+      margin-top: 2px;
+    }
+
+    .variante-empty {
+      color: var(--text-muted);
+      text-align: center;
+      padding: 1rem;
     }
 
     .cantidad-input-wrapper {
@@ -507,16 +633,17 @@ import Layout from '../../layouts/Layout.astro';
       justify-content: center;
       gap: 0;
       padding: 1.5rem;
+      background: var(--bg-card);
     }
 
     .cantidad-btn {
       width: 48px;
       height: 48px;
-      background: #f5f3ef;
-      border: 1px solid #e5e2dd;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
       font-size: 1.5rem;
       font-weight: 500;
-      color: #001a33;
+      color: var(--text-primary);
       cursor: pointer;
       transition: all 0.2s;
     }
@@ -530,9 +657,9 @@ import Layout from '../../layouts/Layout.astro';
     }
 
     .cantidad-btn:hover {
-      background: #a89968;
+      background: var(--color-accent);
       color: white;
-      border-color: #a89968;
+      border-color: var(--color-accent);
     }
 
     .cantidad-input {
@@ -541,15 +668,17 @@ import Layout from '../../layouts/Layout.astro';
       text-align: center;
       font-size: 1.25rem;
       font-weight: 600;
-      border: 1px solid #e5e2dd;
+      border: 1px solid var(--border-color);
       border-left: none;
       border-right: none;
-      color: #001a33;
+      color: var(--text-primary);
+      background: var(--bg-card);
+      transition: all 0.2s;
     }
 
     .cantidad-input:focus {
       outline: none;
-      border-color: #a89968;
+      border-color: var(--color-accent);
     }
 
     .modal-actions {
@@ -557,6 +686,7 @@ import Layout from '../../layouts/Layout.astro';
       flex-direction: column;
       gap: 0.75rem;
       padding: 0 1.5rem 1.5rem;
+      background: var(--bg-card);
     }
 
     .btn-modal-primary {
@@ -585,9 +715,9 @@ import Layout from '../../layouts/Layout.astro';
     .btn-modal-secondary {
       width: 100%;
       padding: 0.75rem 1.5rem;
-      background: transparent;
-      color: #666;
-      border: 1px solid #e5e2dd;
+      background: var(--bg-tertiary);
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
       border-radius: 10px;
       font-weight: 500;
       font-size: 0.9rem;
@@ -596,8 +726,9 @@ import Layout from '../../layouts/Layout.astro';
     }
 
     .btn-modal-secondary:hover {
-      background: #f5f3ef;
-      border-color: #d5d2cd;
+      background: var(--bg-secondary);
+      border-color: var(--color-accent);
+      color: var(--text-primary);
     }
 
     /* ===== GRID LAYOUT ===== */
@@ -1173,7 +1304,7 @@ import Layout from '../../layouts/Layout.astro';
       title.textContent = producto + ' - Selecciona el Peso';
 
       if (variantes.length === 0) {
-        variantesList.innerHTML = '<p style="color: #666; text-align: center; padding: 1rem;">No hay variantes disponibles en este momento</p>';
+        variantesList.innerHTML = '<p class="variante-empty">No hay variantes disponibles en este momento</p>';
       } else {
         // Mostrar solo las variantes disponibles con el nuevo diseño
         variantesList.innerHTML = '';
@@ -1188,27 +1319,11 @@ import Layout from '../../layouts/Layout.astro';
           btn.setAttribute('data-precio', v.precio_total);
           btn.setAttribute('data-cantidad', v.cantidad_disponible);
           
-          btn.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: linear-gradient(135deg, #faf9f7 0%, #f5f3ef 100%); border: 2px solid #e5e2dd; border-radius: 12px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); width: 100%; font-family: Inter, sans-serif;";
-          
           const peso = v.peso_kg.toFixed(3);
           const precioEnEuros = (v.precio_total / 100).toFixed(2);
           
-          btn.innerHTML = '<div style="display: flex; flex-direction: column; gap: 4px; text-align: left;"><span style="font-size: 0.95rem; font-weight: 700; color: #1a1a1a;">' + peso + ' kg</span><span style="font-size: 0.7rem; color: #888; text-transform: uppercase; letter-spacing: 0.3px; font-weight: 500;">Pieza única</span></div><div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;"><span style="font-size: 1.2rem; font-weight: 800; color: #a89968;">' + precioEnEuros + '€</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #a89968; margin-top: 2px;"><polyline points="9 18 15 12 9 6"></polyline></svg></div>';
+          btn.innerHTML = '<div class="variante-info"><span class="variante-peso">' + peso + ' kg</span><span class="variante-tipo">Pieza única</span></div><div class="variante-precio-wrap"><span class="variante-precio">' + precioEnEuros + '€</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="variante-arrow"><polyline points="9 18 15 12 9 6"></polyline></svg></div>';
           
-          btn.addEventListener('mouseover', () => {
-            btn.style.borderColor = '#a89968';
-            btn.style.background = 'linear-gradient(135deg, rgba(168, 153, 104, 0.1) 0%, rgba(168, 153, 104, 0.05) 100%)';
-            btn.style.transform = 'translateX(4px)';
-            btn.style.boxShadow = '0 4px 12px rgba(168, 153, 104, 0.2)';
-          });
-          
-          btn.addEventListener('mouseout', () => {
-            btn.style.borderColor = '#e5e2dd';
-            btn.style.background = 'linear-gradient(135deg, #faf9f7 0%, #f5f3ef 100%)';
-            btn.style.transform = 'translateX(0)';
-            btn.style.boxShadow = 'none';
-          });
-
           btn.addEventListener('click', async () => {
             const varianteId = btn.getAttribute('data-variante-id');
             const productoIdBtn = btn.getAttribute('data-producto-id');

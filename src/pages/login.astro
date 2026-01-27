@@ -5,37 +5,202 @@ const redirect = Astro.url.searchParams.get('redirect') || '/';
 ---
 
 <Layout>
-  <div style="min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 2rem;">
-    <div style="max-width: 450px; width: 100%;">
-      <div style="text-align: center; margin-bottom: 3rem;">
-        <h1 style="color: #001a33; font-size: 2rem; margin-bottom: 0.5rem;">Iniciar Sesión</h1>
-        <p style="color: #666; opacity: 0.8;">Accede a tu cuenta de Ibéricos RG</p>
+  <style>
+    .login-page {
+      min-height: 80vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .login-container {
+      max-width: 450px;
+      width: 100%;
+    }
+    .login-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    .login-title {
+      color: var(--text-primary);
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    .login-subtitle {
+      color: var(--text-muted);
+      opacity: 0.8;
+    }
+    .social-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .social-btn {
+      width: 100%;
+      padding: 1rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+    }
+    .social-btn-google {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+    .social-btn-google:hover {
+      background: var(--bg-tertiary);
+      box-shadow: 0 4px 12px var(--shadow-color);
+    }
+    .social-btn-apple {
+      background: #000;
+      color: white;
+      border: none;
+    }
+    .social-btn-apple:hover {
+      background: #1a1a1a;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .social-btn-facebook {
+      background: #1877f2;
+      color: white;
+      border: none;
+    }
+    .social-btn-facebook:hover {
+      background: #166fe5;
+      box-shadow: 0 4px 12px rgba(24,119,242,0.15);
+    }
+    .separator {
+      display: flex;
+      align-items: center;
+      margin-bottom: 2rem;
+      gap: 1rem;
+    }
+    .separator-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border-color);
+    }
+    .separator-text {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    .login-form {
+      background: var(--bg-tertiary);
+      padding: 2rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+    }
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    .form-label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    .form-input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-size: 1rem;
+      box-sizing: border-box;
+      background: var(--bg-input);
+      color: var(--text-primary);
+    }
+    .form-input::placeholder {
+      color: var(--text-muted);
+    }
+    .submit-btn {
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--gradient-cta);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.3s;
+    }
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px var(--shadow-medium);
+    }
+    .register-box {
+      text-align: center;
+      padding: 1.5rem;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+    }
+    .register-text {
+      color: var(--text-muted);
+      margin: 0 0 1rem 0;
+    }
+    .register-link {
+      display: inline-block;
+      background: var(--gradient-cta);
+      color: white;
+      padding: 0.75rem 2rem;
+      border-radius: 4px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    .register-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px var(--shadow-medium);
+    }
+    .error-message {
+      display: none;
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #fee;
+      border: 1px solid #fcc;
+      color: #c33;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+    .loading-text {
+      display: none;
+      margin-top: 1rem;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .info-box {
+      margin-top: 2rem;
+      padding: 1.5rem;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      border-left: 4px solid var(--color-accent);
+    }
+    .info-text {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      margin: 0;
+    }
+  </style>
+
+  <div class="login-page">
+    <div class="login-container">
+      <div class="login-header">
+        <h1 class="login-title">Iniciar Sesión</h1>
+        <p class="login-subtitle">Accede a tu cuenta de Ibéricos RG</p>
       </div>
 
       <!-- Botones de Login Social -->
-      <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;">
+      <div class="social-buttons">
         <!-- Botón Google -->
-        <button 
-          id="googleBtn"
-          style="
-            width: 100%;
-            padding: 1rem;
-            background: white;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 0.95rem;
-            color: #333;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.75rem;
-          "
-          onmouseover="this.style.backgroundColor='#f9f9f9'; this.style.borderColor='#d0d0d0'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'"
-          onmouseout="this.style.backgroundColor='white'; this.style.borderColor='#e0e0e0'; this.style.boxShadow='none'"
-        >
+        <button id="googleBtn" class="social-btn social-btn-google">
           <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
             <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -46,27 +211,7 @@ const redirect = Astro.url.searchParams.get('redirect') || '/';
         </button>
 
         <!-- Botón Apple -->
-        <button 
-          id="appleBtn"
-          style="
-            width: 100%;
-            padding: 1rem;
-            background: #000;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 0.95rem;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.75rem;
-          "
-          onmouseover="this.style.backgroundColor='#1a1a1a'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)'"
-          onmouseout="this.style.backgroundColor='#000'; this.style.boxShadow='none'"
-        >
+        <button id="appleBtn" class="social-btn social-btn-apple">
           <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path d="M17.05 20.28c-.98.95-2.05.8-3.08.38-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.12-.38C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8.905-.08 1.81-.76 2.95-.8 2.35.18 3.87 1.28 4.32 4.16-4.19 2.54-2.95 8.48 1.65 9.61zm-9.2-17.76c.14-2.05 1.4-3.65 3.25-3.52 2.04.15 3.5 1.95 3.32 3.95-.17 1.67-1.45 3.22-3.24 3.22-1.97-.04-3.22-1.73-3.33-3.65z" fill="white"/>
           </svg>
@@ -74,27 +219,7 @@ const redirect = Astro.url.searchParams.get('redirect') || '/';
         </button>
 
         <!-- Botón Facebook -->
-        <button 
-          id="facebookBtn"
-          style="
-            width: 100%;
-            padding: 1rem;
-            background: #1877f2;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 0.95rem;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.75rem;
-          "
-          onmouseover="this.style.backgroundColor='#166fe5'; this.style.boxShadow='0 4px 12px rgba(24,119,242,0.15)'"
-          onmouseout="this.style.backgroundColor='#1877f2'; this.style.boxShadow='none'"
-        >
+        <button id="facebookBtn" class="social-btn social-btn-facebook">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
             <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
           </svg>
@@ -103,100 +228,54 @@ const redirect = Astro.url.searchParams.get('redirect') || '/';
       </div>
 
       <!-- Separador -->
-      <div style="display: flex; align-items: center; margin-bottom: 2rem; gap: 1rem;">
-        <div style="flex: 1; height: 1px; background: #e0e0e0;"></div>
-        <span style="color: #999; font-size: 0.9rem;">o</span>
-        <div style="flex: 1; height: 1px; background: #e0e0e0;"></div>
+      <div class="separator">
+        <div class="separator-line"></div>
+        <span class="separator-text">o</span>
+        <div class="separator-line"></div>
       </div>
 
       <!-- Formulario de Email/Contraseña -->
-      <form id="loginForm" style="background: #f5f5f5; padding: 2rem; border-radius: 8px; margin-bottom: 1.5rem;">
-        <div style="margin-bottom: 1.5rem;">
-          <label style="display: block; margin-bottom: 0.5rem; color: #001a33; font-weight: 600;">
-            Email
-          </label>
+      <form id="loginForm" class="login-form">
+        <div class="form-group">
+          <label class="form-label">Email</label>
           <input 
             type="email" 
             name="email" 
             required 
             placeholder="tu@email.com"
-            style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; box-sizing: border-box;"
+            class="form-input"
           />
         </div>
 
-        <div style="margin-bottom: 2rem;">
-          <label style="display: block; margin-bottom: 0.5rem; color: #001a33; font-weight: 600;">
-            Contraseña
-          </label>
+        <div class="form-group" style="margin-bottom: 2rem;">
+          <label class="form-label">Contraseña</label>
           <input 
             type="password" 
             name="password" 
             required 
             placeholder="••••••••"
-            style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; box-sizing: border-box;"
+            class="form-input"
           />
         </div>
 
-        <button 
-          type="submit" 
-          style="
-            width: 100%; 
-            padding: 0.75rem; 
-            background: linear-gradient(135deg, #001a33, #2d2d2d);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-weight: 700;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: all 0.3s;
-          "
-          onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(0, 26, 51, 0.2)'"
-          onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'"
-        >
+        <button type="submit" class="submit-btn">
           Iniciar Sesión
         </button>
       </form>
 
       <!-- Enlace para registro -->
-      <div style="text-align: center; padding: 1.5rem; background: #f5f5f5; border-radius: 8px; margin-bottom: 1.5rem;">
-        <p style="color: #666; margin: 0 0 1rem 0;">¿No tienes cuenta?</p>
-        <a href="/registro" style="
-          display: inline-block;
-          background: linear-gradient(135deg, #001a33, #2d2d2d);
-          color: white;
-          padding: 0.75rem 2rem;
-          border-radius: 4px;
-          text-decoration: none;
-          font-weight: 600;
-          transition: all 0.3s;
-        " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(0, 26, 51, 0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+      <div class="register-box">
+        <p class="register-text">¿No tienes cuenta?</p>
+        <a href="/registro" class="register-link">
           Crear nueva cuenta
         </a>
       </div>
 
-      <div id="errorMessage" style="
-        display: none;
-        margin-top: 1rem;
-        padding: 1rem;
-        background: #fee;
-        border: 1px solid #fcc;
-        color: #c33;
-        border-radius: 4px;
-        font-size: 0.9rem;
-      "></div>
+      <div id="errorMessage" class="error-message"></div>
+      <div id="loadingMessage" class="loading-text">Verificando credenciales...</div>
 
-      <div id="loadingMessage" style="
-        display: none;
-        margin-top: 1rem;
-        text-align: center;
-        color: #666;
-      ">
-        Verificando credenciales...
-      </div>
-
-      <div style="margin-top: 2rem; padding: 1.5rem; background: #fffaf0; border-radius: 8px; border-left: 4px solid #a89968;">
-        <p style="color: #666; font-size: 0.85rem; margin: 0;">
+      <div class="info-box">
+        <p class="info-text">
           <strong>💡 Nota:</strong> Puedes usar email/contraseña o cualquiera de los proveedores de autenticación social. Tu información está protegida.
         </p>
       </div>

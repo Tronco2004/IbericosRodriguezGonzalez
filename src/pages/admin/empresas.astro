@@ -3,75 +3,43 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 ---
 
 <ProtectedLayout requireAdmin={true}>
-  <div style="min-height: 100vh; background: linear-gradient(135deg, #fafbfc 0%, #f3f4f6 100%); padding: 3rem 2rem;">
-    <div style="max-width: 1400px; margin: 0 auto;">
+  <div class="admin-page">
+    <div class="admin-container">
       <!-- Header -->
-      <div style="margin-bottom: 3rem;">
-        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
-          <a href="/admin/dashboard" style="
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            color: #0f172a;
-            text-decoration: none;
-            font-size: 1.2rem;
-            transition: all 0.3s;
-          " onmouseover="this.style.background='#f1f5f9'; this.style.borderColor='#cbd5e1'" onmouseout="this.style.background='white'; this.style.borderColor='#e2e8f0'">←</a>
-        </div>
-        <h1 style="color: #0f172a; font-size: 2.5rem; margin: 0; font-weight: 900; letter-spacing: -0.5px;">Empresas</h1>
-        <p style="color: #64748b; margin: 0.5rem 0 0 0; font-size: 1rem;">Vista general de clientes empresariales, bares, restaurantes y tiendas</p>
+      <div class="admin-header">
+        <a href="/admin/dashboard" class="admin-back-btn">←</a>
+        <h1 class="admin-title">Empresas</h1>
+        <p class="admin-subtitle">Vista general de clientes empresariales, bares, restaurantes y tiendas</p>
       </div>
 
       <!-- Estadísticas de Empresas -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2.5rem;">
+      <div class="empresas-stats-grid">
         <!-- Card Total de Empresas -->
-        <div style="background: white; border-radius: 12px; padding: 2rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); border: 1px solid #e2e8f0;">
-          <div style="color: #64748b; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem;">Total de Empresas</div>
-          <div style="color: #0f172a; font-size: 2rem; font-weight: 900;" id="totalEmpresas">0</div>
-          <div style="color: #a89968; font-size: 0.85rem; margin-top: 0.5rem;">Clientes registrados</div>
+        <div class="empresas-stat-card">
+          <div class="stat-label">Total de Empresas</div>
+          <div class="stat-value" id="totalEmpresas">0</div>
+          <div class="stat-hint gold">Clientes registrados</div>
         </div>
 
         <!-- Card Empresas Activas -->
-        <div style="background: white; border-radius: 12px; padding: 2rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); border: 1px solid #e2e8f0;">
-          <div style="color: #64748b; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem;">Empresas Activas</div>
-          <div style="color: #16a34a; font-size: 2rem; font-weight: 900;" id="empresasActivas">0</div>
-          <div style="color: #16a34a; font-size: 0.85rem; margin-top: 0.5rem;">En funcionamiento</div>
+        <div class="empresas-stat-card">
+          <div class="stat-label">Empresas Activas</div>
+          <div class="stat-value success" id="empresasActivas">0</div>
+          <div class="stat-hint success">En funcionamiento</div>
         </div>
 
         <!-- Card Tipos de Clientes -->
-        <div style="background: white; border-radius: 12px; padding: 2rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); border: 1px solid #e2e8f0;">
-          <div style="color: #64748b; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem;">Tipos de Cliente</div>
-          <div style="color: #667eea; font-size: 2rem; font-weight: 900;" id="tiposClientes">0</div>
-          <div style="color: #667eea; font-size: 0.85rem; margin-top: 0.5rem;">Categorías diferentes</div>
+        <div class="empresas-stat-card">
+          <div class="stat-label">Tipos de Cliente</div>
+          <div class="stat-value purple" id="tiposClientes">0</div>
+          <div class="stat-hint purple">Categorías diferentes</div>
         </div>
       </div>
 
       <!-- Búsqueda y Filtros -->
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; gap: 1rem; flex-wrap: wrap;">
-        <input type="text" id="searchInput" placeholder="Buscar empresa, NIF, email, representante..." style="
-          padding: 0.75rem 1.25rem;
-          border: 1px solid #e2e8f0;
-          border-radius: 8px;
-          font-size: 0.95rem;
-          min-width: 300px;
-          transition: all 0.3s;
-          background: white;
-        " onmouseover="this.style.borderColor='#cbd5e1'" onmouseout="this.style.borderColor='#e2e8f0'" />
-
-        <select id="filterTipo" style="
-          padding: 0.75rem 1.25rem;
-          border: 1px solid #e2e8f0;
-          border-radius: 8px;
-          font-size: 0.95rem;
-          cursor: pointer;
-          background: white;
-          transition: all 0.3s;
-        " onmouseover="this.style.borderColor='#cbd5e1'" onmouseout="this.style.borderColor='#e2e8f0'">
+      <div class="admin-filters">
+        <input type="text" id="searchInput" class="admin-search-input" placeholder="Buscar empresa, NIF, email, representante..." />
+        <select id="filterTipo" class="admin-select">
           <option value="">Todos los tipos</option>
           <option value="Bar">Bar</option>
           <option value="Restaurante">Restaurante</option>
@@ -83,13 +51,226 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       </div>
 
       <!-- Grid de Empresas -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem;" id="empresasGrid">
-        <div style="grid-column: 1 / -1; padding: 3rem; text-align: center; color: #64748b;">
-          Cargando empresas...
-        </div>
+      <div class="empresas-grid" id="empresasGrid">
+        <div class="admin-loading">Cargando empresas...</div>
       </div>
     </div>
   </div>
+
+  <style>
+    /* Estadísticas Grid */
+    .empresas-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .empresas-stat-card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 2px 8px var(--shadow-color);
+      border: 1px solid var(--border-color);
+      transition: var(--theme-transition);
+    }
+
+    .stat-label {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+      color: var(--text-primary);
+      font-size: 2rem;
+      font-weight: 900;
+    }
+
+    .stat-value.success { color: #16a34a; }
+    .stat-value.purple { color: #667eea; }
+
+    .stat-hint {
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+    }
+
+    .stat-hint.gold { color: var(--color-accent); }
+    .stat-hint.success { color: #16a34a; }
+    .stat-hint.purple { color: #667eea; }
+
+    /* Grid de Empresas */
+    .empresas-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 1.5rem;
+    }
+
+    /* Cards de Empresa */
+    .empresa-card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 8px var(--shadow-color);
+      border: 1px solid var(--border-color);
+      transition: all 0.3s;
+    }
+
+    .empresa-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px var(--shadow-medium);
+    }
+
+    .empresa-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 1rem;
+    }
+
+    .empresa-nombre {
+      color: var(--text-primary);
+      font-size: 1.25rem;
+      margin: 0 0 0.25rem 0;
+      font-weight: 700;
+    }
+
+    .empresa-tipo-badge {
+      display: inline-block;
+      padding: 0.3rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .empresa-tipo-badge.bar { background: #fef3c7; color: #92400e; }
+    .empresa-tipo-badge.restaurante { background: #dbeafe; color: #0c2d6b; }
+    .empresa-tipo-badge.tienda { background: #dcfce7; color: #166534; }
+    .empresa-tipo-badge.mayorista { background: #f3e8ff; color: #581c87; }
+    .empresa-tipo-badge.otro { background: #f3f4f6; color: #374151; }
+
+    .empresa-estado-badge {
+      display: inline-block;
+      padding: 0.3rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .empresa-estado-badge.activo { background: #dcfce7; color: #166534; }
+    .empresa-estado-badge.inactivo { background: #fee2e2; color: #991b1b; }
+
+    .empresa-identificacion {
+      margin-bottom: 1rem;
+      padding: 1rem;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+    }
+
+    .empresa-section-label {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .empresa-section-value {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .empresa-section {
+      margin-bottom: 1rem;
+    }
+
+    .empresa-section-text {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .empresa-contacto-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .empresa-contacto-item {
+      color: var(--text-primary);
+      font-size: 0.9rem;
+    }
+
+    .empresa-contacto-item span {
+      color: var(--text-muted);
+    }
+
+    .empresa-direccion {
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .empresa-notas {
+      margin-bottom: 1rem;
+      padding: 1rem;
+      background: var(--bg-tertiary);
+      border-left: 4px solid #667eea;
+      border-radius: 4px;
+    }
+
+    .empresa-notas-label {
+      color: #667eea;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .empresa-notas-text {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .empresa-actions {
+      display: flex;
+      gap: 0.75rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .empresa-btn-edit {
+      flex: 1;
+      padding: 0.75rem;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .empresa-btn-edit:hover {
+      transform: scale(1.02);
+    }
+
+    .empresa-btn-delete {
+      flex: 1;
+      padding: 0.75rem;
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .empresa-btn-delete:hover {
+      background: #fecaca;
+    }
+  </style>
 
   <script>
     let empresas = [];
@@ -125,6 +306,16 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       document.getElementById('tiposClientes').textContent = tiposUnicos;
     }
 
+    function getTipoBadgeClass(tipo) {
+      const tipos = {
+        'Bar': 'bar',
+        'Restaurante': 'restaurante',
+        'Tienda': 'tienda',
+        'Mayorista': 'mayorista'
+      };
+      return tipos[tipo] || 'otro';
+    }
+
     function renderizarEmpresas() {
       const grid = document.getElementById('empresasGrid');
       const searchTerm = document.getElementById('searchInput').value.toLowerCase();
@@ -143,113 +334,61 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       });
 
       if (empresasFiltradas.length === 0) {
-        grid.innerHTML = '<div style="grid-column: 1 / -1; padding: 3rem; text-align: center; color: #64748b;">No hay empresas que mostrar</div>';
+        grid.innerHTML = '<div class="admin-empty-state">No hay empresas que mostrar</div>';
         return;
       }
 
       grid.innerHTML = empresasFiltradas.map(e => `
-        <div style="
-          background: white;
-          border-radius: 12px;
-          padding: 1.5rem;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-          border: 1px solid #e2e8f0;
-          transition: all 0.3s;
-          cursor: pointer;
-        " onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 24px rgba(0, 0, 0, 0.12)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0, 0, 0, 0.04)'">
+        <div class="empresa-card">
           <!-- Encabezado con nombre y estado -->
-          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+          <div class="empresa-header">
             <div>
-              <h3 style="color: #0f172a; font-size: 1.25rem; margin: 0 0 0.25rem 0; font-weight: 700;">${e.nombre_empresa}</h3>
-              <span style="
-                display: inline-block;
-                padding: 0.3rem 0.8rem;
-                border-radius: 6px;
-                font-size: 0.75rem;
-                font-weight: 600;
-                ${e.tipo_cliente === 'Bar' ? 'background: #fef3c7; color: #92400e;' : 
-                  e.tipo_cliente === 'Restaurante' ? 'background: #dbeafe; color: #0c2d6b;' : 
-                  e.tipo_cliente === 'Tienda' ? 'background: #dcfce7; color: #166534;' : 
-                  e.tipo_cliente === 'Mayorista' ? 'background: #f3e8ff; color: #581c87;' : 
-                  'background: #f3f4f6; color: #374151;'}
-              ">${e.tipo_cliente}</span>
+              <h3 class="empresa-nombre">${e.nombre_empresa}</h3>
+              <span class="empresa-tipo-badge ${getTipoBadgeClass(e.tipo_cliente)}">${e.tipo_cliente}</span>
             </div>
-            <span style="
-              display: inline-block;
-              padding: 0.3rem 0.8rem;
-              border-radius: 6px;
-              font-size: 0.75rem;
-              font-weight: 600;
-              ${e.estado ? 'background: #dcfce7; color: #166534;' : 'background: #fee2e2; color: #991b1b;'}
-            ">${e.estado ? 'Activo' : 'Inactivo'}</span>
+            <span class="empresa-estado-badge ${e.estado ? 'activo' : 'inactivo'}">${e.estado ? 'Activo' : 'Inactivo'}</span>
           </div>
 
           <!-- Identificación -->
-          <div style="margin-bottom: 1rem; padding: 1rem; background: #f8fafc; border-radius: 8px;">
-            <div style="color: #64748b; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Número de Identificación</div>
-            <div style="color: #0f172a; font-weight: 600;">${e.tipo_identificacion}: ${e.numero_identificacion}</div>
+          <div class="empresa-identificacion">
+            <div class="empresa-section-label">Número de Identificación</div>
+            <div class="empresa-section-value">${e.tipo_identificacion}: ${e.numero_identificacion}</div>
           </div>
 
           <!-- Representante -->
-          <div style="margin-bottom: 1rem;">
-            <div style="color: #64748b; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Representante Legal</div>
-            <div style="color: #0f172a; font-weight: 500;">${e.nombre_representante}</div>
+          <div class="empresa-section">
+            <div class="empresa-section-label">Representante Legal</div>
+            <div class="empresa-section-text">${e.nombre_representante}</div>
           </div>
 
           <!-- Contacto -->
-          <div style="margin-bottom: 1rem;">
-            <div style="color: #64748b; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem;">Contacto</div>
-            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-              <div style="color: #0f172a; font-size: 0.9rem;">
-                <span style="color: #64748b;">Email:</span> ${e.email_contacto}
+          <div class="empresa-section">
+            <div class="empresa-section-label">Contacto</div>
+            <div class="empresa-contacto-list">
+              <div class="empresa-contacto-item">
+                <span>Email:</span> ${e.email_contacto}
               </div>
-              ${e.telefono_contacto ? `<div style="color: #0f172a; font-size: 0.9rem;">
-                <span style="color: #64748b;">Teléfono:</span> ${e.telefono_contacto}
+              ${e.telefono_contacto ? `<div class="empresa-contacto-item">
+                <span>Teléfono:</span> ${e.telefono_contacto}
               </div>` : ''}
             </div>
           </div>
 
           <!-- Dirección -->
-          <div style="margin-bottom: 1rem;">
-            <div style="color: #64748b; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Dirección Fiscal</div>
-            <div style="color: #0f172a; font-size: 0.9rem; line-height: 1.5;">${e.direccion_fiscal}</div>
+          <div class="empresa-section">
+            <div class="empresa-section-label">Dirección Fiscal</div>
+            <div class="empresa-direccion">${e.direccion_fiscal}</div>
           </div>
 
-          ${e.notas ? `<div style="margin-bottom: 1rem; padding: 1rem; background: #f0f9ff; border-left: 4px solid #667eea; border-radius: 4px;">
-            <div style="color: #667eea; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Notas</div>
-            <div style="color: #0c2d6b; font-size: 0.9rem;">${e.notas}</div>
+          ${e.notas ? `<div class="empresa-notas">
+            <div class="empresa-notas-label">Notas</div>
+            <div class="empresa-notas-text">${e.notas}</div>
           </div>` : ''}
 
           <!-- Botones de Acción -->
-          <div style="display: flex; gap: 0.75rem; padding-top: 1rem; border-top: 1px solid #e2e8f0;">
-            <button onclick="editarEmpresa('${e.id}')" style="
-              flex: 1;
-              padding: 0.75rem;
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-              color: white;
-              border: none;
-              border-radius: 6px;
-              font-weight: 600;
-              font-size: 0.9rem;
-              cursor: pointer;
-              transition: all 0.3s;
-            " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-              Editar
-            </button>
-            <button onclick="eliminarEmpresa('${e.id}')" style="
-              flex: 1;
-              padding: 0.75rem;
-              background: #fee2e2;
-              color: #991b1b;
-              border: 1px solid #fecaca;
-              border-radius: 6px;
-              font-weight: 600;
-              font-size: 0.9rem;
-              cursor: pointer;
-              transition: all 0.3s;
-            " onmouseover="this.style.background='#fecaca'" onmouseout="this.style.background='#fee2e2'">
-              Eliminar
-            </button>
+          <div class="empresa-actions">
+            <button onclick="editarEmpresa('${e.id}')" class="empresa-btn-edit">Editar</button>
+            <button onclick="eliminarEmpresa('${e.id}')" class="empresa-btn-delete">Eliminar</button>
           </div>
         </div>
       `).join('');

@@ -3,49 +3,110 @@ import ProtectedLayout from '@/layouts/ProtectedLayout.astro';
 ---
 
 <ProtectedLayout>
-  <div class="container mx-auto p-4">
-    <h1 class="text-3xl font-bold mb-6">Subir Imagen</h1>
-    
-    <form id="uploadForm" class="max-w-md">
-      <div class="mb-4">
-        <label for="image" class="block text-sm font-medium mb-2">Selecciona una imagen:</label>
-        <input 
-          type="file" 
-          id="image" 
-          name="file" 
-          accept="image/*" 
-          required 
-          class="block w-full border border-gray-300 rounded p-2"
-        />
+  <div class="admin-page">
+    <div class="admin-container">
+      <!-- Header -->
+      <div class="admin-header">
+        <a href="/admin/dashboard" class="admin-back-btn">←</a>
+        <div>
+          <h1 class="admin-title">Subir Imagen</h1>
+          <p class="admin-subtitle">Sube imágenes para usar en productos o categorías</p>
+        </div>
       </div>
-      
-      <button 
-        type="submit" 
-        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-      >
-        Subir Imagen
-      </button>
-    </form>
 
-    <div id="result" class="mt-4"></div>
-    <div id="preview" class="mt-4"></div>
+      <!-- Card con formulario -->
+      <div class="admin-card upload-card">
+        <form id="uploadForm" class="admin-form">
+          <div class="admin-form-group">
+            <label for="image" class="admin-label">Selecciona una imagen:</label>
+            <div class="admin-image-drop" id="dropZone">
+              <div class="icon">📷</div>
+              <p class="title">Arrastra una imagen aquí</p>
+              <p class="subtitle">o haz clic para seleccionar</p>
+              <input 
+                type="file" 
+                id="image" 
+                name="file" 
+                accept="image/*" 
+                required 
+                class="upload-file-input"
+              />
+            </div>
+            <p id="fileName" class="upload-file-name"></p>
+          </div>
+          
+          <div class="admin-form-actions">
+            <button type="submit" class="admin-btn-primary">
+              Subir Imagen
+            </button>
+          </div>
+        </form>
+
+        <!-- Resultado -->
+        <div id="result" class="upload-result"></div>
+        
+        <!-- Vista previa -->
+        <div id="preview" class="upload-preview"></div>
+      </div>
+    </div>
   </div>
 
   <script>
     const form = document.getElementById('uploadForm') as HTMLFormElement;
     const resultDiv = document.getElementById('result') as HTMLDivElement;
     const previewDiv = document.getElementById('preview') as HTMLDivElement;
+    const dropZone = document.getElementById('dropZone') as HTMLDivElement;
+    const fileInput = document.getElementById('image') as HTMLInputElement;
+    const fileNameSpan = document.getElementById('fileName') as HTMLParagraphElement;
+
+    // Hacer que el click en la zona active el input
+    dropZone.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    // Mostrar nombre del archivo seleccionado
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files?.[0];
+      if (file) {
+        fileNameSpan.textContent = `📄 ${file.name}`;
+        dropZone.classList.add('has-file');
+      }
+    });
+
+    // Drag & Drop
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const files = e.dataTransfer?.files;
+      if (files && files.length > 0) {
+        fileInput.files = files;
+        fileNameSpan.textContent = `📄 ${files[0].name}`;
+        dropZone.classList.add('has-file');
+      }
+    });
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      const fileInput = document.getElementById('image') as HTMLInputElement;
       const file = fileInput.files?.[0];
 
       if (!file) return;
 
       const formData = new FormData();
       formData.append('file', file);
+
+      // Mostrar estado de carga
+      resultDiv.innerHTML = '<p class="admin-loading">⏳ Subiendo imagen...</p>';
+      previewDiv.innerHTML = '';
 
       try {
         const response = await fetch('/api/admin/upload', {
@@ -57,22 +118,139 @@ import ProtectedLayout from '@/layouts/ProtectedLayout.astro';
 
         if (data.success) {
           resultDiv.innerHTML = `
-            <p class="text-green-600">✓ Imagen subida exitosamente!</p>
-            <p class="text-sm text-gray-600 mt-2">URL: <code class="bg-gray-100 p-1 rounded">${data.url}</code></p>
+            <div class="upload-success">
+              <p class="upload-success-title">✓ Imagen subida exitosamente!</p>
+              <div class="upload-url-box">
+                <span class="upload-url-label">URL:</span>
+                <code class="upload-url-code">${data.url}</code>
+                <button type="button" class="admin-btn-secondary upload-copy-btn" onclick="navigator.clipboard.writeText('${data.url}')">
+                  📋 Copiar
+                </button>
+              </div>
+            </div>
           `;
           
           previewDiv.innerHTML = `
-            <h3 class="font-semibold mb-2">Vista previa:</h3>
-            <img src="${data.url}" alt="Preview" class="max-w-xs rounded" />
+            <div class="upload-preview-box">
+              <h3 class="upload-preview-title">Vista previa:</h3>
+              <img src="${data.url}" alt="Preview" class="upload-preview-img" />
+            </div>
           `;
           
           fileInput.value = '';
+          fileNameSpan.textContent = '';
+          dropZone.classList.remove('has-file');
         } else {
-          resultDiv.innerHTML = `<p class="text-red-600">✗ Error: ${data.error}</p>`;
+          resultDiv.innerHTML = `<p class="upload-error">✗ Error: ${data.error}</p>`;
         }
       } catch (error) {
-        resultDiv.innerHTML = `<p class="text-red-600">✗ Error al subir la imagen</p>`;
+        resultDiv.innerHTML = `<p class="upload-error">✗ Error al subir la imagen</p>`;
       }
     });
   </script>
 </ProtectedLayout>
+
+<style is:global>
+  /* Estilos específicos para la página de subir imagen */
+  .upload-card {
+    max-width: 600px;
+  }
+
+  .upload-file-input {
+    display: none;
+  }
+
+  .upload-file-name {
+    margin-top: 0.75rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+  }
+
+  .admin-image-drop.dragover {
+    border-color: var(--color-accent);
+    background: var(--bg-input);
+    transform: scale(1.02);
+  }
+
+  .admin-image-drop.has-file {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+  }
+
+  .upload-result {
+    margin-top: 1.5rem;
+  }
+
+  .upload-success {
+    padding: 1rem;
+    background: rgba(16, 185, 129, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  .upload-success-title {
+    color: #10b981;
+    font-weight: 600;
+    margin: 0 0 1rem 0;
+  }
+
+  .upload-url-box {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .upload-url-label {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  .upload-url-code {
+    background: var(--bg-tertiary);
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    word-break: break-all;
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .upload-copy-btn {
+    padding: 0.5rem 1rem !important;
+    font-size: 0.85rem !important;
+  }
+
+  .upload-error {
+    color: #ef4444;
+    padding: 1rem;
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    margin: 0;
+  }
+
+  .upload-preview {
+    margin-top: 1.5rem;
+  }
+
+  .upload-preview-box {
+    padding: 1rem;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+  }
+
+  .upload-preview-title {
+    color: var(--text-primary);
+    font-weight: 600;
+    margin: 0 0 1rem 0;
+  }
+
+  .upload-preview-img {
+    max-width: 300px;
+    width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px var(--shadow-color);
+  }
+</style>

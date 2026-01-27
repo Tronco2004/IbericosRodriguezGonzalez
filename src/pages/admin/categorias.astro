@@ -3,71 +3,98 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 ---
 
 <ProtectedLayout requireAdmin={true}>
-  <div style="min-height: 100vh; background: linear-gradient(135deg, #fafbfc 0%, #f3f4f6 100%); padding: 3rem 2rem;">
-    <div style="max-width: 1400px; margin: 0 auto;">
+  <style is:global>
+    /* Estilos para tabla de categorías en modo oscuro */
+    .cat-nombre {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    .cat-descripcion {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    
+    .cat-count {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    
+    /* Botones de acción para tablas */
+    .admin-table-actions {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    
+    .admin-btn-edit {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .admin-btn-edit:hover {
+      background: var(--color-accent);
+      color: white;
+      border-color: var(--color-accent);
+    }
+    
+    .admin-btn-delete {
+      background: var(--bg-tertiary);
+      color: #ef4444;
+      border: 1px solid var(--border-color);
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .admin-btn-delete:hover {
+      background: #ef4444;
+      color: white;
+      border-color: #ef4444;
+    }
+  </style>
+  
+  <div class="admin-page">
+    <div class="admin-container">
       <!-- Header -->
-      <div style="margin-bottom: 3rem;">
-        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
-          <a href="/admin/dashboard" style="
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            color: #0f172a;
-            text-decoration: none;
-            font-size: 1.2rem;
-            transition: all 0.3s;
-          " onmouseover="this.style.background='#f1f5f9'; this.style.borderColor='#cbd5e1'" onmouseout="this.style.background='white'; this.style.borderColor='#e2e8f0'">←</a>
-        </div>
-        <h1 style="color: #0f172a; font-size: 2.5rem; margin: 0; font-weight: 900; letter-spacing: -0.5px;">Gestión de Categorías</h1>
-        <p style="color: #64748b; margin: 0.5rem 0 0 0; font-size: 1rem;">Administra las categorías de productos de tu tienda</p>
+      <div class="admin-header">
+        <a href="/admin/dashboard" class="admin-back-btn">←</a>
+        <h1 class="admin-title">Gestión de Categorías</h1>
+        <p class="admin-subtitle">Administra las categorías de productos de tu tienda</p>
       </div>
 
       <!-- Action Bar -->
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; gap: 1rem; flex-wrap: wrap;">
-        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-          <input type="text" id="searchInput" placeholder="Buscar categorías..." style="
-            padding: 0.75rem 1.25rem;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            min-width: 250px;
-            transition: all 0.3s;
-            background: white;
-          " onmouseover="this.style.borderColor='#cbd5e1'" onmouseout="this.style.borderColor='#e2e8f0'" />
+      <div class="admin-action-bar">
+        <div class="admin-filters">
+          <input type="text" id="searchInput" placeholder="Buscar categorías..." class="admin-search-input" />
         </div>
 
-        <button id="btnNuevaCategoria" style="
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          padding: 0.75rem 1.5rem;
-          border: none;
-          border-radius: 8px;
-          font-weight: 600;
-          font-size: 0.95rem;
-          cursor: pointer;
-          transition: all 0.3s;
-          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(102, 126, 234, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.3)'">
+        <button id="btnNuevaCategoria" class="admin-btn-primary">
           + Nueva Categoría
         </button>
       </div>
 
       <!-- Tabla de Categorías -->
-      <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); border: 1px solid #e2e8f0; overflow: hidden;">
-        <div style="overflow-x: auto;">
-          <table style="width: 100%; border-collapse: collapse;">
+      <div class="admin-table-container">
+        <div class="admin-table-scroll">
+          <table class="admin-table">
             <thead>
-              <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
-                <th style="padding: 1.25rem; text-align: left; color: #0f172a; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Nombre</th>
-                <th style="padding: 1.25rem; text-align: left; color: #0f172a; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Descripción</th>
-                <th style="padding: 1.25rem; text-align: center; color: #0f172a; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Productos</th>
-                <th style="padding: 1.25rem; text-align: center; color: #0f172a; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Estado</th>
-                <th style="padding: 1.25rem; text-align: center; color: #0f172a; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Acciones</th>
+              <tr>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th class="center">Productos</th>
+                <th class="center">Estado</th>
+                <th class="center">Acciones</th>
               </tr>
             </thead>
             <tbody id="categoriasTable">
@@ -75,100 +102,49 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
             </tbody>
           </table>
         </div>
-        <div id="emptyState" style="display: none; padding: 3rem; text-align: center;">
+        <div id="emptyState" class="admin-empty-state" style="display: none;">
           <div style="font-size: 3rem; margin-bottom: 1rem;">📂</div>
-          <p style="color: #64748b; font-size: 1rem;">No hay categorías que mostrar</p>
+          <p>No hay categorías que mostrar</p>
         </div>
       </div>
     </div>
   </div>
 
   <!-- Modal para crear/editar categoría -->
-  <div id="categoriaModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 1000; align-items: center; justify-content: center;">
-    <div style="background: white; border-radius: 12px; padding: 2rem; max-width: 600px; width: 90%; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);">
-      <h2 id="modalTitle" style="color: #0f172a; font-size: 1.5rem; margin: 0 0 1.5rem 0; font-weight: 700;">Nueva Categoría</h2>
+  <div id="categoriaModal" class="admin-modal-overlay" style="display: none;">
+    <div class="admin-modal">
+      <h2 id="modalTitle" class="admin-modal-title">Nueva Categoría</h2>
       
-      <form id="categoriaForm" style="display: flex; flex-direction: column; gap: 1.5rem;">
-        <div>
-          <label style="display: block; color: #0f172a; font-weight: 600; margin-bottom: 0.5rem;">Nombre de la Categoría</label>
-          <input type="text" id="nombre" placeholder="Ej: Jamones Ibéricos" style="
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            font-size: 0.95rem;
-            box-sizing: border-box;
-          " required />
+      <form id="categoriaForm" class="admin-form">
+        <div class="admin-form-group">
+          <label class="admin-label">Nombre de la Categoría</label>
+          <input type="text" id="nombre" placeholder="Ej: Jamones Ibéricos" class="admin-input" required />
         </div>
 
-        <div>
-          <label style="display: block; color: #0f172a; font-weight: 600; margin-bottom: 0.5rem;">Slug (para URL)</label>
-          <input type="text" id="slug" placeholder="Ej: jamones-ibericos" style="
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            font-size: 0.95rem;
-            box-sizing: border-box;
-          " required />
-          <p style="margin: 0.5rem 0 0 0; color: #64748b; font-size: 0.85rem;">Se usa en las URLs de la tienda</p>
+        <div class="admin-form-group">
+          <label class="admin-label">Slug (para URL)</label>
+          <input type="text" id="slug" placeholder="Ej: jamones-ibericos" class="admin-input" required />
+          <p class="admin-hint">Se usa en las URLs de la tienda</p>
         </div>
 
-        <div>
-          <label style="display: block; color: #0f172a; font-weight: 600; margin-bottom: 0.5rem;">Descripción</label>
-          <textarea id="descripcion" placeholder="Describe la categoría..." style="
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            font-size: 0.95rem;
-            box-sizing: border-box;
-            min-height: 100px;
-            font-family: inherit;
-            resize: vertical;
-          "></textarea>
+        <div class="admin-form-group">
+          <label class="admin-label">Descripción</label>
+          <textarea id="descripcion" placeholder="Describe la categoría..." class="admin-textarea"></textarea>
         </div>
 
-        <div>
-          <label style="display: block; color: #0f172a; font-weight: 600; margin-bottom: 0.5rem;">Estado</label>
-          <select id="estado" style="
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            font-size: 0.95rem;
-            box-sizing: border-box;
-          ">
+        <div class="admin-form-group">
+          <label class="admin-label">Estado</label>
+          <select id="estado" class="admin-input">
             <option value="true">Activo</option>
             <option value="false">Inactivo</option>
           </select>
         </div>
 
-        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-          <button type="submit" style="
-            flex: 1;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 0.75rem;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-          " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+        <div class="admin-form-actions">
+          <button type="submit" class="admin-btn-primary">
             Guardar Categoría
           </button>
-          <button type="button" id="btnCancelar" style="
-            flex: 1;
-            background: white;
-            color: #0f172a;
-            padding: 0.75rem;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-          " onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+          <button type="button" id="btnCancelar" class="admin-btn-secondary">
             Cancelar
           </button>
         </div>
@@ -292,52 +268,25 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 
       emptyState.style.display = 'none';
       tabla.innerHTML = filtradas.map(cat => `
-        <tr style="border-bottom: 1px solid #e2e8f0; transition: all 0.3s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-          <td style="padding: 1.25rem; text-align: left;">
-            <div style="font-weight: 600; color: #0f172a;">${cat.nombre}</div>
+        <tr>
+          <td>
+            <div class="cat-nombre">${cat.nombre}</div>
           </td>
-          <td style="padding: 1.25rem; text-align: left;">
-            <div style="color: #64748b; font-size: 0.9rem;">${cat.descripcion.substring(0, 50)}${cat.descripcion.length > 50 ? '...' : ''}</div>
+          <td>
+            <div class="cat-descripcion">${cat.descripcion.substring(0, 50)}${cat.descripcion.length > 50 ? '...' : ''}</div>
           </td>
-          <td style="padding: 1.25rem; text-align: center;">
-            <div style="color: #0f172a; font-weight: 600;" id="count-${cat.id}">0</div>
+          <td class="center">
+            <div class="cat-count" id="count-${cat.id}">0</div>
           </td>
-          <td style="padding: 1.25rem; text-align: center;">
-            <span style="
-              display: inline-block;
-              padding: 0.4rem 0.8rem;
-              border-radius: 20px;
-              font-size: 0.8rem;
-              font-weight: 600;
-              ${cat.activa ? 'background: #dcfce7; color: #166534;' : 'background: #fee2e2; color: #991b1b;'}
-            ">${cat.activa ? '✓ Activo' : '✗ Inactivo'}</span>
+          <td class="center">
+            <span class="admin-badge ${cat.activa ? 'success' : 'danger'}">${cat.activa ? '✓ Activo' : '✗ Inactivo'}</span>
           </td>
-          <td style="padding: 1.25rem; text-align: center;">
-            <div style="display: flex; gap: 0.5rem; justify-content: center;">
-              <button onclick="editarCategoria(${cat.id})" style="
-                padding: 0.5rem 1rem;
-                background: #e0e7ff;
-                color: #3730a3;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-                font-weight: 600;
-                font-size: 0.85rem;
-                transition: all 0.3s;
-              " onmouseover="this.style.background='#c7d2fe'" onmouseout="this.style.background='#e0e7ff'">
+          <td class="center">
+            <div class="admin-table-actions">
+              <button onclick="editarCategoria(${cat.id})" class="admin-btn-edit">
                 Editar
               </button>
-              <button onclick="eliminarCategoria(${cat.id})" style="
-                padding: 0.5rem 1rem;
-                background: #fee2e2;
-                color: #991b1b;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-                font-weight: 600;
-                font-size: 0.85rem;
-                transition: all 0.3s;
-              " onmouseover="this.style.background='#fecaca'" onmouseout="this.style.background='#fee2e2'">
+              <button onclick="eliminarCategoria(${cat.id})" class="admin-btn-delete">
                 Eliminar
               </button>
             </div>

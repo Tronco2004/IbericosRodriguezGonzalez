@@ -3,93 +3,67 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 ---
 
 <ProtectedLayout title="Gestionar Variantes">
-  <div style="min-height: 100vh; background: #f8f4f0; padding: 2rem 0;">
-    <div style="max-width: 1200px; margin: 0 auto; padding: 0 2rem;">
-      <h1 style="color: #001a33; margin-bottom: 2rem;">Gestionar Variantes de Productos</h1>
+  <div class="admin-page">
+    <div class="admin-container">
+      <header class="admin-header">
+        <a href="/admin/productos" class="admin-back-btn">← Volver a Productos</a>
+        <h1 class="admin-title">Gestionar Variantes de Productos</h1>
+      </header>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+      <div class="variantes-grid">
         <!-- Selector de Producto -->
-        <div style="background: white; padding: 1.5rem; border-radius: 8px; border: 1px solid #e0d5c7;">
-          <h2 style="color: #001a33; margin-top: 0;">Seleccionar Producto</h2>
-          <select id="productoSelect" style="
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #e0d5c7;
-            border-radius: 4px;
-            font-size: 1rem;
-            margin-bottom: 1rem;
-          ">
+        <div class="variantes-card">
+          <h2 class="variantes-card-title">Seleccionar Producto</h2>
+          <select id="productoSelect" class="admin-select">
             <option value="">-- Selecciona un producto --</option>
           </select>
           
-          <div id="productoInfo" style="display: none; padding: 1rem; background: #f8f4f0; border-radius: 4px;">
+          <div id="productoInfo" class="producto-info">
             <p><strong>Precio por kg:</strong> <span id="precioKg">-</span>€</p>
             <p><strong>Es variable:</strong> <span id="esVariable">-</span></p>
           </div>
         </div>
 
         <!-- Agregar Nueva Variante -->
-        <div style="background: white; padding: 1.5rem; border-radius: 8px; border: 1px solid #e0d5c7;">
-          <h2 style="color: #001a33; margin-top: 0;">Agregar Variante</h2>
-          <form id="formVariante" style="display: none;">
-            <div style="margin-bottom: 1rem;">
-              <label style="display: block; margin-bottom: 0.5rem; color: #001a33; font-weight: 600;">Peso (kg)</label>
-              <input type="number" id="pesoInput" step="0.001" placeholder="4.650" style="
-                width: 100%;
-                padding: 0.75rem;
-                border: 1px solid #e0d5c7;
-                border-radius: 4px;
-                font-size: 1rem;
-              " required />
+        <div class="variantes-card">
+          <h2 class="variantes-card-title">Agregar Variante</h2>
+          <form id="formVariante" class="admin-form" style="display: none;">
+            <div class="admin-form-group">
+              <label class="admin-label">Peso (kg)</label>
+              <input type="number" id="pesoInput" step="0.001" placeholder="4.650" class="admin-input" required />
             </div>
 
-            <div style="margin-bottom: 1rem;">
-              <label style="display: block; margin-bottom: 0.5rem; color: #001a33; font-weight: 600;">Precio Total (€)</label>
-              <input type="number" id="precioInput" step="0.01" placeholder="162.75" style="
-                width: 100%;
-                padding: 0.75rem;
-                border: 1px solid #e0d5c7;
-                border-radius: 4px;
-                font-size: 1rem;
-              " required />
-              <small style="color: #999; display: block; margin-top: 0.25rem;">Se calcula automáticamente si dejas vacío</small>
+            <div class="admin-form-group">
+              <label class="admin-label">Precio Total (€)</label>
+              <input type="number" id="precioInput" step="0.01" placeholder="162.75" class="admin-input" required />
+              <small class="form-hint">Se calcula automáticamente si dejas vacío</small>
             </div>
 
-            <button type="submit" style="
-              width: 100%;
-              padding: 0.75rem;
-              background: #a89968;
-              color: white;
-              border: none;
-              border-radius: 4px;
-              font-weight: 600;
-              cursor: pointer;
-              transition: background 0.3s;
-            " onmouseover="this.style.background='#92824f'" onmouseout="this.style.background='#a89968'">
+            <button type="submit" class="admin-btn-primary full-width">
               Agregar Variante
             </button>
           </form>
 
-          <div id="sinProducto" style="color: #999; text-align: center; padding: 2rem;">
+          <div id="sinProducto" class="admin-empty-state">
             Selecciona un producto primero
           </div>
         </div>
       </div>
 
       <!-- Lista de Variantes -->
-      <div style="background: white; padding: 1.5rem; border-radius: 8px; border: 1px solid #e0d5c7; margin-top: 2rem;">
-        <h2 style="color: #001a33; margin-top: 0;">Variantes del Producto</h2>
+      <div class="variantes-card" style="margin-top: 2rem;">
+        <h2 class="variantes-card-title">Variantes del Producto</h2>
         
         <div id="listVariantes" style="display: none;">
-          <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse;">
+          <div class="admin-table-scroll">
+            <table class="admin-table">
               <thead>
-                <tr style="border-bottom: 2px solid #e0d5c7;">
-                  <th style="padding: 1rem; text-align: left; color: #001a33; font-weight: 600;">Peso</th>
-                  <th style="padding: 1rem; text-align: left; color: #001a33; font-weight: 600;">Precio</th>
-                  <th style="padding: 1rem; text-align: left; color: #001a33; font-weight: 600;">Disponible</th>
-                  <th style="padding: 1rem; text-align: left; color: #001a33; font-weight: 600;">Stock</th>
-                  <th style="padding: 1rem; text-align: center; color: #001a33; font-weight: 600;">Acciones</th>
+                <tr>
+                  <th>Peso</th>
+                  <th>Precio</th>
+                  <th>Disponible</th>
+                  <th>Stock</th>
+                  <th class="center">Acciones</th>
                 </tr>
               </thead>
               <tbody id="variantesTableBody"></tbody>
@@ -97,12 +71,146 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           </div>
         </div>
 
-        <div id="sinVariantes" style="text-align: center; color: #999; padding: 2rem;">
+        <div id="sinVariantes" class="admin-empty-state">
           No hay variantes para este producto
         </div>
       </div>
     </div>
   </div>
+
+  <style>
+    .variantes-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+    
+    @media (max-width: 768px) {
+      .variantes-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .variantes-card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      border: 1px solid #e0d5c7;
+    }
+    
+    .variantes-card-title {
+      color: #001a33;
+      margin-top: 0;
+      margin-bottom: 1rem;
+    }
+    
+    .producto-info {
+      display: none;
+      padding: 1rem;
+      background: #f8f4f0;
+      border-radius: 4px;
+      margin-top: 1rem;
+    }
+    
+    .producto-info p {
+      margin: 0.5rem 0;
+    }
+    
+    .form-hint {
+      color: #999;
+      display: block;
+      margin-top: 0.25rem;
+      font-size: 0.85rem;
+    }
+    
+    .full-width {
+      width: 100%;
+    }
+    
+    .btn-toggle {
+      padding: 0.5rem 1rem;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: opacity 0.3s;
+    }
+    
+    .btn-toggle:hover {
+      opacity: 0.9;
+    }
+    
+    .btn-toggle.disponible {
+      background: #f59e0b;
+    }
+    
+    .btn-toggle.no-disponible {
+      background: #10b981;
+    }
+    
+    .btn-eliminar {
+      padding: 0.5rem 1rem;
+      background: #f5576c;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: opacity 0.3s;
+    }
+    
+    .btn-eliminar:hover {
+      opacity: 0.9;
+    }
+    
+    .acciones-cell {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    
+    /* Notificaciones */
+    .notificaciones-container {
+      position: fixed;
+      top: 80px;
+      right: 2rem;
+      z-index: 1000;
+      max-width: 400px;
+    }
+    
+    .notificacion {
+      color: white;
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      animation: slideIn 0.3s ease-out;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      font-weight: 500;
+    }
+    
+    .notificacion.exito {
+      background: #a89968;
+    }
+    
+    .notificacion.error {
+      background: #f5576c;
+    }
+    
+    .notificacion.saliendo {
+      animation: slideOut 0.3s ease-out forwards;
+    }
+    
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(400px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    
+    @keyframes slideOut {
+      from { opacity: 1; transform: translateX(0); }
+      to { opacity: 0; transform: translateX(400px); }
+    }
+  </style>
 
   <script>
     let productoActual = null;
@@ -185,45 +293,24 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 
         variantes.forEach(v => {
           const row = document.createElement('tr');
-          row.style.borderBottom = '1px solid #e0d5c7';
           row.innerHTML = `
-            <td style="padding: 1rem;">${v.peso_kg.toFixed(3)}kg</td>
-            <td style="padding: 1rem;">${(v.precio_total / 100).toFixed(2)}€</td>
-            <td style="padding: 1rem;">
-              <span style="
-                padding: 0.25rem 0.75rem;
-                border-radius: 4px;
-                font-size: 0.85rem;
-                background: ${v.disponible ? '#e8f5e9' : '#ffebee'};
-                color: ${v.disponible ? '#2e7d32' : '#c62828'};
-              ">
+            <td>${v.peso_kg.toFixed(3)}kg</td>
+            <td>${(v.precio_total / 100).toFixed(2)}€</td>
+            <td>
+              <span class="admin-badge ${v.disponible ? 'success' : 'danger'}">
                 ${v.disponible ? '✓ Disponible' : '✗ No disponible'}
               </span>
             </td>
-            <td style="padding: 1rem;">${v.cantidad_disponible}</td>
-            <td style="padding: 1rem; text-align: center; display: flex; gap: 0.5rem; justify-content: center;">
-              <button class="btn-toggle" data-id="${v.id}" data-disponible="${v.disponible}" style="
-                padding: 0.5rem 1rem;
-                background: ${v.disponible ? '#f59e0b' : '#10b981'};
-                color: white;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 0.85rem;
-              ">
-                ${v.disponible ? 'Agotar' : 'Disponible'}
-              </button>
-              <button class="btn-eliminar" data-id="${v.id}" style="
-                padding: 0.5rem 1rem;
-                background: #f5576c;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 0.85rem;
-              ">
-                Eliminar
-              </button>
+            <td>${v.cantidad_disponible}</td>
+            <td class="center">
+              <div class="acciones-cell">
+                <button class="btn-toggle ${v.disponible ? 'disponible' : 'no-disponible'}" data-id="${v.id}" data-disponible="${v.disponible}">
+                  ${v.disponible ? 'Agotar' : 'Disponible'}
+                </button>
+                <button class="btn-eliminar" data-id="${v.id}">
+                  Eliminar
+                </button>
+              </div>
             </td>
           `;
           tbody.appendChild(row);
@@ -353,22 +440,12 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       const container = document.getElementById('notificacionesContainer') || crearContainerNotificaciones();
       
       const notif = document.createElement('div');
-      notif.style.cssText = `
-        background: ${tipo === 'exito' ? '#a89968' : '#f5576c'};
-        color: white;
-        padding: 1rem 1.5rem;
-        border-radius: 8px;
-        margin-bottom: 1rem;
-        animation: slideIn 0.3s ease-out;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        font-weight: 500;
-      `;
-
+      notif.className = `notificacion ${tipo}`;
       notif.textContent = mensaje;
       container.appendChild(notif);
 
       setTimeout(() => {
-        notif.style.animation = 'slideOut 0.3s ease-out';
+        notif.classList.add('saliendo');
         setTimeout(() => notif.remove(), 300);
       }, 3000);
     }
@@ -376,28 +453,8 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     function crearContainerNotificaciones() {
       const container = document.createElement('div');
       container.id = 'notificacionesContainer';
-      container.style.cssText = `
-        position: fixed;
-        top: 80px;
-        right: 2rem;
-        z-index: 1000;
-        max-width: 400px;
-      `;
+      container.className = 'notificaciones-container';
       document.body.appendChild(container);
-
-      const style = document.createElement('style');
-      style.textContent = `
-        @keyframes slideIn {
-          from { opacity: 0; transform: translateX(400px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes slideOut {
-          from { opacity: 1; transform: translateX(0); }
-          to { opacity: 0; transform: translateX(400px); }
-        }
-      `;
-      document.head.appendChild(style);
-
       return container;
     }
 

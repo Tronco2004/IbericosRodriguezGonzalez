@@ -3,41 +3,52 @@ import Layout from '../layouts/Layout.astro';
 ---
 
 <Layout>
-  <div style="min-height: 100vh; padding: 4rem 2rem; background: linear-gradient(135deg, #fafbfc 0%, #f3f4f6 100%);">
-    <div style="max-width: 1400px; margin: 0 auto;">
-      <!-- Header -->
-      <div style="text-align: center; margin-bottom: 4rem;">
-        <span style="color: #a89968; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700;">
-          🎉 Ofertas Especiales
-        </span>
-        <h1 style="
-          color: #0f172a;
-          font-size: 3rem;
-          margin: 0.5rem 0 1rem 0;
-          font-weight: 900;
-        ">
-          Todas Nuestras Ofertas
-        </h1>
-        <p style="color: #64748b; margin: 0.5rem 0 0 0; font-size: 1.1rem; max-width: 600px; margin-left: auto; margin-right: auto;">
-          Descubre nuestros mejores precios en una selección de productos premium
-        </p>
-      </div>
-
-      <!-- Contenedor de ofertas -->
-      <div id="ofertasContainer" class="ofertas-grid">
-        <p style="grid-column: 1 / -1; text-align: center; color: #64748b;">Cargando ofertas...</p>
-      </div>
-    </div>
-  </div>
-
   <style>
+    .ofertas-page {
+      min-height: 100vh;
+      padding: 4rem 2rem;
+      background: var(--bg-primary);
+    }
+    .ofertas-container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .ofertas-header {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+    .ofertas-label {
+      color: var(--color-accent);
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-weight: 700;
+    }
+    .ofertas-title {
+      color: var(--text-primary);
+      font-size: 3rem;
+      margin: 0.5rem 0 1rem 0;
+      font-weight: 900;
+    }
+    .ofertas-subtitle {
+      color: var(--text-muted);
+      margin: 0.5rem 0 0 0;
+      font-size: 1.1rem;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
     .ofertas-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
       gap: 2rem;
       min-height: 300px;
     }
-
+    .loading-text {
+      grid-column: 1 / -1;
+      text-align: center;
+      color: var(--text-muted);
+    }
     @media (max-width: 768px) {
       .ofertas-grid {
         grid-template-columns: 1fr !important;
@@ -45,7 +56,6 @@ import Layout from '../layouts/Layout.astro';
         padding: 0 !important;
       }
     }
-
     @media (max-width: 480px) {
       .ofertas-grid {
         grid-template-columns: 1fr !important;
@@ -53,6 +63,24 @@ import Layout from '../layouts/Layout.astro';
       }
     }
   </style>
+
+  <div class="ofertas-page">
+    <div class="ofertas-container">
+      <!-- Header -->
+      <div class="ofertas-header">
+        <span class="ofertas-label">🎉 Ofertas Especiales</span>
+        <h1 class="ofertas-title">Todas Nuestras Ofertas</h1>
+        <p class="ofertas-subtitle">
+          Descubre nuestros mejores precios en una selección de productos premium
+        </p>
+      </div>
+
+      <!-- Contenedor de ofertas -->
+      <div id="ofertasContainer" class="ofertas-grid">
+        <p class="loading-text">Cargando ofertas...</p>
+      </div>
+    </div>
+  </div>
 
   <script>
     async function cargarOfertas() {
@@ -63,7 +91,7 @@ import Layout from '../layouts/Layout.astro';
         const container = document.getElementById('ofertasContainer') as HTMLDivElement;
 
         if (!success || !ofertas || ofertas.length === 0) {
-          container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: #64748b; padding: 3rem;">No hay ofertas disponibles en este momento</p>';
+          container.innerHTML = '<p class="loading-text" style="padding: 3rem;">No hay ofertas disponibles en este momento</p>';
           return;
         }
 
@@ -75,146 +103,40 @@ import Layout from '../layouts/Layout.astro';
           const imagenUrl = oferta.imagen_url || oferta.producto?.imagen_url || '';
 
           html += `
-            <div style="
-              background: white;
-              border-radius: 12px;
-              overflow: hidden;
-              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-              transition: all 0.3s;
-              position: relative;
-            ">
+            <div class="oferta-card">
               <!-- Badge de descuento -->
-              <div style="
-                position: absolute;
-                top: 1rem;
-                right: 1rem;
-                background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-                color: white;
-                padding: 0.5rem 1rem;
-                border-radius: 8px;
-                font-weight: 700;
-                z-index: 10;
-                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
-              ">
-                -${descuento}%
-              </div>
+              <div class="oferta-badge">-${descuento}%</div>
 
               <!-- Imagen -->
-              <div style="
-                width: 100%;
-                height: 250px;
-                overflow: hidden;
-                background: #f3f4f6;
-              ">
+              <div class="oferta-imagen">
                 ${imagenUrl ? `
-                  <img
-                    src="${imagenUrl}"
-                    alt="${oferta.nombre_oferta}"
-                    style="
-                      width: 100%;
-                      height: 100%;
-                      object-fit: cover;
-                    "
-                  />
+                  <img src="${imagenUrl}" alt="${oferta.nombre_oferta}" />
                 ` : `
-                  <div style="
-                    width: 100%;
-                    height: 100%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: #9ca3af;
-                  ">
-                    Sin imagen
-                  </div>
+                  <div class="sin-imagen">Sin imagen</div>
                 `}
               </div>
 
               <!-- Contenido -->
-              <div style="padding: 1.5rem;">
-                <h3 style="
-                  color: #0f172a;
-                  font-size: 1.25rem;
-                  margin: 0 0 0.5rem 0;
-                  font-weight: 700;
-                ">
-                  ${oferta.nombre_oferta}
-                </h3>
+              <div class="oferta-contenido">
+                <h3 class="oferta-nombre">${oferta.nombre_oferta}</h3>
 
-                ${oferta.producto ? `
-                  <p style="
-                    color: #64748b;
-                    font-size: 0.9rem;
-                    margin: 0 0 1rem 0;
-                  ">
-                    ${oferta.producto.nombre}
-                  </p>
-                ` : ''}
-
-                ${oferta.descripcion ? `
-                  <p style="
-                    color: #64748b;
-                    font-size: 0.9rem;
-                    margin: 0 0 1rem 0;
-                    line-height: 1.5;
-                  ">
-                    ${oferta.descripcion}
-                  </p>
-                ` : ''}
+                ${oferta.producto ? `<p class="oferta-producto">${oferta.producto.nombre}</p>` : ''}
+                ${oferta.descripcion ? `<p class="oferta-descripcion">${oferta.descripcion}</p>` : ''}
 
                 <!-- Precios -->
-                <div style="
-                  display: flex;
-                  align-items: center;
-                  gap: 1rem;
-                  margin-bottom: 1.5rem;
-                ">
-                  <span style="
-                    font-size: 1.5rem;
-                    font-weight: 700;
-                    color: #0f172a;
-                  ">
-                    ${precioDescuento}€
-                  </span>
-                  <span style="
-                    font-size: 1rem;
-                    color: #9ca3af;
-                    text-decoration: line-through;
-                  ">
-                    ${precioOriginal}€
-                  </span>
+                <div class="oferta-precios">
+                  <span class="precio-actual">${precioDescuento}€</span>
+                  <span class="precio-original">${precioOriginal}€</span>
                 </div>
 
-                <!-- Rating -->
                 ${oferta.producto?.rating ? `
-                  <div style="
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    margin-bottom: 1.5rem;
-                  ">
-                    <span style="color: #a89968;">★</span>
-                    <span style="color: #64748b; font-size: 0.9rem;">
-                      ${oferta.producto.rating}/5
-                    </span>
+                  <div class="oferta-rating">
+                    <span class="rating-star">★</span>
+                    <span class="rating-text">${oferta.producto.rating}/5</span>
                   </div>
                 ` : ''}
 
-                <!-- Botón -->
-                <a
-                  href="/productos/${oferta.producto?.id || '#'}"
-                  style="
-                    display: block;
-                    background: linear-gradient(135deg, #a89968 0%, #8b7355 100%);
-                    color: white;
-                    text-align: center;
-                    padding: 0.75rem 1.5rem;
-                    border-radius: 8px;
-                    text-decoration: none;
-                    font-weight: 600;
-                    transition: all 0.3s;
-                  "
-                >
+                <a href="/productos/${oferta.producto?.id || '#'}" class="oferta-btn">
                   Ver Oferta
                 </a>
               </div>
@@ -226,7 +148,7 @@ import Layout from '../layouts/Layout.astro';
       } catch (error) {
         console.error('Error cargando ofertas:', error);
         const container = document.getElementById('ofertasContainer') as HTMLDivElement;
-        container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: #dc2626;">Error al cargar las ofertas</p>';
+        container.innerHTML = '<p class="loading-text" style="color: #dc2626;">Error al cargar las ofertas</p>';
       }
     }
 
@@ -235,6 +157,111 @@ import Layout from '../layouts/Layout.astro';
   </script>
 
   <style>
+    .oferta-card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px var(--shadow-color);
+      transition: all 0.3s;
+      position: relative;
+      border: 1px solid var(--border-light);
+    }
+    .oferta-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px var(--shadow-medium);
+    }
+    .oferta-badge {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-weight: 700;
+      z-index: 10;
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+    }
+    .oferta-imagen {
+      width: 100%;
+      height: 250px;
+      overflow: hidden;
+      background: var(--bg-tertiary);
+    }
+    .oferta-imagen img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .sin-imagen {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+    }
+    .oferta-contenido {
+      padding: 1.5rem;
+    }
+    .oferta-nombre {
+      color: var(--text-primary);
+      font-size: 1.25rem;
+      margin: 0 0 0.5rem 0;
+      font-weight: 700;
+    }
+    .oferta-producto,
+    .oferta-descripcion {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin: 0 0 1rem 0;
+      line-height: 1.5;
+    }
+    .oferta-precios {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .precio-actual {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .precio-original {
+      font-size: 1rem;
+      color: var(--text-muted);
+      text-decoration: line-through;
+    }
+    .oferta-rating {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .rating-star {
+      color: var(--color-accent);
+    }
+    .rating-text {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    .oferta-btn {
+      display: block;
+      background: var(--gradient-ofertas);
+      color: white;
+      text-align: center;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    .oferta-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px var(--shadow-accent);
+    }
+
     @media (max-width: 768px) {
       #ofertasContainer {
         grid-template-columns: 1fr !important;

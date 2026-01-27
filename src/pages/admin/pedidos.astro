@@ -1,132 +1,239 @@
 ---
-import Layout from '../../layouts/Layout.astro';
+import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 ---
 
-<Layout title="Admin - Pedidos">
-  <div style="min-height: 100vh; background: linear-gradient(135deg, #fafbfc 0%, #f3f4f6 100%); padding: 3rem 2rem;">
-    <div style="max-width: 1200px; margin: 0 auto;">
+<ProtectedLayout requireAdmin={true}>
+  <style is:global>
+    /* Estilos para tarjetas de pedidos en modo oscuro */
+    .pedido-card {
+      background: var(--bg-card);
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      transition: var(--theme-transition);
+    }
+    
+    .pedido-header {
+      padding: 1.5rem;
+      background: var(--bg-tertiary);
+      border-bottom: 1px solid var(--border-color);
+      display: grid;
+      grid-template-columns: 1fr auto auto auto;
+      gap: 2rem;
+      align-items: center;
+    }
+    
+    .pedido-numero {
+      color: var(--text-primary);
+      margin: 0 0 0.5rem 0;
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+    
+    .pedido-fecha {
+      color: var(--text-muted);
+      margin: 0;
+      font-size: 0.9rem;
+    }
+    
+    .pedido-contacto {
+      color: var(--text-muted);
+      margin: 0;
+      font-size: 0.9rem;
+    }
+    
+    .pedido-total {
+      color: var(--color-accent);
+      font-weight: 700;
+      font-size: 1.2rem;
+      margin: 0;
+    }
+    
+    .pedido-body {
+      padding: 1.5rem;
+    }
+    
+    .pedido-productos-title {
+      color: var(--text-primary);
+      margin: 0 0 1rem 0;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    
+    .pedido-item {
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--border-light);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1rem;
+      align-items: center;
+    }
+    
+    .pedido-item:last-child {
+      border-bottom: none;
+    }
+    
+    .pedido-item-nombre {
+      color: var(--text-primary);
+      font-weight: 600;
+      margin: 0 0 0.25rem 0;
+    }
+    
+    .pedido-item-peso {
+      color: var(--color-accent);
+      font-weight: 400;
+      font-size: 0.9rem;
+    }
+    
+    .pedido-item-cantidad {
+      color: var(--text-muted);
+      margin: 0;
+      font-size: 0.9rem;
+    }
+    
+    .pedido-item-precio {
+      color: var(--text-primary);
+      font-weight: 600;
+      margin: 0;
+    }
+    
+    .pedido-totales {
+      padding: 1rem 0;
+      border-top: 2px solid var(--border-color);
+      margin-top: 1rem;
+    }
+    
+    .pedido-totales-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .pedido-totales-label {
+      color: var(--text-muted);
+    }
+    
+    .pedido-totales-value {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    
+    .pedido-totales-final {
+      border-top: 1px solid var(--border-color);
+      padding-top: 0.75rem;
+      margin-top: 0.75rem;
+    }
+    
+    .pedido-totales-final .pedido-totales-label {
+      color: var(--text-primary);
+      font-weight: 700;
+    }
+    
+    .pedido-totales-final .pedido-totales-value {
+      color: var(--color-accent);
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+    
+    .pedido-sin-pedidos {
+      background: var(--bg-card);
+      padding: 2rem;
+      border-radius: 8px;
+      text-align: center;
+      border-left: 4px solid var(--color-accent);
+    }
+    
+    .pedido-sin-pedidos h2 {
+      color: var(--text-primary);
+      margin: 0 0 1rem 0;
+    }
+    
+    .pedido-sin-pedidos p {
+      color: var(--text-muted);
+      margin: 0;
+    }
+    
+    .pedido-error {
+      background: var(--bg-card);
+      padding: 2rem;
+      border-radius: 8px;
+      text-align: center;
+      border-left: 4px solid #ef4444;
+    }
+    
+    .pedido-error h2 {
+      color: var(--text-primary);
+      margin: 0 0 1rem 0;
+    }
+    
+    .pedido-error p {
+      color: var(--text-muted);
+      margin: 0;
+    }
+    
+    .pedido-btn-validar {
+      padding: 0.5rem 1rem;
+      background: linear-gradient(135deg, #28a745, #20c997);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
+    }
+    
+    .pedido-btn-validar:hover {
+      box-shadow: 0 8px 16px rgba(40, 167, 69, 0.3);
+      transform: translateY(-2px);
+    }
+    
+    @media (max-width: 900px) {
+      .pedido-header {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+    }
+  </style>
+  
+  <div class="admin-page">
+    <div class="admin-container" style="max-width: 1200px;">
       <!-- Header with Back Button -->
-      <div style="margin-bottom: 3rem;">
-        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
-          <a href="/admin/dashboard" style="
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            color: #0f172a;
-            text-decoration: none;
-            font-size: 1.2rem;
-            transition: all 0.3s;
-          " onmouseover="this.style.background='#f1f5f9'; this.style.borderColor='#cbd5e1'" onmouseout="this.style.background='white'; this.style.borderColor='#e2e8f0'">←</a>
-        </div>
-        <h1 style="color: #0f172a; font-size: 2.5rem; margin: 0; font-weight: 900; letter-spacing: -0.5px;">Gestión de Pedidos</h1>
-        <p style="color: #64748b; margin: 0.5rem 0 0 0; font-size: 1rem;">Administra los pedidos de tus clientes</p>
+      <div class="admin-header">
+        <a href="/admin/dashboard" class="admin-back-btn">←</a>
+        <h1 class="admin-title">Gestión de Pedidos</h1>
+        <p class="admin-subtitle">Administra los pedidos de tus clientes</p>
       </div>
       
       <!-- Notification Toast -->
-      <div id="notificationToast" style="
-        display: none;
-        position: fixed;
-        top: 2rem;
-        right: 2rem;
-        background: white;
-        padding: 1.25rem 1.75rem;
-        border-radius: 8px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-        z-index: 9999;
-        max-width: 400px;
-        animation: slideIn 0.3s ease-out;
-      ">
-        <div style="display: flex; align-items: flex-start; gap: 1rem;">
-          <div id="notificationIcon" style="font-size: 1.5rem; flex-shrink: 0;"></div>
+      <div id="notificationToast" class="admin-toast">
+        <div class="admin-toast-content">
+          <div id="notificationIcon" class="admin-toast-icon"></div>
           <div>
-            <div id="notificationTitle" style="font-weight: 700; color: #0f172a; margin-bottom: 0.25rem;"></div>
-            <div id="notificationMessage" style="color: #64748b; font-size: 0.9rem;"></div>
+            <div id="notificationTitle" class="admin-toast-title"></div>
+            <div id="notificationMessage" class="admin-toast-message"></div>
           </div>
         </div>
       </div>
-
-      <style>
-        @keyframes slideIn {
-          from {
-            transform: translateX(400px);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
-        }
-
-        @keyframes slideOut {
-          from {
-            transform: translateX(0);
-            opacity: 1;
-          }
-          to {
-            transform: translateX(400px);
-            opacity: 0;
-          }
-        }
-      </style>
       
-      <div style="margin-bottom: 2rem; display: flex; gap: 1rem; flex-wrap: wrap;">
-        <button id="filtro-todos" style="
-          padding: 0.75rem 1.5rem;
-          background: linear-gradient(135deg, #a89968 0%, #8b6f47 100%);
-          color: white;
-          border: 1px solid transparent;
-          border-radius: 8px;
-          cursor: pointer;
-          font-weight: 600;
-          transition: all 0.3s;
-          box-shadow: 0 2px 8px rgba(168, 153, 104, 0.2);
-        " onmouseover="this.style.boxShadow='0 8px 16px rgba(168, 153, 104, 0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='0 2px 8px rgba(168, 153, 104, 0.2)'; this.style.transform='translateY(0)'">
+      <div class="admin-filters">
+        <button id="filtro-todos" class="admin-btn-secondary active">
           Todos los Pedidos
         </button>
-        <button id="filtro-dia" style="
-          padding: 0.75rem 1.5rem;
-          background: white;
-          color: #001a33;
-          border: 1px solid #e2e8f0;
-          border-radius: 8px;
-          cursor: pointer;
-          font-weight: 600;
-          transition: all 0.3s;
-        " onmouseover="this.style.background='#f1f5f9'; this.style.borderColor='#cbd5e1'" onmouseout="this.style.background='white'; this.style.borderColor='#e2e8f0'">
+        <button id="filtro-dia" class="admin-btn-secondary">
           Hoy
         </button>
-        <button id="filtro-semana" style="
-          padding: 0.75rem 1.5rem;
-          background: white;
-          color: #001a33;
-          border: 1px solid #e2e8f0;
-          border-radius: 8px;
-          cursor: pointer;
-          font-weight: 600;
-          transition: all 0.3s;
-        " onmouseover="this.style.background='#f1f5f9'; this.style.borderColor='#cbd5e1'" onmouseout="this.style.background='white'; this.style.borderColor='#e2e8f0'">
+        <button id="filtro-semana" class="admin-btn-secondary">
           Esta Semana
         </button>
-        <button id="filtro-mes" style="
-          padding: 0.75rem 1.5rem;
-          background: white;
-          color: #001a33;
-          border: 1px solid #e2e8f0;
-          border-radius: 8px;
-          cursor: pointer;
-          font-weight: 600;
-          transition: all 0.3s;
-        " onmouseover="this.style.background='#f1f5f9'; this.style.borderColor='#cbd5e1'" onmouseout="this.style.background='white'; this.style.borderColor='#e2e8f0'">
+        <button id="filtro-mes" class="admin-btn-secondary">
           Este Mes
         </button>
       </div>
 
-      <p id="loadingMessage" style="color: #5c4a3d; font-size: 1.1rem; text-align: center;">Cargando pedidos...</p>
+      <p id="loadingMessage" class="admin-loading">Cargando pedidos...</p>
       <div id="pedidosContent"></div>
     </div>
   </div>
@@ -186,18 +293,12 @@ import Layout from '../../layouts/Layout.astro';
       try {
         filtroActual = filtro;
         
-        // Actualizar estilos de botones
+        // Actualizar clases de botones
         document.querySelectorAll('button[id^="filtro-"]').forEach(btn => {
-          btn.style.background = 'white';
-          btn.style.color = '#001a33';
-          btn.style.border = '1px solid #e2e8f0';
-          btn.style.boxShadow = 'none';
+          btn.classList.remove('active');
         });
         const activeBtn = document.getElementById(`filtro-${filtro}`);
-        activeBtn.style.background = 'linear-gradient(135deg, #a89968 0%, #8b6f47 100%)';
-        activeBtn.style.color = 'white';
-        activeBtn.style.border = '1px solid transparent';
-        activeBtn.style.boxShadow = '0 2px 8px rgba(168, 153, 104, 0.2)';
+        activeBtn.classList.add('active');
 
         const response = await fetch(`/api/admin/pedidos?filtro=${filtro}`, {
           credentials: 'include'
@@ -217,9 +318,9 @@ import Layout from '../../layouts/Layout.astro';
         if (!pedidos || pedidos.length === 0) {
           document.getElementById('loadingMessage').style.display = 'none';
           document.getElementById('pedidosContent').innerHTML = `
-            <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; border-left: 4px solid #a89968;">
-              <h2 style="color: #001a33; margin: 0 0 1rem 0;">Sin pedidos</h2>
-              <p style="color: #5c4a3d; margin: 0;">No hay pedidos en este período.</p>
+            <div class="pedido-sin-pedidos">
+              <h2>Sin pedidos</h2>
+              <p>No hay pedidos en este período.</p>
             </div>
           `;
           return;
@@ -239,17 +340,17 @@ import Layout from '../../layouts/Layout.astro';
           };
 
           html += `
-            <div style="background: white; border-radius: 8px; overflow: hidden; border: 1px solid #e0d5c7;">
-              <div style="padding: 1.5rem; background: #f8f4f0; border-bottom: 1px solid #e0d5c7; display: grid; grid-template-columns: 1fr auto auto auto; gap: 2rem; align-items: center;">
+            <div class="pedido-card">
+              <div class="pedido-header">
                 <div>
-                  <h3 style="color: #001a33; margin: 0 0 0.5rem 0;">Pedido #${pedido.numero_pedido}</h3>
-                  <p style="color: #5c4a3d; margin: 0; font-size: 0.9rem;">
+                  <h3 class="pedido-numero">Pedido #${pedido.numero_pedido}</h3>
+                  <p class="pedido-fecha">
                     ${new Date(pedido.fecha_creacion).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
                 <div>
-                  <p style="color: #5c4a3d; margin: 0; font-size: 0.9rem;">📧 ${pedido.email_cliente || 'N/A'}</p>
-                  <p style="color: #5c4a3d; margin: 0; font-size: 0.9rem;">📱 ${pedido.telefono_cliente || 'N/A'}</p>
+                  <p class="pedido-contacto">📧 ${pedido.email_cliente || 'N/A'}</p>
+                  <p class="pedido-contacto">📱 ${pedido.telefono_cliente || 'N/A'}</p>
                 </div>
                 <div style="display: flex; gap: 0.75rem; align-items: center;">
                   <select class="cambiar-estado" data-pedido-id="${pedido.id}" style="
@@ -272,78 +373,60 @@ import Layout from '../../layouts/Layout.astro';
                     <option value="devolucion_recibida" ${pedido.estado === 'devolucion_recibida' ? 'selected' : ''}>Devolución Recibida</option>
                   </select>
                   ${pedido.estado === 'devolucion_solicitada' ? `
-                    <button class="validar-devolucion" data-pedido-id="${pedido.id}" style="
-                      padding: 0.5rem 1rem;
-                      background: linear-gradient(135deg, #28a745, #20c997);
-                      color: white;
-                      border: none;
-                      border-radius: 4px;
-                      font-weight: 600;
-                      font-size: 0.85rem;
-                      cursor: pointer;
-                      transition: all 0.3s;
-                      box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
-                    " onmouseover="this.style.boxShadow='0 8px 16px rgba(40, 167, 69, 0.3)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='0 2px 8px rgba(40, 167, 69, 0.2)'; this.style.transform='translateY(0)'">
+                    <button class="validar-devolucion pedido-btn-validar" data-pedido-id="${pedido.id}">
                       ✓ Validar
                     </button>
                   ` : ''}
                 </div>
                 <div style="text-align: right;">
-                  <p style="color: #a89968; font-weight: 700; font-size: 1.2rem; margin: 0;">
-                    ${(pedido.total / 100).toFixed(2)}€
+                  <p class="pedido-total">
+                    ${parseFloat(pedido.total).toFixed(2)}€
                   </p>
                 </div>
               </div>
 
-              <div style="padding: 1.5rem;">
-                <h4 style="color: #001a33; margin: 0 0 1rem 0;">Productos (${pedido.pedido_items.length})</h4>
+              <div class="pedido-body">
+                <h4 class="pedido-productos-title">Productos (${pedido.pedido_items.length})</h4>
                 ${pedido.pedido_items.map((item, index) => {
-                  const precioUnitario = (parseFloat(item.precio_unitario) / 100) || (parseFloat(item.subtotal) / item.cantidad / 100);
-                  const subtotal = parseFloat(item.subtotal) / 100 || (precioUnitario * item.cantidad);
+                  const precioUnitario = parseFloat(item.precio_unitario) || (parseFloat(item.subtotal) / item.cantidad);
+                  const subtotal = parseFloat(item.subtotal) || (precioUnitario * item.cantidad);
                   return `
-                  <div style="
-                    padding: 0.75rem;
-                    border-bottom: 1px solid #e0d5c7;
-                    display: grid;
-                    grid-template-columns: 1fr auto;
-                    gap: 1rem;
-                    align-items: center;
-                  ">
+                  <div class="pedido-item">
                     <div>
-                      <p style="color: #001a33; font-weight: 600; margin: 0 0 0.25rem 0;">
+                      <p class="pedido-item-nombre">
                         ${item.nombre_producto}
-                        ${item.peso_kg ? `<span style="color: #a89968; font-weight: 400; font-size: 0.9rem;">(${item.peso_kg.toFixed(3)} kg)</span>` : ''}
+                        ${item.peso_kg ? `<span class="pedido-item-peso">(${item.peso_kg.toFixed(3)} kg)</span>` : ''}
                       </p>
-                      <p style="color: #5c4a3d; margin: 0; font-size: 0.9rem;">Cantidad: ${item.cantidad} x ${precioUnitario.toFixed(2)}€</p>
+                      <p class="pedido-item-cantidad">Cantidad: ${item.cantidad} x ${precioUnitario.toFixed(2)}€</p>
                     </div>
                     <div style="text-align: right;">
-                      <p style="color: #001a33; font-weight: 600; margin: 0;">
+                      <p class="pedido-item-precio">
                         ${subtotal.toFixed(2)}€
                       </p>
                     </div>
                   </div>
                 `;}).join('')}
 
-                <div style="padding: 1rem 0; border-top: 2px solid #e0d5c7; margin-top: 1rem;">
-                  <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; margin-bottom: 0.5rem;">
-                    <span style="color: #5c4a3d;">Subtotal</span>
-                    <span style="color: #001a33; font-weight: 600;">${(pedido.subtotal / 100).toFixed(2)}€</span>
+                <div class="pedido-totales">
+                  <div class="pedido-totales-row">
+                    <span class="pedido-totales-label">Subtotal</span>
+                    <span class="pedido-totales-value">${parseFloat(pedido.subtotal).toFixed(2)}€</span>
                   </div>
                   ${pedido.envio > 0 ? `
-                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; margin-bottom: 0.5rem;">
-                      <span style="color: #5c4a3d;">Envío</span>
-                      <span style="color: #001a33; font-weight: 600;">${(pedido.envio / 100).toFixed(2)}€</span>
+                    <div class="pedido-totales-row">
+                      <span class="pedido-totales-label">Envío</span>
+                      <span class="pedido-totales-value">${parseFloat(pedido.envio).toFixed(2)}€</span>
                     </div>
                   ` : ''}
                   ${pedido.impuestos > 0 ? `
-                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; margin-bottom: 0.5rem;">
-                      <span style="color: #5c4a3d;">Impuestos</span>
-                      <span style="color: #001a33; font-weight: 600;">${(pedido.impuestos / 100).toFixed(2)}€</span>
+                    <div class="pedido-totales-row">
+                      <span class="pedido-totales-label">Impuestos</span>
+                      <span class="pedido-totales-value">${parseFloat(pedido.impuestos).toFixed(2)}€</span>
                     </div>
                   ` : ''}
-                  <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; border-top: 1px solid #e0d5c7; padding-top: 0.75rem; margin-top: 0.75rem;">
-                    <span style="color: #001a33; font-weight: 700;">Total</span>
-                    <span style="color: #a89968; font-weight: 700; font-size: 1.1rem;">${(pedido.total / 100).toFixed(2)}€</span>
+                  <div class="pedido-totales-row pedido-totales-final">
+                    <span class="pedido-totales-label">Total</span>
+                    <span class="pedido-totales-value">${parseFloat(pedido.total).toFixed(2)}€</span>
                   </div>
                 </div>
               </div>
@@ -360,9 +443,9 @@ import Layout from '../../layouts/Layout.astro';
         console.error('Error:', error);
         document.getElementById('loadingMessage').style.display = 'none';
         document.getElementById('pedidosContent').innerHTML = `
-          <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; border-left: 4px solid #f5576c;">
-            <h2 style="color: #001a33; margin: 0 0 1rem 0;">Error</h2>
-            <p style="color: #5c4a3d; margin: 0;">No se pudieron cargar los pedidos.</p>
+          <div class="pedido-error">
+            <h2>Error</h2>
+            <p>No se pudieron cargar los pedidos.</p>
           </div>
         `;
       }
@@ -469,4 +552,4 @@ import Layout from '../../layouts/Layout.astro';
     // Cargar pedidos al iniciar
     cargarPedidos('todos');
   </script>
-</Layout>
+</ProtectedLayout>
