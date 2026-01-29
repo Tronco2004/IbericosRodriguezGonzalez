@@ -1244,9 +1244,19 @@ export const prerender = false;
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.05); }
+    }
   </style>
 
   <script>
+    // Variables globales para el producto actual
+    let productoActual = null;
+    let variantesDisponibles = [];
+    let varianteSeleccionada = null;
+    let precioActual = 0;
+
     async function cargarProducto() {
       try {
         const productoId = window.location.pathname.split('/').pop();
@@ -1265,6 +1275,13 @@ export const prerender = false;
           return;
         }
 
+        productoActual = producto;
+
+        // Si es producto variable, cargar las variantes disponibles
+        if (producto.es_variable) {
+          await cargarVariantes(producto.id);
+        }
+
         let oferta = null;
         try {
           const ofertasResponse = await fetch('/api/ofertas');
@@ -1279,102 +1296,329 @@ export const prerender = false;
         const precioOriginal = producto.precio_centimos / 100;
         const precioFinal = oferta ? (oferta.precio_descuento_centimos / 100) : precioOriginal;
         const porcentajeDescuento = oferta ? oferta.porcentaje_descuento : 0;
+        precioActual = precioFinal;
 
-        const html = `
-          <!-- BREADCRUMB -->
-          <div class="js-breadcrumb">
-            <a href="/productos" class="js-breadcrumb-link">Catálogo</a>
-            <span class="js-breadcrumb-sep">/</span>
-            <span class="js-breadcrumb-current">${producto.nombre}</span>
-          </div>
+        // Determinar disponibilidad y estado del stock
+        let stockDisponible = 0;
+        let estaDisponible = false;
+        let textoStock = '';
+        let estadoStock = 'agotado'; // agotado, ultima, agotandose, disponible
+        let colorStock = '#dc2626';
 
-          <!-- MAIN CONTAINER -->
-          <div class="js-main-grid">
-            
-            <!-- LEFT: IMAGES -->
-            <div class="js-images-column">
-              
-              <!-- MAIN IMAGE -->
-              <div class="js-main-image-container">
-                ${oferta ? `<div class="js-discount-badge">-${porcentajeDescuento}% OFF</div>` : ''}
-                <img id="mainImage" src="${producto.imagen_url}" alt="${producto.nombre}" class="js-main-image" />
-              </div>
+        if (producto.es_variable) {
+          // Producto con variantes de peso
+          stockDisponible = variantesDisponibles.length;
+          estaDisponible = stockDisponible > 0;
+          
+          if (stockDisponible === 0) {
+            estadoStock = 'agotado';
+            textoStock = 'Sin stock disponible';
+            colorStock = '#dc2626';
+          } else if (stockDisponible === 1) {
+            estadoStock = 'ultima';
+            textoStock = '¡Última unidad!';
+            colorStock = '#dc2626';
+          } else if (stockDisponible <= 3) {
+            estadoStock = 'agotandose';
+            textoStock = `¡Solo ${stockDisponible} disponibles!`;
+            colorStock = '#f59e0b';
+          } else {
+            estadoStock = 'disponible';
+            textoStock = `${stockDisponible} pesos disponibles`;
+            colorStock = '#22c55e';
+          }
+        } else {
+          // Producto simple con stock
+          stockDisponible = producto.stock || 0;
+          estaDisponible = stockDisponible > 0;
+          
+          if (stockDisponible === 0) {
+            estadoStock = 'agotado';
+            textoStock = 'Agotado';
+            colorStock = '#dc2626';
+          } else if (stockDisponible === 1) {
+            estadoStock = 'ultima';
+            textoStock = '¡Última unidad!';
+            colorStock = '#dc2626';
+          } else if (stockDisponible <= 5) {
+            estadoStock = 'agotandose';
+            textoStock = `¡Solo ${stockDisponible} unidades!`;
+            colorStock = '#f59e0b';
+          } else {
+            estadoStock = 'disponible';
+            textoStock = `${stockDisponible} en stock`;
+            colorStock = '#22c55e';
+          }
+        }
 
-              <!-- THUMBNAILS -->
-              <div class="js-thumbnails-grid">
-                <div class="thumbnail js-thumbnail active" onclick="cambiarImagen('${producto.imagen_url}', this)">
-                  <img src="${producto.imagen_url}" alt="Vista 1" class="js-thumb-img" />
-                </div>
-                <div class="thumbnail js-thumbnail" onclick="cambiarImagen('${producto.imagen_url}', this)">
-                  <img src="${producto.imagen_url}" alt="Vista 2" class="js-thumb-img" />
-                </div>
-                <div class="thumbnail js-thumbnail" onclick="cambiarImagen('${producto.imagen_url}', this)">
-                  <img src="${producto.imagen_url}" alt="Vista 3" class="js-thumb-img" />
-                </div>
-                <div class="thumbnail js-thumbnail" onclick="cambiarImagen('${producto.imagen_url}', this)">
-                  <img src="${producto.imagen_url}" alt="Vista 4" class="js-thumb-img" />
-                </div>
-              </div>
-            </div>
-
-            <!-- RIGHT: DETAILS -->
-            <div class="js-details-column">
-              
-              <!-- HEADER -->
-              <div class="js-product-header">
-                <span class="js-category-badge">${producto.categorias?.nombre || 'Producto Premium'}</span>
-                <h1 class="js-product-title">${producto.nombre}</h1>
-                <div class="js-stock-badge">✓ En stock</div>
-                <div class="js-rating">
-                  <span class="js-rating-stars">★ ★ ★ ★ ★</span>
-                  <span class="js-rating-text">${producto.rating || 4.9}/5 (${Math.floor(Math.random() * 100) + 50} reseñas)</span>
-                </div>
-              </div>
-
-              <!-- PRICE -->
-              <div class="js-price-section">
-                <div class="js-price-main">€${precioFinal.toFixed(2)}</div>
-                ${oferta ? `<div class="js-price-original">€${precioOriginal.toFixed(2)}</div>` : ''}
-              </div>
-
-              <!-- DESCRIPTION -->
-              <p class="js-description">${producto.descripcion || 'Producto de calidad premium seleccionado especialmente para usted.'}</p>
-
-              <!-- BENEFITS -->
-              <div class="js-benefits-grid">
-                <div class="js-benefit-item">
-                  <div class="js-benefit-icon">G</div>
-                  <div class="js-benefit-content">
-                    <div class="js-benefit-title">Garantizado</div>
-                    <div class="js-benefit-desc">Frescura asegurada</div>
-                  </div>
-                </div>
-                <div class="js-benefit-item">
-                  <div class="js-benefit-icon">E</div>
-                  <div class="js-benefit-content">
-                    <div class="js-benefit-title">Entrega Rápida</div>
-                    <div class="js-benefit-desc">2-3 días laborales</div>
-                  </div>
-                </div>
-                <div class="js-benefit-item">
-                  <div class="js-benefit-icon">P</div>
-                  <div class="js-benefit-content">
-                    <div class="js-benefit-title">Pago Seguro</div>
-                    <div class="js-benefit-desc">100% protegido</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        `;
+        const html = generarHTMLProducto(producto, oferta, precioOriginal, precioFinal, porcentajeDescuento, estaDisponible, textoStock, stockDisponible, colorStock, estadoStock);
 
         document.getElementById('productDetails').innerHTML = html;
         document.getElementById('productDetails').style.display = 'block';
         document.getElementById('loadingMessage').style.display = 'none';
 
+        // Configurar eventos después de renderizar
+        configurarEventos(producto, estaDisponible);
+
       } catch (error) {
         console.error('Error:', error);
         mostrarError('Error al cargar el producto');
+      }
+    }
+
+    async function cargarVariantes(productoId) {
+      try {
+        const response = await fetch(`/api/variantes/${productoId}`);
+        const data = await response.json();
+        
+        if (data.success && data.variantes) {
+          // Solo variantes disponibles del servidor
+          let disponibles = data.variantes.filter(v => v.disponible === true);
+          
+          // También filtrar las variantes que ya están en el carrito local del invitado
+          const carritoLocal = JSON.parse(localStorage.getItem('carrito_invitado') || '[]');
+          const variantesEnCarritoLocal = carritoLocal
+            .filter(item => item.producto_id === parseInt(productoId) && item.producto_variante_id)
+            .map(item => item.producto_variante_id);
+          
+          variantesDisponibles = disponibles.filter(v => !variantesEnCarritoLocal.includes(v.id));
+          console.log('✅ Variantes del servidor:', disponibles.length);
+          console.log('✅ Variantes en carrito local:', variantesEnCarritoLocal);
+          console.log('✅ Variantes realmente disponibles:', variantesDisponibles.length);
+        }
+      } catch (error) {
+        console.error('Error cargando variantes:', error);
+        variantesDisponibles = [];
+      }
+    }
+
+    function generarHTMLProducto(producto, oferta, precioOriginal, precioFinal, porcentajeDescuento, estaDisponible, textoStock, stockDisponible, colorStock, estadoStock) {
+      // Precio por kg para productos variables
+      const precioPorKg = producto.precio_por_kg || (producto.precio_centimos / 100);
+      
+      // Generar opciones de variantes o cantidad
+      let opcionesHTML = '';
+      
+      if (producto.es_variable && variantesDisponibles.length > 0) {
+        // Producto con variantes de peso - precio_total está en céntimos
+        opcionesHTML = `
+          <div class="js-option-group">
+            <label class="js-option-label">Seleccionar peso <span class="js-required">*</span></label>
+            <div class="js-radio-group" id="variantesContainer">
+              ${variantesDisponibles.map((v, index) => `
+                <label class="js-radio-option">
+                  <input 
+                    type="radio" 
+                    name="variante" 
+                    value="${v.id}" 
+                    data-peso="${v.peso_kg}"
+                    data-precio="${v.precio_total}"
+                    class="js-radio-input"
+                    ${index === 0 ? 'checked' : ''}
+                  />
+                  <span class="js-radio-label">${v.peso_kg} kg</span>
+                  <span class="js-price-extra">€${(Number(v.precio_total) / 100).toFixed(2)}</span>
+                </label>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else if (!producto.es_variable && stockDisponible > 0) {
+        // Producto simple con stock - selector de cantidad
+        opcionesHTML = `
+          <div class="js-quantity-row">
+            <label class="js-quantity-label">Cantidad:</label>
+            <input 
+              type="number" 
+              id="cantidad" 
+              value="1" 
+              min="1" 
+              max="${stockDisponible}" 
+              class="js-quantity-input"
+            />
+            <span class="js-stock-info" style="font-size: 0.85rem; color: var(--text-muted);">
+              (Máx. ${stockDisponible})
+            </span>
+          </div>
+        `;
+      }
+
+      return `
+        <!-- BREADCRUMB -->
+        <div class="js-breadcrumb">
+          <a href="/productos" class="js-breadcrumb-link">Catálogo</a>
+          <span class="js-breadcrumb-sep">/</span>
+          <span class="js-breadcrumb-current">${producto.nombre}</span>
+        </div>
+
+        <!-- MAIN CONTAINER -->
+        <div class="js-main-grid">
+          
+          <!-- LEFT: IMAGES -->
+          <div class="js-images-column">
+            
+            <!-- MAIN IMAGE -->
+            <div class="js-main-image-container">
+              ${oferta ? `<div class="js-discount-badge">-${porcentajeDescuento}% OFF</div>` : ''}
+              <img id="mainImage" src="${producto.imagen_url}" alt="${producto.nombre}" class="js-main-image" />
+            </div>
+
+            <!-- THUMBNAILS -->
+            <div class="js-thumbnails-grid">
+              <div class="thumbnail js-thumbnail active" onclick="cambiarImagen('${producto.imagen_url}', this)">
+                <img src="${producto.imagen_url}" alt="Vista 1" class="js-thumb-img" />
+              </div>
+              <div class="thumbnail js-thumbnail" onclick="cambiarImagen('${producto.imagen_url}', this)">
+                <img src="${producto.imagen_url}" alt="Vista 2" class="js-thumb-img" />
+              </div>
+              <div class="thumbnail js-thumbnail" onclick="cambiarImagen('${producto.imagen_url}', this)">
+                <img src="${producto.imagen_url}" alt="Vista 3" class="js-thumb-img" />
+              </div>
+              <div class="thumbnail js-thumbnail" onclick="cambiarImagen('${producto.imagen_url}', this)">
+                <img src="${producto.imagen_url}" alt="Vista 4" class="js-thumb-img" />
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT: DETAILS -->
+          <div class="js-details-column">
+            
+            <!-- HEADER -->
+            <div class="js-product-header">
+              <span class="js-category-badge">${producto.categorias?.nombre || 'Producto Premium'}</span>
+              <h1 class="js-product-title">${producto.nombre}</h1>
+              <div class="js-stock-badge" id="stockBadge" data-estado="${estadoStock}" style="color: ${colorStock};">
+                <span id="stockTexto">${textoStock}</span>
+              </div>
+              <div class="js-rating">
+                <span class="js-rating-stars">★ ★ ★ ★ ★</span>
+                <span class="js-rating-text">${producto.rating || 4.9}/5 (${Math.floor(Math.random() * 100) + 50} reseñas)</span>
+              </div>
+            </div>
+
+            <!-- PRICE -->
+            <div class="js-price-section">
+              ${producto.es_variable ? `
+                <div class="js-price-main" style="font-size: 1.8rem;">€${Number(precioPorKg).toFixed(2)}/kg</div>
+                <div id="precioDisplay" style="font-size: 1.4rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                  ${variantesDisponibles.length > 0 
+                    ? `Pieza seleccionada: €${(Number(variantesDisponibles[0].precio_total) / 100).toFixed(2)}` 
+                    : 'Sin piezas disponibles'}
+                </div>
+              ` : `
+                <div class="js-price-main" id="precioDisplay">€${precioFinal.toFixed(2)}</div>
+                ${oferta ? `<div class="js-price-original">€${precioOriginal.toFixed(2)}</div>` : ''}
+              `}
+            </div>
+
+            <!-- DESCRIPTION -->
+            <p class="js-description">${producto.descripcion || 'Producto de calidad premium seleccionado especialmente para usted.'}</p>
+
+            <!-- OPTIONS SECTION -->
+            ${estaDisponible ? `
+              <div class="js-options-section">
+                ${opcionesHTML}
+                
+                <button 
+                  type="button" 
+                  class="js-add-to-cart" 
+                  id="btnAgregarCarrito"
+                  data-producto-id="${producto.id}"
+                >
+                  🛒 Añadir al carrito
+                </button>
+              </div>
+            ` : `
+              <div class="js-options-section" style="text-align: center;">
+                <div style="padding: 2rem; color: var(--text-muted);">
+                  <p style="margin-top: 1rem; font-weight: 600;">Producto no disponible</p>
+                  <p style="font-size: 0.9rem;">Lo sentimos, este producto está agotado actualmente.</p>
+                </div>
+              </div>
+            `}
+
+            <!-- BENEFITS -->
+            <div class="js-benefits-grid">
+              <div class="js-benefit-item">
+                <div class="js-benefit-icon">G</div>
+                <div class="js-benefit-content">
+                  <div class="js-benefit-title">Garantizado</div>
+                  <div class="js-benefit-desc">Frescura asegurada</div>
+                </div>
+              </div>
+              <div class="js-benefit-item">
+                <div class="js-benefit-icon">E</div>
+                <div class="js-benefit-content">
+                  <div class="js-benefit-title">Entrega Rápida</div>
+                  <div class="js-benefit-desc">2-3 días laborales</div>
+                </div>
+              </div>
+              <div class="js-benefit-item">
+                <div class="js-benefit-icon">P</div>
+                <div class="js-benefit-content">
+                  <div class="js-benefit-title">Pago Seguro</div>
+                  <div class="js-benefit-desc">100% protegido</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function configurarEventos(producto, estaDisponible) {
+      if (!estaDisponible) return;
+
+      // Evento para cambio de variante (productos con peso)
+      if (producto.es_variable) {
+        const radios = document.querySelectorAll('input[name="variante"]');
+        radios.forEach(radio => {
+          radio.addEventListener('change', function() {
+            const precioCentimos = this.getAttribute('data-precio');
+            const peso = this.getAttribute('data-peso');
+            varianteSeleccionada = {
+              id: parseInt(this.value),
+              peso_kg: parseFloat(peso),
+              precio_total: parseFloat(precioCentimos) // Guardamos en céntimos
+            };
+            document.getElementById('precioDisplay').textContent = `Pieza seleccionada: €${(Number(precioCentimos) / 100).toFixed(2)}`;
+            console.log('Variante seleccionada:', varianteSeleccionada);
+          });
+        });
+
+        // Seleccionar primera variante por defecto
+        if (radios.length > 0) {
+          const primeraVariante = radios[0];
+          varianteSeleccionada = {
+            id: parseInt(primeraVariante.value),
+            peso_kg: parseFloat(primeraVariante.getAttribute('data-peso')),
+            precio_total: parseFloat(primeraVariante.getAttribute('data-precio'))
+          };
+        }
+      } else {
+        // Producto simple - validar cantidad máxima
+        const inputCantidad = document.getElementById('cantidad');
+        if (inputCantidad) {
+          inputCantidad.addEventListener('change', function() {
+            const max = parseInt(this.getAttribute('max'));
+            let valor = parseInt(this.value);
+            
+            if (valor < 1) valor = 1;
+            if (valor > max) {
+              valor = max;
+              mostrarNotificacion(`Solo hay ${max} unidades disponibles`, true);
+            }
+            this.value = valor;
+          });
+        }
+      }
+
+      // Evento del botón agregar al carrito
+      const btnAgregar = document.getElementById('btnAgregarCarrito');
+      if (btnAgregar) {
+        btnAgregar.addEventListener('click', function() {
+          agregarAlCarrito(producto.id);
+        });
       }
     }
 
@@ -1460,8 +1704,29 @@ export const prerender = false;
           return;
         }
 
-        const cantidad = parseInt(document.getElementById('cantidad').value) || 1;
-        const corte = document.querySelector('input[name="corte"]:checked').value;
+        let bodyData = {
+          producto_id: productoId,
+          user_id: userId
+        };
+
+        if (productoActual.es_variable) {
+          // Producto con variantes de peso
+          if (!varianteSeleccionada) {
+            mostrarNotificacion('Selecciona un peso', true);
+            return;
+          }
+          bodyData.producto_variante_id = varianteSeleccionada.id;
+          bodyData.peso_kg = varianteSeleccionada.peso_kg;
+          bodyData.cantidad = 1; // Las variantes son únicas
+        } else {
+          // Producto simple
+          const cantidad = parseInt(document.getElementById('cantidad')?.value) || 1;
+          bodyData.cantidad = cantidad;
+          bodyData.producto_variante_id = null;
+          bodyData.peso_kg = null;
+        }
+
+        console.log('Enviando al carrito:', bodyData);
 
         const response = await fetch('/api/carrito', {
           method: 'POST',
@@ -1469,20 +1734,25 @@ export const prerender = false;
             'Content-Type': 'application/json',
             'x-user-id': userId
           },
-          body: JSON.stringify({
-            producto_id: productoId,
-            cantidad: cantidad,
-            user_id: userId,
-            producto_variante_id: null,
-            peso_kg: null
-          })
+          body: JSON.stringify(bodyData)
         });
 
         const data = await response.json();
         if (data.success || response.ok) {
           mostrarNotificacion('✓ Producto agregado al carrito');
-          // Disparar evento para actualizar el carrito
           window.dispatchEvent(new CustomEvent('carritoActualizado'));
+          
+          // Actualizar UI según tipo de producto
+          if (productoActual.es_variable && varianteSeleccionada) {
+            // Producto variable: eliminar variante de la lista disponible
+            variantesDisponibles = variantesDisponibles.filter(v => v.id !== varianteSeleccionada.id);
+            actualizarVariantesUI();
+          } else {
+            // Producto simple: actualizar stock local
+            const cantidadAgregada = parseInt(document.getElementById('cantidad')?.value) || 1;
+            productoActual.stock = Math.max(0, (productoActual.stock || 0) - cantidadAgregada);
+            actualizarStockProductoSimple();
+          }
         } else {
           mostrarNotificacion('❌ Error: ' + (data.message || data.error), true);
         }
@@ -1492,15 +1762,188 @@ export const prerender = false;
       }
     }
 
+    // Función para actualizar UI de producto simple
+    function actualizarStockProductoSimple() {
+      const stockDisponible = productoActual.stock || 0;
+      
+      // Actualizar el badge de stock
+      actualizarEstadoStock(stockDisponible, false);
+      
+      // Actualizar el input de cantidad (máximo)
+      const inputCantidad = document.getElementById('cantidad');
+      if (inputCantidad) {
+        inputCantidad.max = stockDisponible;
+        if (parseInt(inputCantidad.value) > stockDisponible) {
+          inputCantidad.value = stockDisponible;
+        }
+        
+        // Actualizar texto de máximo
+        const stockInfo = inputCantidad.parentElement?.querySelector('.js-stock-info');
+        if (stockInfo) {
+          stockInfo.textContent = stockDisponible > 0 ? `(Máx. ${stockDisponible})` : '(Agotado)';
+        }
+      }
+      
+      // Si se agotó, deshabilitar botón
+      if (stockDisponible === 0) {
+        const btnAgregar = document.getElementById('btnAgregarCarrito');
+        if (btnAgregar) {
+          btnAgregar.disabled = true;
+          btnAgregar.style.opacity = '0.5';
+          btnAgregar.style.cursor = 'not-allowed';
+        }
+        if (inputCantidad) {
+          inputCantidad.disabled = true;
+        }
+      }
+    }
+
+    function actualizarVariantesUI() {
+      const container = document.getElementById('variantesContainer');
+      if (!container) return;
+
+      if (variantesDisponibles.length === 0) {
+        // No quedan variantes disponibles
+        container.innerHTML = `
+          <div style="padding: 1rem; text-align: center; color: var(--text-muted);">
+            No hay más pesos disponibles
+          </div>
+        `;
+        const btnAgregar = document.getElementById('btnAgregarCarrito');
+        if (btnAgregar) {
+          btnAgregar.disabled = true;
+          btnAgregar.style.opacity = '0.5';
+          btnAgregar.style.cursor = 'not-allowed';
+        }
+        // Actualizar badge de stock a agotado
+        actualizarEstadoStock(0, true);
+        return;
+      }
+
+      // Actualizar estado del stock
+      actualizarEstadoStock(variantesDisponibles.length, true);
+
+      // Actualizar lista de variantes
+      container.innerHTML = variantesDisponibles.map((v, index) => `
+        <label class="js-radio-option">
+          <input 
+            type="radio" 
+            name="variante" 
+            value="${v.id}" 
+            data-peso="${v.peso_kg}"
+            data-precio="${v.precio_total}"
+            class="js-radio-input"
+            ${index === 0 ? 'checked' : ''}
+          />
+          <span class="js-radio-label">${v.peso_kg} kg</span>
+          <span class="js-price-extra">€${(Number(v.precio_total) / 100).toFixed(2)}</span>
+        </label>
+      `).join('');
+
+      // Reconfigurar eventos
+      const radios = container.querySelectorAll('input[name="variante"]');
+      radios.forEach(radio => {
+        radio.addEventListener('change', function() {
+          const precioCentimos = this.getAttribute('data-precio');
+          const peso = this.getAttribute('data-peso');
+          varianteSeleccionada = {
+            id: parseInt(this.value),
+            peso_kg: parseFloat(peso),
+            precio_total: parseFloat(precioCentimos)
+          };
+          document.getElementById('precioDisplay').textContent = `Pieza seleccionada: €${(Number(precioCentimos) / 100).toFixed(2)}`;
+        });
+      });
+
+      // Seleccionar primera variante
+      if (radios.length > 0) {
+        const primeraVariante = radios[0];
+        varianteSeleccionada = {
+          id: parseInt(primeraVariante.value),
+          peso_kg: parseFloat(primeraVariante.getAttribute('data-peso')),
+          precio_total: parseFloat(primeraVariante.getAttribute('data-precio'))
+        };
+        document.getElementById('precioDisplay').textContent = `Pieza seleccionada: €${(varianteSeleccionada.precio_total / 100).toFixed(2)}`;
+      }
+    }
+
+    // Función para actualizar el estado del stock en tiempo real
+    function actualizarEstadoStock(cantidad, esVariable = false) {
+      const badge = document.getElementById('stockBadge');
+      const textoEl = document.getElementById('stockTexto');
+      if (!badge || !textoEl) return;
+
+      let textoStock = '';
+      let colorStock = '#22c55e';
+      let estadoStock = 'disponible';
+
+      if (esVariable) {
+        // Producto con variantes
+        if (cantidad === 0) {
+          estadoStock = 'agotado';
+          textoStock = 'Sin stock disponible';
+          colorStock = '#dc2626';
+        } else if (cantidad === 1) {
+          estadoStock = 'ultima';
+          textoStock = '¡Última unidad!';
+          colorStock = '#dc2626';
+        } else if (cantidad <= 3) {
+          estadoStock = 'agotandose';
+          textoStock = `¡Solo ${cantidad} disponibles!`;
+          colorStock = '#f59e0b';
+        } else {
+          estadoStock = 'disponible';
+          textoStock = `${cantidad} pesos disponibles`;
+          colorStock = '#22c55e';
+        }
+      } else {
+        // Producto simple
+        if (cantidad === 0) {
+          estadoStock = 'agotado';
+          textoStock = 'Agotado';
+          colorStock = '#dc2626';
+        } else if (cantidad === 1) {
+          estadoStock = 'ultima';
+          textoStock = '¡Última unidad!';
+          colorStock = '#dc2626';
+        } else if (cantidad <= 5) {
+          estadoStock = 'agotandose';
+          textoStock = `¡Solo ${cantidad} unidades!`;
+          colorStock = '#f59e0b';
+        } else {
+          estadoStock = 'disponible';
+          textoStock = `${cantidad} en stock`;
+          colorStock = '#22c55e';
+        }
+      }
+
+      // Actualizar UI
+      badge.style.color = colorStock;
+      badge.dataset.estado = estadoStock;
+      badge.innerHTML = `<span id="stockTexto">${textoStock}</span>`;
+    }
+
     // Agregar al carrito local para invitados
     function agregarAlCarritoLocal(productoId) {
       try {
-        const cantidad = parseInt(document.getElementById('cantidad').value) || 1;
-        const nombre = document.querySelector('h1')?.textContent || 'Producto';
-        const precioElement = document.querySelector('[data-product-price]');
-        const precio = parseInt(precioElement?.getAttribute('data-product-price') || '0');
-        const imagenElement = document.querySelector('img[alt*="Jamón"]');
-        const imagen = imagenElement?.src || '';
+        let cantidad = 1;
+        let varianteId = null;
+        let pesoKg = null;
+        let precioUnitario = 0;
+
+        if (productoActual.es_variable) {
+          if (!varianteSeleccionada) {
+            mostrarNotificacion('Selecciona un peso', true);
+            return;
+          }
+          varianteId = varianteSeleccionada.id;
+          pesoKg = varianteSeleccionada.peso_kg;
+          // precio_total ya está en céntimos
+          precioUnitario = Math.round(varianteSeleccionada.precio_total);
+        } else {
+          cantidad = parseInt(document.getElementById('cantidad')?.value) || 1;
+          precioUnitario = productoActual.precio_centimos;
+        }
 
         // Obtener carrito actual
         let carrito = JSON.parse(localStorage.getItem('carrito_invitado') || '[]');
@@ -1509,21 +1952,42 @@ export const prerender = false;
         const item = {
           id: Date.now(),
           producto_id: parseInt(productoId),
-          nombre,
-          precio_unitario: precio,
+          nombre: productoActual.nombre,
+          precio_unitario: precioUnitario,
           cantidad,
-          imagen,
-          fecha_agregado: new Date().toISOString()
+          imagen: productoActual.imagen_url,
+          fecha_agregado: new Date().toISOString(),
+          producto_variante_id: varianteId,
+          peso_kg: pesoKg
         };
 
-        // Verificar si ya existe
-        const existe = carrito.find(c => c.producto_id === parseInt(productoId));
-        if (existe) {
-          existe.cantidad += cantidad;
-          mostrarNotificacion(`✓ Producto actualizado (${existe.cantidad}x)`);
+        // Verificar si ya existe (solo para productos simples)
+        if (!productoActual.es_variable) {
+          const existe = carrito.find(c => c.producto_id === parseInt(productoId) && !c.producto_variante_id);
+          if (existe) {
+            const maxStock = productoActual.stock || 99;
+            if (existe.cantidad + cantidad > maxStock) {
+              mostrarNotificacion(`Solo hay ${maxStock} unidades disponibles`, true);
+              return;
+            }
+            existe.cantidad += cantidad;
+            mostrarNotificacion(`✓ Producto actualizado (${existe.cantidad}x)`);
+          } else {
+            carrito.push(item);
+            mostrarNotificacion('✓ Producto agregado al carrito');
+          }
+          
+          // Actualizar stock local y UI para producto simple
+          productoActual.stock = Math.max(0, (productoActual.stock || 0) - cantidad);
+          actualizarStockProductoSimple();
         } else {
+          // Las variantes son únicas
           carrito.push(item);
           mostrarNotificacion('✓ Producto agregado al carrito');
+          
+          // Actualizar UI de variantes
+          variantesDisponibles = variantesDisponibles.filter(v => v.id !== varianteSeleccionada.id);
+          actualizarVariantesUI();
         }
 
         // Guardar en localStorage

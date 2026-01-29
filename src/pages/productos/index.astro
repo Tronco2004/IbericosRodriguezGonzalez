@@ -1084,17 +1084,22 @@ import Layout from '../../layouts/Layout.astro';
         return;
       }
 
+      // Obtener variantes en el carrito local para filtrarlas
+      const carritoLocal = JSON.parse(localStorage.getItem('carrito_invitado') || '[]');
+
       // MOSTRAR todos los productos (no filtrar)
       // Los productos variables sin variantes disponibles se mostrarán como "Agotado"
 
       // Ordenar: productos disponibles primero, agotados al final
       const productosOrdenados = productos.sort((a, b) => {
         const todasLasVariantesA = variantesMap[a.id] || [];
-        const variantesConStockA = todasLasVariantesA.filter(v => v.disponible === true);
+        const variantesEnCarritoA = carritoLocal.filter(item => item.producto_id === a.id && item.producto_variante_id).map(item => item.producto_variante_id);
+        const variantesConStockA = todasLasVariantesA.filter(v => v.disponible === true && !variantesEnCarritoA.includes(v.id));
         const agotadoA = (!a.es_variable && a.stock <= 0) || (a.es_variable && variantesConStockA.length === 0);
         
         const todasLasVariantesB = variantesMap[b.id] || [];
-        const variantesConStockB = todasLasVariantesB.filter(v => v.disponible === true);
+        const variantesEnCarritoB = carritoLocal.filter(item => item.producto_id === b.id && item.producto_variante_id).map(item => item.producto_variante_id);
+        const variantesConStockB = todasLasVariantesB.filter(v => v.disponible === true && !variantesEnCarritoB.includes(v.id));
         const agotadoB = (!b.es_variable && b.stock <= 0) || (b.es_variable && variantesConStockB.length === 0);
         
         // Si uno está agotado y otro no, el disponible va primero
@@ -1107,9 +1112,10 @@ import Layout from '../../layouts/Layout.astro';
         const botonText = p.es_variable ? 'Seleccionar Peso' : 'Añadir al Carrito';
         const botonClass = p.es_variable ? 'btn-seleccionar-variante' : 'btn-agregar-carrito';
         
-        // Verificar si es producto variable y tiene variantes con stock disponible
+        // Verificar si es producto variable y tiene variantes con stock disponible (filtrando las del carrito local)
         const todasLasVariantes = variantesMap[p.id] || [];
-        const variantesConStock = todasLasVariantes.filter(v => v.disponible === true);
+        const variantesEnCarrito = carritoLocal.filter(item => item.producto_id === p.id && item.producto_variante_id).map(item => item.producto_variante_id);
+        const variantesConStock = todasLasVariantes.filter(v => v.disponible === true && !variantesEnCarrito.includes(v.id));
         
         // El producto está agotado si: (no es variable y no tiene stock) O (es variable y no tiene variantes con stock)
         const productoAgotado = (!p.es_variable && p.stock <= 0) || (p.es_variable && variantesConStock.length === 0);
@@ -1444,12 +1450,20 @@ import Layout from '../../layouts/Layout.astro';
       console.log('Variantes con stock:', variantes);
       console.log('Variantes reservadas pasadas al modal:', variantesReservadas);
       
-      // Filtrar variantes reservadas
+      // Filtrar variantes reservadas del servidor
       const variantesReservadasDelProducto = (variantesReservadas && variantesReservadas[productoId]) ? variantesReservadas[productoId] : [];
       variantes = variantes.filter(v => !variantesReservadasDelProducto.includes(v.id));
       
-      console.log('Variantes disponibles después de filtrar reservadas:', variantes.length);
+      // También filtrar las variantes que ya están en el carrito local del invitado
+      const carritoLocal = JSON.parse(localStorage.getItem('carrito_invitado') || '[]');
+      const variantesEnCarritoLocal = carritoLocal
+        .filter(item => item.producto_id === parseInt(productoId) && item.producto_variante_id)
+        .map(item => item.producto_variante_id);
+      variantes = variantes.filter(v => !variantesEnCarritoLocal.includes(v.id));
+      
+      console.log('Variantes disponibles después de filtrar reservadas y carrito local:', variantes.length);
       console.log('Variantes reservadas del producto:', variantesReservadasDelProducto);
+      console.log('Variantes en carrito local:', variantesEnCarritoLocal);
       
       const modal = document.getElementById('varianteModal');
       const title = document.getElementById('varianteModalTitle');
@@ -1495,6 +1509,116 @@ import Layout from '../../layouts/Layout.astro';
 
     function cerrarModalVariantes() {
       document.getElementById('varianteModal').style.display = 'none';
+    }
+
+    // Función para actualizar el estado visual del producto en la tarjeta
+    function actualizarEstadoProducto(productoId, variantesDisponibles) {
+      const card = document.querySelector(`.producto-card[data-id="${productoId}"]`);
+      if (!card) return;
+      
+      console.log(`📊 Actualizando estado producto ${productoId}: ${variantesDisponibles} variantes disponibles`);
+      
+      // Encontrar elementos a actualizar
+      const stockInfo = card.querySelector('.stock-info');
+      const stockLabel = card.querySelector('.stock-label');
+      const imageLink = card.querySelector('a[href^="/productos/"]');
+      const button = card.querySelector('.product-btn');
+      
+      if (variantesDisponibles === 0) {
+        // PRODUCTO AGOTADO
+        console.log('🚫 Producto agotado - actualizando UI');
+        
+        // Actualizar stock-info
+        if (stockInfo) {
+          stockInfo.classList.add('stock-agotado');
+          stockInfo.innerHTML = `
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+            </svg>
+            Agotado
+          `;
+        }
+        
+        // Eliminar o cambiar stock-label
+        if (stockLabel) {
+          stockLabel.remove();
+        }
+        
+        // Añadir overlay de agotado en la imagen
+        if (imageLink) {
+          const existingOverlay = imageLink.querySelector('.agotado-overlay');
+          if (!existingOverlay) {
+            const overlay = document.createElement('div');
+            overlay.className = 'agotado-overlay';
+            overlay.style.cssText = `
+              position: absolute;
+              inset: 0;
+              background: rgba(0,0,0,0.5);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            `;
+            overlay.innerHTML = `
+              <span style="
+                background: rgba(255,255,255,0.95);
+                color: #1a1a1a;
+                padding: 10px 24px;
+                border-radius: 30px;
+                font-weight: 700;
+                font-size: 0.85rem;
+                text-transform: uppercase;
+                letter-spacing: 1.5px;
+              ">Agotado</span>
+            `;
+            imageLink.appendChild(overlay);
+          }
+        }
+        
+        // Deshabilitar botón
+        if (button) {
+          button.disabled = true;
+          button.style.opacity = '0.5';
+          button.style.cursor = 'not-allowed';
+        }
+      } else {
+        // PRODUCTO CON STOCK - actualizar cantidad
+        console.log(`✅ Producto con ${variantesDisponibles} variantes disponibles`);
+        
+        // Actualizar texto de stock-info
+        if (stockInfo) {
+          stockInfo.classList.remove('stock-agotado');
+          stockInfo.innerHTML = `
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+            </svg>
+            ${variantesDisponibles} opción${variantesDisponibles !== 1 ? 'es' : ''}
+          `;
+        }
+        
+        // Actualizar stock-label
+        let newLabel = '';
+        let newLabelClass = '';
+        if (variantesDisponibles === 1) {
+          newLabel = '¡ÚLTIMA UNIDAD!';
+          newLabelClass = 'stock-label stock-label-ultima';
+        } else if (variantesDisponibles <= 5) {
+          newLabel = 'Agotándose';
+          newLabelClass = 'stock-label stock-label-agotandose';
+        } else {
+          newLabel = 'Disponible';
+          newLabelClass = 'stock-label stock-label-disponible';
+        }
+        
+        if (stockLabel) {
+          stockLabel.textContent = newLabel;
+          stockLabel.className = newLabelClass;
+        } else if (stockInfo && stockInfo.parentElement) {
+          const newSpan = document.createElement('span');
+          newSpan.className = newLabelClass;
+          newSpan.textContent = newLabel;
+          stockInfo.parentElement.appendChild(newSpan);
+        }
+      }
     }
 
     async function agregarAlCarritoConVariante(productoId, varianteId, peso) {
@@ -1547,6 +1671,15 @@ import Layout from '../../layouts/Layout.astro';
         if (result.success) {
           console.log('✅ Producto agregado exitosamente');
           mostrarNotificacion(`Jamón de ${peso.toFixed(3)} kg agregado al carrito`, 'exito');
+          
+          // Recargar variantes para actualizar la UI
+          const variantesRes = await fetch(`/api/variantes/obtener-disponibles?producto_id=${productoId}`);
+          const variantesData = await variantesRes.json();
+          if (variantesData.success) {
+            variantesMap[parseInt(productoId)] = variantesData.variantes;
+            actualizarEstadoProducto(parseInt(productoId), variantesData.variantes.length);
+          }
+          
           // Disparar evento para actualizar stock en tiempo real
           window.dispatchEvent(new CustomEvent('carritoActualizado'));
         }
@@ -1639,18 +1772,30 @@ import Layout from '../../layouts/Layout.astro';
         localStorage.setItem('carrito_invitado_fecha', String(Date.now()));
         console.log('✅ Carrito invitado actualizado:', carrito.length, 'items');
         
-        // Recargar variantes desde el servidor
+        // Recargar variantes desde el servidor para actualizar el mapa
         console.log('🔄 Recargando variantes...');
         const variantesRes = await fetch(`/api/variantes/obtener-disponibles?producto_id=${productoId}`);
         const variantesData = await variantesRes.json();
         if (variantesData.success) {
           // Actualizar el mapa de variantes
           variantesMap[parseInt(productoId)] = variantesData.variantes;
-          console.log('✅ Variantes actualizadas:', variantesData.variantes.length);
+          console.log('✅ Variantes del servidor:', variantesData.variantes.length);
           
-          // Re-renderizar las variantes en la UI
-          abrirModalVariantes(parseInt(productoId));
+          // Filtrar las variantes que ya están en el carrito local
+          const carritoLocal = JSON.parse(localStorage.getItem('carrito_invitado') || '[]');
+          const variantesEnCarrito = carritoLocal
+            .filter(item => item.producto_id === parseInt(productoId) && item.producto_variante_id)
+            .map(item => item.producto_variante_id);
+          
+          const variantesRealmenteDisponibles = variantesData.variantes.filter(v => !variantesEnCarrito.includes(v.id));
+          console.log('✅ Variantes realmente disponibles (sin las del carrito):', variantesRealmenteDisponibles.length);
+          
+          // Actualizar la UI de la tarjeta del producto
+          actualizarEstadoProducto(parseInt(productoId), variantesRealmenteDisponibles.length);
         }
+        
+        // Siempre cerrar el modal después de añadir
+        cerrarModal();
         
         // Actualizar cantidad disponible de la variante
         variante.cantidad_disponible -= 1;
