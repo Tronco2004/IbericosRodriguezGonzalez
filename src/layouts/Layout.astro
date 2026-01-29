@@ -930,9 +930,16 @@ const { data: categorias } = await supabaseClient
             Carrito
             <span id="carritoCount" class="cart-count">0</span>
           </a>
-          <div id="carritoTimer" class="cart-timer">cargando...</div>
 
           <div id="authContainer"></div>
+          
+          <div id="carritoTimer" class="cart-timer-inline">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span id="timerText">--:--</span>
+          </div>
         </div>
       </div>
       
@@ -1169,6 +1176,40 @@ const { data: categorias } = await supabaseClient
         display: none;
         white-space: nowrap;
         margin-top: 0.2rem;
+      }
+
+      /* Timer del carrito en línea (a la derecha) */
+      .cart-timer-inline {
+        display: none;
+        align-items: center;
+        gap: 0.4rem;
+        background: rgba(217, 119, 6, 0.15);
+        color: #d97706;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        white-space: nowrap;
+        border: 1px solid rgba(217, 119, 6, 0.3);
+      }
+
+      .cart-timer-inline svg {
+        flex-shrink: 0;
+      }
+
+      .cart-timer-inline.active {
+        display: flex;
+      }
+
+      [data-theme="dark"] .cart-timer-inline {
+        background: rgba(217, 119, 6, 0.2);
+        border-color: rgba(217, 119, 6, 0.4);
+      }
+
+      /* Contenedor de autenticación */
+      #authContainer {
+        display: flex;
+        align-items: center;
       }
 
       /* Overlay móvil */
@@ -1463,8 +1504,15 @@ const { data: categorias } = await supabaseClient
         });
       }
 
-      const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000; // 15 minutos
+      const TIEMPO_EXPIRACION_INVITADO_MS = 5 * 60 * 1000; // 5 minutos para invitados
+      const TIEMPO_EXPIRACION_USUARIO_MS = 15 * 60 * 1000; // 15 minutos para usuarios logueados
       let fetchEnProgreso = false; // Evitar peticiones simultáneas
+
+      // Función para obtener el tiempo de expiración según el tipo de usuario
+      function obtenerTiempoExpiracion() {
+        const userId = localStorage.getItem('user_id');
+        return userId ? TIEMPO_EXPIRACION_USUARIO_MS : TIEMPO_EXPIRACION_INVITADO_MS;
+      }
 
       // Función para actualizar el contador del carrito (INVITADOS Y USUARIOS)
       async function actualizarContadorCarrito() {
@@ -1475,6 +1523,7 @@ const { data: categorias } = await supabaseClient
           const userId = localStorage.getItem('user_id');
           const contador = document.getElementById('carritoCount');
           const timer = document.getElementById('carritoTimer');
+          const TIEMPO_EXPIRACION_MS = obtenerTiempoExpiracion();
           
           let totalItems = 0;
           let fechaMasReciente: number | null = null;
@@ -1510,7 +1559,7 @@ const { data: categorias } = await supabaseClient
                   localStorage.removeItem('carrito_invitado_fecha');
                   carritoInvitado = [];
                   if (contador) contador.style.display = 'none';
-                  if (timer) timer.style.display = 'none';
+                  if (timer) timer.classList.remove('active');
                   return;
                 }
                 
@@ -1531,14 +1580,17 @@ const { data: categorias } = await supabaseClient
             
             // Mostrar timer para invitados
             if (timer && totalItems > 0 && fechaMasReciente) {
+              const timerText = document.getElementById('timerText');
               const ahora = Date.now();
               const tiempoExpiracion = fechaMasReciente + TIEMPO_EXPIRACION_MS;
               const diff = tiempoExpiracion - ahora;
               
               if (diff <= 0) {
-                timer.textContent = '⚠️ Expirado';
+                if (timerText) timerText.textContent = 'Expirado';
+                timer.style.borderColor = 'rgba(220, 38, 38, 0.5)';
+                timer.style.background = 'rgba(220, 38, 38, 0.15)';
                 timer.style.color = '#dc2626';
-                timer.style.display = 'block';
+                timer.classList.add('active');
                 // Liberar stock de variantes antes de limpiar
                 for (const item of carritoInvitado) {
                   if (item.producto_variante_id) {
@@ -1559,12 +1611,22 @@ const { data: categorias } = await supabaseClient
               } else {
                 const minutos = Math.floor(diff / (1000 * 60));
                 const segundos = Math.floor((diff % (1000 * 60)) / 1000);
-                timer.textContent = `${minutos}:${segundos.toString().padStart(2, '0')}`;
-                timer.style.color = diff < 60000 ? '#dc2626' : '#d97706';
-                timer.style.display = 'block';
+                if (timerText) timerText.textContent = `${minutos}:${segundos.toString().padStart(2, '0')}`;
+                
+                // Cambiar color si queda menos de 1 minuto
+                if (diff < 60000) {
+                  timer.style.borderColor = 'rgba(220, 38, 38, 0.5)';
+                  timer.style.background = 'rgba(220, 38, 38, 0.15)';
+                  timer.style.color = '#dc2626';
+                } else {
+                  timer.style.borderColor = 'rgba(217, 119, 6, 0.3)';
+                  timer.style.background = 'rgba(217, 119, 6, 0.15)';
+                  timer.style.color = '#d97706';
+                }
+                timer.classList.add('active');
               }
             } else if (timer) {
-              timer.style.display = 'none';
+              timer.classList.remove('active');
             }
             return;
           }
@@ -1581,7 +1643,7 @@ const { data: categorias } = await supabaseClient
           
           if (response.status === 401 || !response.ok) {
             if (contador) contador.style.display = 'none';
-            if (timer) timer.style.display = 'none';
+            if (timer) timer.classList.remove('active');
             return;
           }
 
@@ -1600,6 +1662,7 @@ const { data: categorias } = await supabaseClient
 
           // Actualizar el timer si hay items
           if (timer && totalItems > 0 && items.length > 0) {
+            const timerText = document.getElementById('timerText');
             const itemMasReciente = items.reduce((prev, current) => {
               return new Date(current.fecha_agregado) > new Date(prev.fecha_agregado) ? current : prev;
             });
@@ -1610,18 +1673,29 @@ const { data: categorias } = await supabaseClient
             const diff = tiempoExpiracion - ahora.getTime();
             
             if (diff <= 0) {
-              timer.textContent = '⚠️ Expirado';
+              if (timerText) timerText.textContent = 'Expirado';
+              timer.style.borderColor = 'rgba(220, 38, 38, 0.5)';
+              timer.style.background = 'rgba(220, 38, 38, 0.15)';
               timer.style.color = '#dc2626';
-              timer.style.display = 'block';
+              timer.classList.add('active');
             } else {
               const minutos = Math.floor(diff / (1000 * 60));
               const segundos = Math.floor((diff % (1000 * 60)) / 1000);
-              timer.textContent = `${minutos}:${segundos.toString().padStart(2, '0')}`;
-              timer.style.color = diff < 60000 ? '#dc2626' : '#d97706';
-              timer.style.display = 'block';
+              if (timerText) timerText.textContent = `${minutos}:${segundos.toString().padStart(2, '0')}`;
+              
+              if (diff < 60000) {
+                timer.style.borderColor = 'rgba(220, 38, 38, 0.5)';
+                timer.style.background = 'rgba(220, 38, 38, 0.15)';
+                timer.style.color = '#dc2626';
+              } else {
+                timer.style.borderColor = 'rgba(217, 119, 6, 0.3)';
+                timer.style.background = 'rgba(217, 119, 6, 0.15)';
+                timer.style.color = '#d97706';
+              }
+              timer.classList.add('active');
             }
           } else if (timer) {
-            timer.style.display = 'none';
+            timer.classList.remove('active');
           }
         } catch (error) {
           fetchEnProgreso = false;
