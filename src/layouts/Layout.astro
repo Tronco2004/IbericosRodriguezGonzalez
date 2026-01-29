@@ -151,6 +151,57 @@ const { data: categorias } = await supabaseClient
         --overlay-dark: rgba(0, 0, 0, 0.7);
       }
 
+      /* ===== SCROLLBAR PERSONALIZADA ===== */
+      /* Para navegadores Webkit (Chrome, Safari, Edge) */
+      ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--bg-tertiary);
+        border-radius: 5px;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #a89968, #8b7355);
+        border-radius: 5px;
+        border: 2px solid var(--bg-tertiary);
+        transition: background 0.3s ease;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(135deg, #c4ad78, #a89968);
+      }
+
+      ::-webkit-scrollbar-corner {
+        background: var(--bg-tertiary);
+      }
+
+      /* Para Firefox */
+      * {
+        scrollbar-width: thin;
+        scrollbar-color: #a89968 var(--bg-tertiary);
+      }
+
+      /* Modo oscuro - Scrollbar */
+      [data-theme="dark"] ::-webkit-scrollbar-track {
+        background: #252525;
+      }
+
+      [data-theme="dark"] ::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #8b7a55, #6d5a42);
+        border-color: #252525;
+      }
+
+      [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(135deg, #a89968, #8b7a55);
+      }
+
+      [data-theme="dark"] * {
+        scrollbar-color: #8b7a55 #252525;
+      }
+
       * {
         margin: 0;
         padding: 0;
