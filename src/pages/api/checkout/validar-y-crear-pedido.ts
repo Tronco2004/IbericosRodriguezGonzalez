@@ -143,6 +143,10 @@ export const POST: APIRoute = async ({ request }) => {
 
     if (pedidoError || !pedidoCreado || pedidoCreado.length === 0) {
       console.error('❌ Error creando pedido:', pedidoError);
+      console.error('❌ Código error:', pedidoError?.code);
+      console.error('❌ Mensaje error:', pedidoError?.message);
+      console.error('❌ Detalles error:', pedidoError?.details);
+      console.error('❌ Hint error:', pedidoError?.hint);
       return new Response(
         JSON.stringify({ error: 'Error al crear pedido en BD', details: pedidoError }),
         { status: 500 }
