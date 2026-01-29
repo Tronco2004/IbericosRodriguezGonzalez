@@ -299,7 +299,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       console.log('🔍 Buscando variante:', producto_variante_id);
       const { data: variante, error: varianteError } = await supabaseClient
         .from('producto_variantes')
-        .select('precio_total, disponible')
+        .select('precio_total, disponible, cantidad_disponible')
         .eq('id', producto_variante_id)
         .single();
 

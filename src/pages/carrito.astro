@@ -717,13 +717,14 @@ import Layout from '../layouts/Layout.astro';
           let html = '';
           if (itemsExpirados) {
             window.dispatchEvent(new CustomEvent('carritoActualizado'));
+            const tiempoReserva = userId ? '15' : '5';
             html += `
               <div class="alerta-expiracion">
                 <div class="alerta-expiracion-content">
                   <div class="alerta-icon">⚠</div>
                   <div>
                     <h3 class="alerta-titulo">Tu carrito ha expirado</h3>
-                    <p class="alerta-texto-mb">Algunos productos fueron reservados por 15 minutos y han expirado.</p>
+                    <p class="alerta-texto-mb">Algunos productos fueron reservados por ${tiempoReserva} minutos y han expirado.</p>
                     <a href="/productos" class="btn-volver-seleccionar">
                       Volver a Seleccionar
                     </a>
@@ -767,13 +768,14 @@ import Layout from '../layouts/Layout.astro';
         
         // Agregar alerta de expiración si es necesario
         if (itemsExpirados) {
+          const tiempoReservaMsg = userId ? '15' : '5';
           htmlContent += `
             <div class="alerta-expiracion">
               <div class="alerta-expiracion-content">
                 <div class="alerta-icon">⚠</div>
                 <div>
                   <h3 class="alerta-titulo">Tu carrito ha expirado parcialmente</h3>
-                  <p class="alerta-texto">Algunos productos fueron reservados por 15 minutos y han expirado. Los productos que ves abajo siguen disponibles.</p>
+                  <p class="alerta-texto">Algunos productos fueron reservados por ${tiempoReservaMsg} minutos y han expirado. Los productos que ves abajo siguen disponibles.</p>
                 </div>
               </div>
             </div>
@@ -1735,6 +1737,10 @@ import Layout from '../layouts/Layout.astro';
       const carritoItems = (window as any).carritoItems || [];
       if (!carritoItems || carritoItems.length === 0) return;
 
+      // Determinar tiempo de expiración según el tipo de usuario
+      const userId = localStorage.getItem('user_id');
+      const TIEMPO_EXPIRACION_MS = userId ? (15 * 60 * 1000) : (5 * 60 * 1000); // 15 min usuarios, 5 min invitados
+
       // Encontrar el item más reciente
       let itemMasReciente = carritoItems[0];
       for (const item of carritoItems) {
@@ -1748,7 +1754,7 @@ import Layout from '../layouts/Layout.astro';
       // Calcular tiempo restante basado en el item más reciente
       const ahora = new Date();
       const fechaAgregado = new Date(itemMasReciente.fecha_agregado);
-      const tiempoExpiracion = fechaAgregado.getTime() + (15 * 60 * 1000); // 15 minutos
+      const tiempoExpiracion = fechaAgregado.getTime() + TIEMPO_EXPIRACION_MS;
       const diff = tiempoExpiracion - ahora.getTime();
 
       // Actualizar el countdown global con el tiempo del item más reciente

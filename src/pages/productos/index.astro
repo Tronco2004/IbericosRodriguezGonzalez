@@ -1093,13 +1093,13 @@ import Layout from '../../layouts/Layout.astro';
       // Ordenar: productos disponibles primero, agotados al final
       const productosOrdenados = productos.sort((a, b) => {
         const todasLasVariantesA = variantesMap[a.id] || [];
-        const variantesEnCarritoA = carritoLocal.filter(item => item.producto_id === a.id && item.producto_variante_id).map(item => item.producto_variante_id);
-        const variantesConStockA = todasLasVariantesA.filter(v => v.disponible === true && !variantesEnCarritoA.includes(v.id));
+        const variantesEnCarritoA = carritoLocal.filter(item => item.producto_id === a.id && item.producto_variante_id).map(item => parseInt(item.producto_variante_id));
+        const variantesConStockA = todasLasVariantesA.filter(v => v.disponible === true && (v.cantidad_disponible || 0) > 0 && !variantesEnCarritoA.includes(parseInt(v.id)));
         const agotadoA = (!a.es_variable && a.stock <= 0) || (a.es_variable && variantesConStockA.length === 0);
         
         const todasLasVariantesB = variantesMap[b.id] || [];
-        const variantesEnCarritoB = carritoLocal.filter(item => item.producto_id === b.id && item.producto_variante_id).map(item => item.producto_variante_id);
-        const variantesConStockB = todasLasVariantesB.filter(v => v.disponible === true && !variantesEnCarritoB.includes(v.id));
+        const variantesEnCarritoB = carritoLocal.filter(item => item.producto_id === b.id && item.producto_variante_id).map(item => parseInt(item.producto_variante_id));
+        const variantesConStockB = todasLasVariantesB.filter(v => v.disponible === true && (v.cantidad_disponible || 0) > 0 && !variantesEnCarritoB.includes(parseInt(v.id)));
         const agotadoB = (!b.es_variable && b.stock <= 0) || (b.es_variable && variantesConStockB.length === 0);
         
         // Si uno está agotado y otro no, el disponible va primero
@@ -1114,8 +1114,8 @@ import Layout from '../../layouts/Layout.astro';
         
         // Verificar si es producto variable y tiene variantes con stock disponible (filtrando las del carrito local)
         const todasLasVariantes = variantesMap[p.id] || [];
-        const variantesEnCarrito = carritoLocal.filter(item => item.producto_id === p.id && item.producto_variante_id).map(item => item.producto_variante_id);
-        const variantesConStock = todasLasVariantes.filter(v => v.disponible === true && !variantesEnCarrito.includes(v.id));
+        const variantesEnCarrito = carritoLocal.filter(item => item.producto_id === p.id && item.producto_variante_id).map(item => parseInt(item.producto_variante_id));
+        const variantesConStock = todasLasVariantes.filter(v => v.disponible === true && (v.cantidad_disponible || 0) > 0 && !variantesEnCarrito.includes(parseInt(v.id)));
         
         // El producto está agotado si: (no es variable y no tiene stock) O (es variable y no tiene variantes con stock)
         const productoAgotado = (!p.es_variable && p.stock <= 0) || (p.es_variable && variantesConStock.length === 0);
@@ -1444,7 +1444,7 @@ import Layout from '../../layouts/Layout.astro';
       const producto = document.querySelector("article[data-id='" + productoId + "'] .product-name")?.textContent || 'Producto';
       
       // Obtener variantes que tengan stock disponible
-      let variantes = (variantesMap[productoId] || []).filter(v => v.disponible === true);
+      let variantes = (variantesMap[productoId] || []).filter(v => v.disponible === true && (v.cantidad_disponible || 0) > 0);
       
       console.log('Abriendo modal para producto:' + productoId);
       console.log('Variantes con stock:', variantes);
@@ -1452,14 +1452,14 @@ import Layout from '../../layouts/Layout.astro';
       
       // Filtrar variantes reservadas del servidor
       const variantesReservadasDelProducto = (variantesReservadas && variantesReservadas[productoId]) ? variantesReservadas[productoId] : [];
-      variantes = variantes.filter(v => !variantesReservadasDelProducto.includes(v.id));
+      variantes = variantes.filter(v => !variantesReservadasDelProducto.includes(parseInt(v.id)));
       
       // También filtrar las variantes que ya están en el carrito local del invitado
       const carritoLocal = JSON.parse(localStorage.getItem('carrito_invitado') || '[]');
       const variantesEnCarritoLocal = carritoLocal
         .filter(item => item.producto_id === parseInt(productoId) && item.producto_variante_id)
-        .map(item => item.producto_variante_id);
-      variantes = variantes.filter(v => !variantesEnCarritoLocal.includes(v.id));
+        .map(item => parseInt(item.producto_variante_id));
+      variantes = variantes.filter(v => (v.cantidad_disponible || 0) > 0 && !variantesEnCarritoLocal.includes(parseInt(v.id)));
       
       console.log('Variantes disponibles después de filtrar reservadas y carrito local:', variantes.length);
       console.log('Variantes reservadas del producto:', variantesReservadasDelProducto);
@@ -1513,15 +1513,21 @@ import Layout from '../../layouts/Layout.astro';
 
     // Función para actualizar el estado visual del producto en la tarjeta
     function actualizarEstadoProducto(productoId, variantesDisponibles) {
-      const card = document.querySelector(`.producto-card[data-id="${productoId}"]`);
-      if (!card) return;
+      console.log(`🔍 Buscando tarjeta para producto ${productoId}...`);
+      const card = document.querySelector(`.producto-card[data-id="${productoId}"]`) || 
+                   document.querySelector(`article[data-id="${productoId}"]`);
+      if (!card) {
+        console.log(`❌ No se encontró tarjeta para producto ${productoId}`);
+        return;
+      }
+      console.log(`✅ Tarjeta encontrada para producto ${productoId}`);
       
       console.log(`📊 Actualizando estado producto ${productoId}: ${variantesDisponibles} variantes disponibles`);
       
       // Encontrar elementos a actualizar
       const stockInfo = card.querySelector('.stock-info');
       const stockLabel = card.querySelector('.stock-label');
-      const imageLink = card.querySelector('a[href^="/productos/"]');
+      const imgContainer = card.querySelector('.producto-img-container');
       const button = card.querySelector('.product-btn');
       
       if (variantesDisponibles === 0) {
@@ -1539,46 +1545,34 @@ import Layout from '../../layouts/Layout.astro';
           `;
         }
         
-        // Eliminar o cambiar stock-label
+        // Eliminar stock-label
         if (stockLabel) {
           stockLabel.remove();
         }
         
-        // Añadir overlay de agotado en la imagen
-        if (imageLink) {
-          const existingOverlay = imageLink.querySelector('.agotado-overlay');
+        // Añadir overlay de agotado en el contenedor de imagen
+        if (imgContainer) {
+          const existingOverlay = imgContainer.querySelector('.producto-agotado-overlay');
           if (!existingOverlay) {
             const overlay = document.createElement('div');
-            overlay.className = 'agotado-overlay';
-            overlay.style.cssText = `
-              position: absolute;
-              inset: 0;
-              background: rgba(0,0,0,0.5);
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            `;
-            overlay.innerHTML = `
-              <span style="
-                background: rgba(255,255,255,0.95);
-                color: #1a1a1a;
-                padding: 10px 24px;
-                border-radius: 30px;
-                font-weight: 700;
-                font-size: 0.85rem;
-                text-transform: uppercase;
-                letter-spacing: 1.5px;
-              ">Agotado</span>
-            `;
-            imageLink.appendChild(overlay);
+            overlay.className = 'producto-agotado-overlay';
+            overlay.innerHTML = `<span class="producto-agotado-text">Agotado</span>`;
+            imgContainer.appendChild(overlay);
+            console.log('✅ Overlay de agotado añadido');
           }
         }
         
-        // Deshabilitar botón
+        // Deshabilitar botón y cambiar su contenido
         if (button) {
           button.disabled = true;
-          button.style.opacity = '0.5';
-          button.style.cursor = 'not-allowed';
+          button.classList.add('btn-agotado');
+          button.innerHTML = `
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10"/><path d="M8 8l8 8M16 8l-8 8"/>
+            </svg>
+            <span>Agotado</span>
+          `;
+          console.log('✅ Botón actualizado a Agotado');
         }
       } else {
         // PRODUCTO CON STOCK - actualizar cantidad
@@ -1617,6 +1611,20 @@ import Layout from '../../layouts/Layout.astro';
           newSpan.className = newLabelClass;
           newSpan.textContent = newLabel;
           stockInfo.parentElement.appendChild(newSpan);
+        }
+        
+        // Remover overlay si existe
+        if (imgContainer) {
+          const existingOverlay = imgContainer.querySelector('.producto-agotado-overlay');
+          if (existingOverlay) {
+            existingOverlay.remove();
+          }
+        }
+        
+        // Habilitar botón
+        if (button) {
+          button.disabled = false;
+          button.classList.remove('btn-agotado');
         }
       }
     }
@@ -1780,26 +1788,50 @@ import Layout from '../../layouts/Layout.astro';
           // Actualizar el mapa de variantes
           variantesMap[parseInt(productoId)] = variantesData.variantes;
           console.log('✅ Variantes del servidor:', variantesData.variantes.length);
+          console.log('📋 Detalle variantes:', variantesData.variantes.map(v => ({
+            id: v.id,
+            disponible: v.disponible,
+            cantidad: v.cantidad_disponible
+          })));
           
           // Filtrar las variantes que ya están en el carrito local
-          const carritoLocal = JSON.parse(localStorage.getItem('carrito_invitado') || '[]');
-          const variantesEnCarrito = carritoLocal
+          // IMPORTANTE: Leer el carrito ACTUALIZADO (ya incluye la variante recién añadida)
+          const carritoLocalActualizado = JSON.parse(localStorage.getItem('carrito_invitado') || '[]');
+          const variantesEnCarrito = carritoLocalActualizado
             .filter(item => item.producto_id === parseInt(productoId) && item.producto_variante_id)
-            .map(item => item.producto_variante_id);
+            .map(item => parseInt(item.producto_variante_id)); // Asegurar que son números
           
-          const variantesRealmenteDisponibles = variantesData.variantes.filter(v => !variantesEnCarrito.includes(v.id));
-          console.log('✅ Variantes realmente disponibles (sin las del carrito):', variantesRealmenteDisponibles.length);
+          // Asegurarse de que la variante recién añadida esté en la lista
+          const varianteRecienAnadida = parseInt(varianteId);
+          if (!variantesEnCarrito.includes(varianteRecienAnadida)) {
+            variantesEnCarrito.push(varianteRecienAnadida);
+          }
+          console.log('🛒 Variantes en carrito local (incluyendo recién añadida):', variantesEnCarrito);
+          
+          // Filtrar variantes que estén disponibles Y no estén en el carrito
+          const variantesRealmenteDisponibles = variantesData.variantes.filter(v => {
+            const varianteIdNum = parseInt(v.id);
+            const estaDisponible = v.disponible === true;
+            const tieneStock = (v.cantidad_disponible || 0) > 0;
+            const estaEnCarrito = variantesEnCarrito.includes(varianteIdNum);
+            console.log(`  Variante ${varianteIdNum}: disponible=${estaDisponible}, stock=${v.cantidad_disponible}, enCarrito=${estaEnCarrito}`);
+            // NO incluir si: no está disponible, no tiene stock, O ya está en el carrito
+            return estaDisponible && tieneStock && !estaEnCarrito;
+          });
+          console.log('✅ Variantes realmente disponibles:', variantesRealmenteDisponibles.length);
           
           // Actualizar la UI de la tarjeta del producto
           actualizarEstadoProducto(parseInt(productoId), variantesRealmenteDisponibles.length);
         }
         
-        // Siempre cerrar el modal después de añadir
-        cerrarModal();
+        // Actualizar cantidad disponible de la variante (antes de cerrar modal)
+        if (variante && typeof variante.cantidad_disponible === 'number') {
+          variante.cantidad_disponible -= 1;
+          console.log('📉 Variante ' + varianteId + ' ahora tiene ' + variante.cantidad_disponible + ' unidades disponibles');
+        }
         
-        // Actualizar cantidad disponible de la variante
-        variante.cantidad_disponible -= 1;
-        console.log('📉 Variante ' + varianteId + ' ahora tiene ' + variante.cantidad_disponible + ' unidades disponibles');
+        // Siempre cerrar el modal después de añadir
+        cerrarModalVariantes();
         
         // Disparar evento para actualizar stock en tiempo real
         window.dispatchEvent(new CustomEvent('carritoActualizado'));
@@ -2013,8 +2045,10 @@ import Layout from '../../layouts/Layout.astro';
         localStorage.setItem('carrito_invitado', JSON.stringify(carrito));
         localStorage.setItem('carrito_invitado_fecha', String(Date.now()));
         
-        // Actualizar stock local en productosGlobal
-        producto.stock -= cantidad;
+        // Actualizar stock local en productosGlobal (con validación)
+        if (typeof producto.stock === 'number') {
+          producto.stock -= cantidad;
+        }
         
         // Actualizar stock en el DOM inmediatamente
         const article = document.querySelector(`article[data-id="${productoId}"]`);
@@ -2140,6 +2174,10 @@ import Layout from '../../layouts/Layout.astro';
       try {
         console.log('🔄 Iniciando actualización de stock en tiempo real...');
         
+        // Obtener carrito local del invitado
+        const carritoLocal = JSON.parse(localStorage.getItem('carrito_invitado') || '[]');
+        console.log('🛒 Carrito local:', carritoLocal.length, 'items');
+        
         // Obtener variantes reservadas actuales
         const reservadosResponse = await fetch('/api/productos/reservados');
         if (!reservadosResponse.ok) {
@@ -2179,70 +2217,35 @@ import Layout from '../../layouts/Layout.astro';
           const stockActual = stocksActuales[productoId] !== undefined ? stocksActuales[productoId] : producto.stock;
           console.log('📊 Stock actual para producto ' + productoId + ': ' + stockActual);
 
-          // Recalcular estado del producto
+          // Recalcular estado del producto - INCLUYENDO CARRITO LOCAL
           const todasLasVariantes = variantesMap[productoId] || [];
+          
+          // Obtener variantes en carrito local para este producto
+          const variantesEnCarritoLocal = carritoLocal
+            .filter(item => item.producto_id === productoId && item.producto_variante_id)
+            .map(item => parseInt(item.producto_variante_id));
+          
           const variantesConStock = todasLasVariantes.filter(v => {
             const reservadas = variantesReservadas[productoId] || [];
-            return v.disponible === true && !reservadas.includes(v.id);
+            const varianteId = parseInt(v.id);
+            const estaReservada = reservadas.includes(varianteId);
+            const estaEnCarritoLocal = variantesEnCarritoLocal.includes(varianteId);
+            const tieneStock = v.disponible === true && (v.cantidad_disponible || 0) > 0;
+            // NO contar si: está reservada, está en carrito local, o no tiene stock
+            return tieneStock && !estaReservada && !estaEnCarritoLocal;
           });
           
-          const productoAgotado = (!producto.es_variable && stockActual <= 0) || (producto.es_variable && variantesConStock.length === 0);
-          console.log('📊 Producto ' + productoId + ': ' + variantesConStock.length + ' variantes disponibles, stock=' + stockActual + ', agotado: ' + productoAgotado);
+          // Para productos variables, usar cantidad de variantes disponibles
+          // Para productos normales, usar el stock actual
+          const cantidadDisponible = producto.es_variable ? variantesConStock.length : stockActual;
+          const productoAgotado = cantidadDisponible <= 0;
+          
+          console.log('📊 Producto ' + productoId + ' (es_variable=' + producto.es_variable + '): disponible=' + cantidadDisponible + ', agotado: ' + productoAgotado);
 
-          // Actualizar overlay de "Agotado"
-          const link = article.querySelector('a[href*="/productos/"]');
-          if (link) {
-            const existingOverlay = link.querySelector('div[style*="position: absolute"]');
-            if (productoAgotado && !existingOverlay) {
-              // Crear overlay de agotado si no existe
-              const overlay = document.createElement('div');
-              overlay.style.cssText = "position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;";
-              const badge = document.createElement('span');
-              badge.style.cssText = "background: rgba(255,255,255,0.95); color: #1a1a1a; padding: 10px 24px; border-radius: 30px; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1.5px;";
-              badge.textContent = 'Agotado';
-              overlay.appendChild(badge);
-              link.appendChild(overlay);
-            } else if (!productoAgotado && existingOverlay) {
-              // Remover overlay si el producto ya no está agotado
-              existingOverlay.remove();
-            }
-          }
-
-          // Actualizar estado del botón
-          const button = article.querySelector('button[class*="btn-"]');
-          if (button) {
-            button.disabled = productoAgotado;
-            
-            // Cambiar visualmente
-            if (productoAgotado) {
-              button.style.background = '#d0d0d0';
-              button.style.color = '#888';
-              button.style.boxShadow = 'none';
-            } else {
-              button.style.background = 'linear-gradient(135deg, #a89968 0%, #9a8a5c 100%)';
-              button.style.color = '#fff';
-              button.style.boxShadow = '0 4px 12px rgba(168, 153, 104, 0.3)';
-            }
-          }
-
-          // Actualizar indicador de stock
-          const stockElements = article.querySelectorAll('span');
-          for (let elem of stockElements) {
-            const html = elem.innerHTML;
-            if (html.includes('opción') || html.includes('unidad') || html.includes('Agotado')) {
-              const stockText = producto.es_variable 
-                ? `${variantesConStock.length} opción${variantesConStock.length !== 1 ? 'es' : ''}`
-                : `${stockActual} unidad${stockActual !== 1 ? 'es' : ''}`;
-              
-              const stockDisplay = productoAgotado ? 'Agotado' : stockText;
-              const svg = elem.querySelector('svg');
-              elem.innerHTML = `
-                ${svg ? svg.outerHTML : ''}
-                ${stockDisplay}
-              `;
-              console.log('✅ Stock actualizado para producto ' + productoId + ': ' + stockDisplay);
-              break;
-            }
+          // Usar la función centralizada para actualizar el estado
+          // Solo actualizar productos variables (los normales no necesitan esta lógica)
+          if (producto.es_variable) {
+            actualizarEstadoProducto(productoId, variantesConStock.length);
           }
         });
         
