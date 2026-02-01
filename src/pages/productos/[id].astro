@@ -1694,13 +1694,28 @@ export const prerender = false;
       `;
     }
 
+    // Variable para bloquear mientras se procesa
+    let procesandoCarrito = false;
+
     async function agregarAlCarrito(productoId) {
+      if (procesandoCarrito) {
+        console.log('⏳ Ya hay una operación en curso...');
+        return;
+      }
+
+      procesandoCarrito = true;
+      const btnAgregar = document.getElementById('btnAgregarCarrito');
+      if (btnAgregar) {
+        btnAgregar.disabled = true;
+        btnAgregar.style.opacity = '0.5';
+      }
+
       try {
         const userId = localStorage.getItem('user_id');
         
         // Si es invitado, guardar en localStorage
         if (!userId) {
-          agregarAlCarritoLocal(productoId);
+          await agregarAlCarritoLocal(productoId);
           return;
         }
 
@@ -1728,6 +1743,19 @@ export const prerender = false;
 
         console.log('Enviando al carrito:', bodyData);
 
+        // ACTUALIZACIÓN OPTIMISTA: Actualizar stock inmediatamente
+        if (!productoActual.es_variable) {
+          const cantidadAgregada = parseInt(document.getElementById('cantidad')?.value) || 1;
+          productoActual.stock = Math.max(0, (productoActual.stock || 0) - cantidadAgregada);
+          actualizarStockProductoSimple();
+        } else if (varianteSeleccionada) {
+          variantesDisponibles = variantesDisponibles.filter(v => v.id !== varianteSeleccionada.id);
+          actualizarVariantesUI();
+        }
+
+        mostrarNotificacion('✓ Producto agregado al carrito');
+
+        // Enviar petición a la API de forma asincrónica
         const response = await fetch('/api/carrito', {
           method: 'POST',
           headers: {
@@ -1738,27 +1766,43 @@ export const prerender = false;
         });
 
         const data = await response.json();
+        console.log('📦 Respuesta de API:', data);
+        
         if (data.success || response.ok) {
-          mostrarNotificacion('✓ Producto agregado al carrito');
-          window.dispatchEvent(new CustomEvent('carritoActualizado'));
-          
-          // Actualizar UI según tipo de producto
-          if (productoActual.es_variable && varianteSeleccionada) {
-            // Producto variable: eliminar variante de la lista disponible
-            variantesDisponibles = variantesDisponibles.filter(v => v.id !== varianteSeleccionada.id);
-            actualizarVariantesUI();
-          } else {
-            // Producto simple: actualizar stock local
-            const cantidadAgregada = parseInt(document.getElementById('cantidad')?.value) || 1;
-            productoActual.stock = Math.max(0, (productoActual.stock || 0) - cantidadAgregada);
+          // SIEMPRE usar el stock que devuelve la BD (es la fuente de verdad)
+          if (!productoActual.es_variable && data.stockRestante !== null && data.stockRestante !== undefined) {
+            console.log(`📊 Stock desde BD: ${data.stockRestante}`);
+            productoActual.stock = data.stockRestante;
             actualizarStockProductoSimple();
+          } else if (productoActual.es_variable && data.variantes) {
+            console.log(`📊 Variantes desde BD: ${data.variantes.length}`);
+            variantesDisponibles = data.variantes;
+            actualizarVariantesUI();
           }
+          
+          window.dispatchEvent(new CustomEvent('carritoActualizado'));
         } else {
+          // Si hay error, revertir el cambio local
+          if (!productoActual.es_variable) {
+            const cantidadAgregada = parseInt(document.getElementById('cantidad')?.value) || 1;
+            productoActual.stock = Math.min(999, (productoActual.stock || 0) + cantidadAgregada);
+            actualizarStockProductoSimple();
+          } else if (varianteSeleccionada) {
+            variantesDisponibles.push(varianteSeleccionada);
+            actualizarVariantesUI();
+          }
           mostrarNotificacion('❌ Error: ' + (data.message || data.error), true);
         }
       } catch (error) {
         console.error('Error:', error);
         mostrarNotificacion('❌ Error al agregar al carrito', true);
+      } finally {
+        procesandoCarrito = false;
+        const btnAgregar = document.getElementById('btnAgregarCarrito');
+        if (btnAgregar && (productoActual.stock > 0 || productoActual.es_variable)) {
+          btnAgregar.disabled = false;
+          btnAgregar.style.opacity = '1';
+        }
       }
     }
 
@@ -1924,7 +1968,7 @@ export const prerender = false;
     }
 
     // Agregar al carrito local para invitados
-    function agregarAlCarritoLocal(productoId) {
+    async function agregarAlCarritoLocal(productoId) {
       try {
         let cantidad = 1;
         let varianteId = null;
@@ -1945,7 +1989,26 @@ export const prerender = false;
           precioUnitario = productoActual.precio_centimos;
         }
 
-        // Obtener carrito actual
+        // PRIMERO: Reservar stock en la base de datos
+        const reservaRes = await fetch('/api/carrito/reservar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            producto_id: parseInt(productoId),
+            cantidad: cantidad,
+            producto_variante_id: varianteId
+          })
+        });
+        
+        const reservaData = await reservaRes.json();
+        if (!reservaData.success) {
+          console.error('❌ Error reservando stock:', reservaData.error);
+          mostrarNotificacion(reservaData.error || 'No hay suficiente stock', true);
+          return;
+        }
+        console.log('✅ Stock reservado en BD:', reservaData);
+
+        // DESPUÉS: Obtener carrito actual
         let carrito = JSON.parse(localStorage.getItem('carrito_invitado') || '[]');
 
         // Crear item
@@ -1965,11 +2028,6 @@ export const prerender = false;
         if (!productoActual.es_variable) {
           const existe = carrito.find(c => c.producto_id === parseInt(productoId) && !c.producto_variante_id);
           if (existe) {
-            const maxStock = productoActual.stock || 99;
-            if (existe.cantidad + cantidad > maxStock) {
-              mostrarNotificacion(`Solo hay ${maxStock} unidades disponibles`, true);
-              return;
-            }
             existe.cantidad += cantidad;
             mostrarNotificacion(`✓ Producto actualizado (${existe.cantidad}x)`);
           } else {
@@ -1977,8 +2035,8 @@ export const prerender = false;
             mostrarNotificacion('✓ Producto agregado al carrito');
           }
           
-          // Actualizar stock local y UI para producto simple
-          productoActual.stock = Math.max(0, (productoActual.stock || 0) - cantidad);
+          // Usar stock que devuelve la BD (más preciso)
+          productoActual.stock = reservaData.stockRestante;
           actualizarStockProductoSimple();
         } else {
           // Las variantes son únicas
@@ -2000,9 +2058,46 @@ export const prerender = false;
       } catch (error) {
         console.error('Error:', error);
         mostrarNotificacion('❌ Error al agregar al carrito', true);
+      } finally {
+        procesandoCarrito = false;
+        const btnAgregar = document.getElementById('btnAgregarCarrito');
+        if (btnAgregar && (productoActual.stock > 0 || productoActual.es_variable)) {
+          btnAgregar.disabled = false;
+          btnAgregar.style.opacity = '1';
+        }
       }
     }
 
     cargarProducto();
+
+    // Escuchar evento de carrito actualizado para recargar stock
+    window.addEventListener('carritoActualizado', async () => {
+      console.log('🔔 Evento carritoActualizado recibido, actualizando stock en tiempo real...');
+      try {
+        const productoId = window.location.pathname.split('/').pop();
+        console.log(`🔄 Iniciando actualización de stock en tiempo real para producto ${productoId}...`);
+        
+        if (productoActual.es_variable) {
+          console.log('📦 Producto variable - recargando variantes...');
+          await cargarVariantes(productoId);
+          actualizarVariantesUI();
+        } else {
+          console.log('📦 Producto simple - recargando stock...');
+          // Para productos simples, hacer un fetch rápido del stock
+          const response = await fetch(`/api/admin/productos`);
+          const data = await response.json();
+          if (data.success && data.productos) {
+            const productoActualizado = data.productos.find(p => p.id === parseInt(productoId));
+            if (productoActualizado) {
+              productoActual.stock = productoActualizado.stock;
+              actualizarStockProductoSimple();
+              console.log(`✅ Stock actualizado: ${productoActual.stock} unidades`);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error al recargar stock:', error);
+      }
+    });
   </script>
 </Layout>

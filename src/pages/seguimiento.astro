@@ -1,0 +1,574 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+// Obtener código de la URL si viene como parámetro
+const codigoURL = Astro.url.searchParams.get('codigo') || '';
+---
+
+<Layout>
+  <div class="seguimiento-container">
+    <!-- Header -->
+    <div class="seguimiento-header">
+      <div class="header-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+      </div>
+      <h1>Seguimiento de Pedido</h1>
+      <p>Introduce tu código de seguimiento para ver el estado de tu pedido</p>
+    </div>
+
+    <!-- Formulario de búsqueda -->
+    <div class="search-box">
+      <div class="input-group">
+        <input 
+          type="text" 
+          id="codigoInput" 
+          placeholder="Ej: IRG-A1B2C3D4"
+          value={codigoURL}
+          maxlength="12"
+          autocomplete="off"
+        >
+        <button id="buscarBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+          Buscar
+        </button>
+      </div>
+      <p class="hint">El código de seguimiento te fue enviado por email al realizar tu compra</p>
+    </div>
+
+    <!-- Resultado del seguimiento (oculto inicialmente) -->
+    <div id="resultadoSeguimiento" class="resultado-container hidden">
+      <!-- Se llena dinámicamente -->
+    </div>
+
+    <!-- Estado de error (oculto inicialmente) -->
+    <div id="errorSeguimiento" class="error-container hidden">
+      <div class="error-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <h3>Pedido no encontrado</h3>
+      <p id="errorMensaje">No se encontró ningún pedido con ese código</p>
+    </div>
+
+    <!-- Loader -->
+    <div id="loader" class="loader-container hidden">
+      <div class="loader"></div>
+      <p>Buscando tu pedido...</p>
+    </div>
+  </div>
+</Layout>
+
+<style is:global>
+  .seguimiento-container {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem;
+    min-height: calc(100vh - 200px);
+  }
+
+  .seguimiento-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+
+  .header-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1.5rem;
+    background: linear-gradient(135deg, var(--color-accent), var(--color-accent-dark));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 32px var(--shadow-accent);
+  }
+
+  .header-icon svg {
+    width: 40px;
+    height: 40px;
+    color: white;
+  }
+
+  .seguimiento-header h1 {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    color: var(--color-primary);
+    margin: 0 0 0.5rem 0;
+  }
+
+  .seguimiento-header p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    margin: 0;
+  }
+
+  .search-box {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px var(--shadow-color);
+    border: 1px solid var(--border-color);
+    margin-bottom: 2rem;
+  }
+
+  .input-group {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .input-group input {
+    flex: 1;
+    padding: 1rem 1.25rem;
+    font-size: 1.1rem;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+  }
+
+  .input-group input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 4px var(--shadow-accent);
+  }
+
+  .input-group input::placeholder {
+    color: var(--text-muted);
+    text-transform: none;
+    letter-spacing: normal;
+    font-weight: 400;
+  }
+
+  .input-group button {
+    padding: 1rem 2rem;
+    background: linear-gradient(135deg, var(--color-accent), var(--color-accent-dark));
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+  }
+
+  .input-group button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px var(--shadow-accent);
+  }
+
+  .input-group button svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .hint {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin: 1rem 0 0 0;
+  }
+
+  /* Resultado */
+  .resultado-container {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px var(--shadow-color);
+    border: 1px solid var(--border-color);
+    animation: slideIn 0.4s ease;
+  }
+
+  .resultado-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .estado-icono {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+  }
+
+  .resultado-info h2 {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    color: var(--color-primary);
+    margin: 0 0 0.25rem 0;
+  }
+
+  .resultado-info .codigo {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-family: monospace;
+    letter-spacing: 1px;
+  }
+
+  /* Timeline */
+  .timeline {
+    position: relative;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  .timeline-item {
+    display: flex;
+    gap: 1rem;
+    padding-bottom: 1.5rem;
+    position: relative;
+  }
+
+  .timeline-item:last-child {
+    padding-bottom: 0;
+  }
+
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: 19px;
+    top: 40px;
+    bottom: 0;
+    width: 2px;
+    background: var(--border-color);
+  }
+
+  .timeline-item:last-child::before {
+    display: none;
+  }
+
+  .timeline-dot {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    z-index: 1;
+    transition: all 0.3s ease;
+  }
+
+  .timeline-dot.completado {
+    background: #22c55e;
+    color: white;
+  }
+
+  .timeline-dot.actual {
+    background: var(--color-accent);
+    color: white;
+    animation: pulse 2s infinite;
+  }
+
+  .timeline-dot.pendiente {
+    background: var(--bg-tertiary);
+    color: var(--text-muted);
+    border: 2px dashed var(--border-color);
+  }
+
+  .timeline-content h4 {
+    font-size: 1rem;
+    color: var(--text-primary);
+    margin: 0 0 0.25rem 0;
+  }
+
+  .timeline-content p {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  .timeline-content .fecha {
+    font-size: 0.8rem;
+    color: var(--color-accent);
+    font-weight: 500;
+    margin-top: 0.25rem;
+  }
+
+  /* Barra de progreso */
+  .progress-bar {
+    height: 8px;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 1.5rem 0;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+  }
+
+  /* Error */
+  .error-container {
+    text-align: center;
+    padding: 3rem 2rem;
+    background: var(--bg-card);
+    border-radius: 16px;
+    border: 1px solid #ef4444;
+    animation: slideIn 0.4s ease;
+  }
+
+  .error-icon {
+    width: 70px;
+    height: 70px;
+    margin: 0 auto 1.5rem;
+    background: #fef2f2;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .error-icon svg {
+    width: 35px;
+    height: 35px;
+    color: #ef4444;
+  }
+
+  .error-container h3 {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    color: #ef4444;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .error-container p {
+    color: var(--text-secondary);
+    margin: 0;
+  }
+
+  /* Loader */
+  .loader-container {
+    text-align: center;
+    padding: 3rem;
+  }
+
+  .loader {
+    width: 50px;
+    height: 50px;
+    border: 4px solid var(--border-color);
+    border-top-color: var(--color-accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+  }
+
+  .loader-container p {
+    color: var(--text-secondary);
+    margin: 0;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(168, 153, 104, 0.4); }
+    50% { box-shadow: 0 0 0 10px rgba(168, 153, 104, 0); }
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .seguimiento-container {
+      padding: 2rem 1rem;
+    }
+
+    .seguimiento-header h1 {
+      font-size: 1.75rem;
+    }
+
+    .input-group {
+      flex-direction: column;
+    }
+
+    .input-group button {
+      justify-content: center;
+    }
+
+    .search-box {
+      padding: 1.5rem;
+    }
+  }
+</style>
+
+<script define:vars={{ codigoURL }}>
+  const codigoInput = document.getElementById('codigoInput');
+  const buscarBtn = document.getElementById('buscarBtn');
+  const resultadoContainer = document.getElementById('resultadoSeguimiento');
+  const errorContainer = document.getElementById('errorSeguimiento');
+  const errorMensaje = document.getElementById('errorMensaje');
+  const loader = document.getElementById('loader');
+
+  // Si hay código en la URL, buscar automáticamente
+  if (codigoURL) {
+    buscarPedido(codigoURL);
+  }
+
+  buscarBtn.addEventListener('click', () => {
+    const codigo = codigoInput.value.trim();
+    if (codigo) {
+      buscarPedido(codigo);
+    }
+  });
+
+  codigoInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      const codigo = codigoInput.value.trim();
+      if (codigo) {
+        buscarPedido(codigo);
+      }
+    }
+  });
+
+  async function buscarPedido(codigo) {
+    // Ocultar resultados anteriores
+    resultadoContainer.classList.add('hidden');
+    errorContainer.classList.add('hidden');
+    loader.classList.remove('hidden');
+
+    // Actualizar URL sin recargar
+    const url = new URL(window.location);
+    url.searchParams.set('codigo', codigo);
+    window.history.pushState({}, '', url);
+
+    try {
+      const response = await fetch(`/api/seguimiento?codigo=${encodeURIComponent(codigo)}`);
+      const data = await response.json();
+
+      loader.classList.add('hidden');
+
+      if (!response.ok) {
+        errorMensaje.textContent = data.error || 'No se encontró el pedido';
+        errorContainer.classList.remove('hidden');
+        return;
+      }
+
+      // Mostrar resultado
+      mostrarResultado(data);
+
+    } catch (error) {
+      loader.classList.add('hidden');
+      errorMensaje.textContent = 'Error de conexión. Inténtalo de nuevo.';
+      errorContainer.classList.remove('hidden');
+    }
+  }
+
+  function mostrarResultado(data) {
+    const estados = ['pagado', 'enviado', 'entregado'];
+    const estadoActual = estados.indexOf(data.estado);
+
+    const formatearFecha = (fecha) => {
+      if (!fecha) return null;
+      return new Date(fecha).toLocaleDateString('es-ES', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    };
+
+    resultadoContainer.innerHTML = `
+      <div class="resultado-header">
+        <div class="estado-icono" style="background: ${data.color}20; color: ${data.color}">
+          ${data.icono}
+        </div>
+        <div class="resultado-info">
+          <h2>${data.titulo}</h2>
+          <span class="codigo">${data.codigo}</span>
+        </div>
+      </div>
+
+      <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">${data.mensaje}</p>
+
+      <div class="progress-bar">
+        <div class="progress-fill" style="width: ${data.progreso}%; background: ${data.color}"></div>
+      </div>
+
+      <ul class="timeline">
+        <li class="timeline-item">
+          <div class="timeline-dot ${estadoActual >= 0 ? 'completado' : 'pendiente'}">
+            ${estadoActual >= 0 ? '✓' : '1'}
+          </div>
+          <div class="timeline-content">
+            <h4>Pedido Pagado</h4>
+            <p>Tu pedido ha sido confirmado y pagado</p>
+            ${data.fechas.pago ? `<span class="fecha">${formatearFecha(data.fechas.pago)}</span>` : ''}
+          </div>
+        </li>
+        <li class="timeline-item">
+          <div class="timeline-dot ${estadoActual >= 1 ? 'completado' : estadoActual === 0 ? 'pendiente' : 'pendiente'}">
+            ${estadoActual >= 1 ? '✓' : '2'}
+          </div>
+          <div class="timeline-content">
+            <h4>Enviado</h4>
+            <p>Tu pedido ha sido enviado</p>
+            ${data.fechas.envio ? `<span class="fecha">${formatearFecha(data.fechas.envio)}</span>` : ''}
+          </div>
+        </li>
+        <li class="timeline-item">
+          <div class="timeline-dot ${estadoActual >= 2 ? 'completado' : 'pendiente'}">
+            ${estadoActual >= 2 ? '✓' : '3'}
+          </div>
+          <div class="timeline-content">
+            <h4>Entregado</h4>
+            <p>Tu pedido ha sido entregado</p>
+            ${data.fechas.entrega ? `<span class="fecha">${formatearFecha(data.fechas.entrega)}</span>` : ''}
+          </div>
+        </li>
+      </ul>
+
+      ${data.total ? `
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); text-align: right;">
+          <span style="color: var(--text-muted); font-size: 0.9rem;">Total del pedido:</span>
+          <span style="font-size: 1.25rem; font-weight: 700; color: var(--color-primary); margin-left: 0.5rem;">${parseFloat(data.total).toFixed(2)}€</span>
+        </div>
+      ` : ''}
+    `;
+
+    resultadoContainer.classList.remove('hidden');
+  }
+</script>
