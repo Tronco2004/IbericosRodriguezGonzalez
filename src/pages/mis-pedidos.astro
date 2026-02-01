@@ -3,74 +3,56 @@ import Layout from '../layouts/Layout.astro';
 ---
 
 <Layout title="Mis Pedidos">
-  <div style="min-height: 100vh; background: #f8f4f0; padding: 2rem 0;">
+  <div id="mainContainer" style="min-height: 100vh; background: var(--bg-primary); padding: 2rem 0; transition: var(--theme-transition);">
     <div style="max-width: 1200px; margin: 0 auto; padding: 0 1rem;">
-      <h1 style="color: #001a33; margin-bottom: 2rem;">Mis Pedidos</h1>
-      <p id="loadingMessage" style="color: #5c4a3d; font-size: 1.1rem; text-align: center;">Cargando tus pedidos...</p>
+      <h1 id="mainTitle" style="color: var(--text-primary); margin-bottom: 2rem; transition: var(--theme-transition);">Mis Pedidos</h1>
+      <p id="loadingMessage" style="color: var(--text-secondary); font-size: 1.1rem; text-align: center; transition: var(--theme-transition);">Cargando tus pedidos...</p>
       <div id="pedidosContent"></div>
     </div>
   </div>
 
-  <div id="confirmModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-    <div style="background: white; border-radius: 8px; padding: 2rem; max-width: 500px; animation: slideIn 0.3s ease;">
-      <h2 style="color: #001a33; margin: 0 0 1rem 0;" id="confirmTitle">Confirmar</h2>
-      <p style="color: #5c4a3d; margin: 0 0 2rem 0;" id="confirmMessage">¿Estás seguro?</p>
+  <div id="confirmModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: var(--bg-card); border-radius: 8px; padding: 2rem; max-width: 500px; animation: slideIn 0.3s ease; border: 1px solid var(--border-color); transition: var(--theme-transition);">
+      <h2 style="color: var(--text-primary); margin: 0 0 1rem 0; transition: var(--theme-transition);" id="confirmTitle">Confirmar</h2>
+      <p style="color: var(--text-secondary); margin: 0 0 2rem 0; transition: var(--theme-transition);" id="confirmMessage">¿Estás seguro?</p>
       <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-        <button onclick="cerrarConfirmModal()" style="padding: 0.75rem 1.5rem; border: 2px solid #5c4a3d; background: transparent; color: #5c4a3d; border-radius: 4px; cursor: pointer; font-weight: 600; transition: all 0.3s;" onmouseover="this.style.background='#f8f4f0'" onmouseout="this.style.background='transparent'">
+        <button onclick="cerrarConfirmModal()" class="btn-secondary" style="padding: 0.75rem 1.5rem; border: 2px solid var(--border-color); background: transparent; color: var(--text-secondary); border-radius: 4px; cursor: pointer; font-weight: 600; transition: all 0.3s;">
           Cancelar
         </button>
-        <button onclick="confirmarAccion()" style="padding: 0.75rem 1.5rem; background: #a89968; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; transition: background 0.3s;" onmouseover="this.style.background='#8f7959'" onmouseout="this.style.background='#a89968'">
+        <button onclick="confirmarAccion()" style="padding: 0.75rem 1.5rem; background: var(--color-accent); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; transition: background 0.3s;">
           Confirmar
         </button>
       </div>
     </div>
   </div>
 
-  <div id="returnModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-    <div style="background: white; border-radius: 8px; padding: 2rem; max-width: 600px; max-height: 80vh; overflow-y: auto; animation: slideIn 0.3s ease;">
-      <h2 style="color: #001a33; margin: 0 0 1.5rem 0;">Solicitar Devolución</h2>
-      <div style="background: #f8f4f0; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
-        <h3 style="color: #001a33; margin: 0 0 1rem 0;">Instrucciones de Devolución</h3>
-        <ol style="color: #5c4a3d; line-height: 1.8; margin: 0;">
+  <div id="returnModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: var(--bg-card); border-radius: 8px; padding: 2rem; max-width: 600px; max-height: 80vh; overflow-y: auto; animation: slideIn 0.3s ease; border: 1px solid var(--border-color); transition: var(--theme-transition);">
+      <h2 style="color: var(--text-primary); margin: 0 0 1.5rem 0; transition: var(--theme-transition);">Solicitar Devolución</h2>
+      <div style="background: var(--bg-tertiary); padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid var(--border-color); transition: var(--theme-transition);">
+        <h3 style="color: var(--text-primary); margin: 0 0 1rem 0; transition: var(--theme-transition);">Instrucciones de Devolución</h3>
+        <ol style="color: var(--text-secondary); line-height: 1.8; margin: 0; transition: var(--theme-transition);">
           <li>Prepara el producto en su empaque original</li>
           <li>Imprime la etiqueta de devolución que recibirás por email</li>
           <li>Envía el paquete al siguiente dirección:
-            <div style="background: white; padding: 1rem; margin: 1rem 0; border-left: 3px solid #a89968; border-radius: 4px;">
-              <p style="margin: 0; font-weight: 600; color: #001a33;">Ibéricos Rodríguez González</p>
-              <p style="margin: 0.25rem 0 0 0; color: #5c4a3d;">Calle de la Moda 123</p>
-              <p style="margin: 0.25rem 0 0 0; color: #5c4a3d;">Polígono Industrial</p>
-              <p style="margin: 0.25rem 0 0 0; color: #5c4a3d;">28001 Madrid, España</p>
+            <div style="background: var(--bg-secondary); padding: 1rem; margin: 1rem 0; border-left: 3px solid var(--color-accent); border-radius: 4px; transition: var(--theme-transition);">
+              <p style="margin: 0; font-weight: 600; color: var(--text-primary); transition: var(--theme-transition);">Ibéricos Rodríguez González</p>
+              <p style="margin: 0.25rem 0 0 0; color: var(--text-secondary); transition: var(--theme-transition);">Calle de la Moda 123</p>
+              <p style="margin: 0.25rem 0 0 0; color: var(--text-secondary); transition: var(--theme-transition);">Polígono Industrial</p>
+              <p style="margin: 0.25rem 0 0 0; color: var(--text-secondary); transition: var(--theme-transition);">28001 Madrid, España</p>
             </div>
           </li>
           <li>El reembolso se procesará en <strong>5 a 7 días hábiles</strong> después de recibir tu devolución</li>
         </ol>
-        <p style="color: #f5576c; font-weight: 600; margin: 1rem 0 0 0; padding: 1rem; background: #ffe0e0; border-radius: 4px;">
+        <p style="color: #ff6b6b; font-weight: 600; margin: 1rem 0 0 0; padding: 1rem; background: rgba(220, 53, 69, 0.1); border-radius: 4px; border: 1px solid rgba(220, 53, 69, 0.3);">
           ⚠️ Importante: Asegúrate de enviar el producto en buen estado para que se apruebe la devolución.
         </p>
       </div>
       <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-        <button onclick="cerrarModalDevolucion()" style="
-          padding: 0.75rem 1.5rem;
-          border: 2px solid #5c4a3d;
-          background: transparent;
-          color: #5c4a3d;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: 600;
-          transition: all 0.3s;
-        " onmouseover="this.style.background='#f8f4f0'" onmouseout="this.style.background='transparent'">
+        <button onclick="cerrarModalDevolucion()" class="btn-secondary" style="padding: 0.75rem 1.5rem; border: 2px solid var(--border-color); background: transparent; color: var(--text-secondary); border-radius: 4px; cursor: pointer; font-weight: 600; transition: all 0.3s;">
           Cancelar
         </button>
-        <button onclick="confirmarDevolucion()" style="
-          padding: 0.75rem 1.5rem;
-          background: #a89968;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: 600;
-          transition: background 0.3s;
-        " onmouseover="this.style.background='#8f7959'" onmouseout="this.style.background='#a89968'">
+        <button onclick="confirmarDevolucion()" style="padding: 0.75rem 1.5rem; background: var(--color-accent); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; transition: background 0.3s;">
           Confirmar Devolución
         </button>
       </div>
@@ -226,12 +208,12 @@ import Layout from '../layouts/Layout.astro';
           console.warn('❌ userId no está disponible o es nulo');
           document.getElementById('loadingMessage').style.display = 'none';
           document.getElementById('pedidosContent').innerHTML = `
-            <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; border-left: 4px solid #a89968;">
-              <h2 style="color: #001a33; margin: 0 0 1rem 0;">Debes iniciar sesión</h2>
-              <p style="color: #5c4a3d; margin: 0 0 1.5rem 0;">Por favor, inicia sesión para ver tus pedidos.</p>
+            <div class="pedido-card" style="background: var(--bg-card); padding: 2rem; border-radius: 8px; text-align: center; border-left: 4px solid var(--color-accent); transition: var(--theme-transition);">
+              <h2 style="color: var(--text-primary); margin: 0 0 1rem 0;">Debes iniciar sesión</h2>
+              <p style="color: var(--text-secondary); margin: 0 0 1.5rem 0;">Por favor, inicia sesión para ver tus pedidos.</p>
               <a href="/login" style="
                 display: inline-block;
-                background: #a89968;
+                background: var(--color-accent);
                 color: white;
                 padding: 0.75rem 2rem;
                 border-radius: 4px;
@@ -273,12 +255,12 @@ import Layout from '../layouts/Layout.astro';
         if (!pedidos || pedidos.length === 0) {
           document.getElementById('loadingMessage').style.display = 'none';
           document.getElementById('pedidosContent').innerHTML = `
-            <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; border-left: 4px solid #a89968;">
-              <h2 style="color: #001a33; margin: 0 0 1rem 0;">Sin pedidos aún</h2>
-              <p style="color: #5c4a3d; margin: 0 0 1.5rem 0;">No tienes ningún pedido realizado. ¡Comienza a comprar ahora!</p>
+            <div class="pedido-card" style="background: var(--bg-card); padding: 2rem; border-radius: 8px; text-align: center; border-left: 4px solid var(--color-accent); transition: var(--theme-transition);">
+              <h2 style="color: var(--text-primary); margin: 0 0 1rem 0;">Sin pedidos aún</h2>
+              <p style="color: var(--text-secondary); margin: 0 0 1.5rem 0;">No tienes ningún pedido realizado. ¡Comienza a comprar ahora!</p>
               <a href="/productos" style="
                 display: inline-block;
-                background: #a89968;
+                background: var(--color-accent);
                 color: white;
                 padding: 0.75rem 2rem;
                 border-radius: 4px;
@@ -355,27 +337,27 @@ import Layout from '../layouts/Layout.astro';
           }
 
           html += `
-            <div style="background: white; border-radius: 8px; overflow: hidden; border: 1px solid #e0d5c7;">
-              <div style="padding: 1.5rem; background: #f8f4f0; border-bottom: 1px solid #e0d5c7; display: grid; grid-template-columns: 1fr auto auto; gap: 2rem; align-items: center;">
+            <div class="pedido-card" style="background: var(--bg-card); border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); transition: var(--theme-transition);">
+              <div style="padding: 1.5rem; background: var(--bg-tertiary); border-bottom: 1px solid var(--border-color); display: grid; grid-template-columns: 1fr auto auto; gap: 2rem; align-items: center; transition: var(--theme-transition);">
                 <div>
-                  <h3 style="color: #001a33; margin: 0 0 0.5rem 0;">Pedido #${pedido.numero_pedido}</h3>
-                  <p style="color: #5c4a3d; margin: 0; font-size: 0.9rem;">
+                  <h3 style="color: var(--text-primary); margin: 0 0 0.5rem 0; transition: var(--theme-transition);">Pedido #${pedido.numero_pedido}</h3>
+                  <p style="color: var(--text-secondary); margin: 0; font-size: 0.9rem; transition: var(--theme-transition);">
                     ${new Date(pedido.fecha_creacion).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}
                   </p>
                   ${pedido.codigo_seguimiento ? `
                     <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                      <span style="color: #a89968; font-size: 0.8rem;">📦 Seguimiento:</span>
+                      <span style="color: var(--color-accent); font-size: 0.8rem;">📦 Seguimiento:</span>
                       <a href="/seguimiento?codigo=${pedido.codigo_seguimiento}" style="
                         font-family: monospace;
                         font-size: 0.85rem;
                         font-weight: 600;
-                        color: #a89968;
+                        color: var(--color-accent);
                         text-decoration: none;
                         padding: 0.2rem 0.5rem;
-                        background: #a8996820;
+                        background: var(--overlay-light);
                         border-radius: 4px;
                         transition: all 0.3s;
-                      " onmouseover="this.style.background='#a8996840'" onmouseout="this.style.background='#a8996820'">
+                      ">
                         ${pedido.codigo_seguimiento}
                       </a>
                     </div>
@@ -395,62 +377,58 @@ import Layout from '../layouts/Layout.astro';
                   </span>
                 </div>
                 <div style="text-align: right;">
-                  <p style="color: #a89968; font-weight: 700; font-size: 1.2rem; margin: 0;">
+                  <p style="color: var(--color-accent); font-weight: 700; font-size: 1.2rem; margin: 0;">
                     ${parseFloat(pedido.total).toFixed(2)}€
                   </p>
                 </div>
               </div>
 
               <div style="padding: 1.5rem;">
-                <h4 style="color: #001a33; margin: 0 0 1rem 0;">Productos</h4>
+                <h4 style="color: var(--text-primary); margin: 0 0 1rem 0; transition: var(--theme-transition);">Productos</h4>
                 ${pedido.pedido_items.map((item, index) => {
                   let precioUnitario = parseFloat(item.precio_unitario) || 0;
-                  
-                  // Ya está en euros (guardado en BD sin convertir)
-                  // No necesita conversión
-                  
-                  // Calcular subtotal de forma segura
                   let subtotal = precioUnitario * item.cantidad;
                   
                   return `
                   <div style="
                     padding: 1rem;
-                    border-bottom: 1px solid #e0d5c7;
+                    border-bottom: 1px solid var(--border-color);
                     display: grid;
                     grid-template-columns: 1fr auto;
                     gap: 1rem;
                     align-items: center;
+                    transition: var(--theme-transition);
                   ">
                     <div>
-                      <p style="color: #001a33; font-weight: 600; margin: 0 0 0.25rem 0;">
+                      <p style="color: var(--text-primary); font-weight: 600; margin: 0 0 0.25rem 0; transition: var(--theme-transition);">
                         ${item.nombre_producto}
-                        ${item.peso_kg ? `<span style="color: #a89968; font-weight: 400; font-size: 0.9rem;">(${item.peso_kg.toFixed(3)} kg)</span>` : ''}
+                        ${item.peso_kg ? `<span style="color: var(--color-accent); font-weight: 400; font-size: 0.9rem;">(${item.peso_kg.toFixed(3)} kg)</span>` : ''}
                       </p>
-                      <p style="color: #5c4a3d; margin: 0; font-size: 0.9rem;">Cantidad: ${item.cantidad} x ${precioUnitario.toFixed(2)}€</p>
+                      <p style="color: var(--text-secondary); margin: 0; font-size: 0.9rem; transition: var(--theme-transition);">Cantidad: ${item.cantidad} x ${precioUnitario.toFixed(2)}€</p>
                     </div>
                     <div style="text-align: right;">
-                      <p style="color: #001a33; font-weight: 600; margin: 0;">
+                      <p style="color: var(--text-primary); font-weight: 600; margin: 0; transition: var(--theme-transition);">
                         ${subtotal.toFixed(2)}€
                       </p>
                     </div>
                   </div>
                 `;}).join('')}
 
-                <div style="padding: 1rem 0; border-top: 2px solid #e0d5c7; margin-top: 1rem;">
+                <div style="padding: 1rem 0; border-top: 2px solid var(--border-color); margin-top: 1rem; transition: var(--theme-transition);">
                   <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; margin-bottom: 0.5rem;">
-                    <span style="color: #5c4a3d;">Subtotal</span>
-                    <span style="color: #001a33; font-weight: 600;">${pedido.subtotal.toFixed(2)}€</span>
+                    <span style="color: var(--text-secondary); transition: var(--theme-transition);">Subtotal</span>
+                    <span style="color: var(--text-primary); font-weight: 600; transition: var(--theme-transition);">${pedido.subtotal.toFixed(2)}€</span>
                   </div>
                   ${pedido.envio > 0 ? `
                     <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; margin-bottom: 0.5rem;">
-                      <span style="color: #5c4a3d;">Envío</span>
-                    <span style="color: #001a33; font-weight: 600;">${pedido.envio.toFixed(2)}€</span>
+                      <span style="color: var(--text-secondary); transition: var(--theme-transition);">Envío</span>
+                    <span style="color: var(--text-primary); font-weight: 600; transition: var(--theme-transition);">${pedido.envio.toFixed(2)}€</span>
                     </div>
                   ` : ''}
                   ${pedido.impuestos > 0 ? `
                     <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; margin-bottom: 0.5rem;">
-                      <span style="color: #5c4a3d;">Impuestos</span>
-                      <span style="color: #001a33; font-weight: 600;">${pedido.impuestos.toFixed(2)}€</span>
+                      <span style="color: var(--text-secondary); transition: var(--theme-transition);">Impuestos</span>
+                      <span style="color: var(--text-primary); font-weight: 600; transition: var(--theme-transition);">${pedido.impuestos.toFixed(2)}€</span>
                     </div>
                   ` : ''}
                   ${pedido.descuento_aplicado > 0 ? `
@@ -459,14 +437,14 @@ import Layout from '../layouts/Layout.astro';
                       <span style="color: #28a745; font-weight: 600;">-${pedido.descuento_aplicado.toFixed(2)}€</span>
                     </div>
                   ` : ''}
-                  <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; border-top: 1px solid #e0d5c7; padding-top: 0.75rem; margin-top: 0.75rem;">
-                    <span style="color: #001a33; font-weight: 700;">Total</span>
-                    <span style="color: #a89968; font-weight: 700; font-size: 1.1rem;">${pedido.total.toFixed(2)}€</span>
+                  <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem; margin-top: 0.75rem; transition: var(--theme-transition);">
+                    <span style="color: var(--text-primary); font-weight: 700; transition: var(--theme-transition);">Total</span>
+                    <span style="color: var(--color-accent); font-weight: 700; font-size: 1.1rem;">${pedido.total.toFixed(2)}€</span>
                   </div>
                 </div>
 
                 ${botones ? `
-                  <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e0d5c7; display: flex; gap: 1rem; justify-content: flex-end;">
+                  <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color); display: flex; gap: 1rem; justify-content: flex-end; transition: var(--theme-transition);">
                     ${botones}
                   </div>
                 ` : ''}
@@ -484,12 +462,12 @@ import Layout from '../layouts/Layout.astro';
         console.error('Error:', error);
         document.getElementById('loadingMessage').style.display = 'none';
         document.getElementById('pedidosContent').innerHTML = `
-          <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; border-left: 4px solid #f5576c;">
-            <h2 style="color: #001a33; margin: 0 0 1rem 0;">Error</h2>
-            <p style="color: #5c4a3d; margin: 0 0 1.5rem 0;">No se pudieron cargar tus pedidos. Por favor, intenta de nuevo.</p>
+          <div class="pedido-card" style="background: var(--bg-card); padding: 2rem; border-radius: 8px; text-align: center; border-left: 4px solid #f5576c; transition: var(--theme-transition);">
+            <h2 style="color: var(--text-primary); margin: 0 0 1rem 0;">Error</h2>
+            <p style="color: var(--text-secondary); margin: 0 0 1.5rem 0;">No se pudieron cargar tus pedidos. Por favor, intenta de nuevo.</p>
             <a href="/productos" style="
               display: inline-block;
-              background: #a89968;
+              background: var(--color-accent);
               color: white;
               padding: 0.75rem 2rem;
               border-radius: 4px;

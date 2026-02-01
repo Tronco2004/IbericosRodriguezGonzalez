@@ -1633,28 +1633,13 @@ const info = categoryInfo[slug as string] || {
     }
 
     async function agregarVarianteAlCarrito(varianteId, peso, precio) {
-      if (procesandoCarrito) {
-        console.log('⏳ Ya hay una operación en curso...');
-        return;
-      }
-
-      procesandoCarrito = true;
       const userId = localStorage.getItem('user_id');
-      let varianteAEliminar: any = null;
       
-      try {
-        if (userId) {
-          // ACTUALIZACIÓN OPTIMISTA: Filtrar variante localmente primero
-          const varianteAEliminar = variantesDisponibles.find((v: any) => v.id === parseInt(varianteId));
-          if (varianteAEliminar) {
-            variantesDisponibles = variantesDisponibles.filter((v: any) => v.id !== parseInt(varianteId));
-            actualizarEstadoProducto(productoEnModal.id, variantesDisponibles.length);
-          }
-
-          mostrarNotificacion('✓ Añadido al carrito');
-          cerrarModales();
-
-          // Enviar petición a la API
+      if (userId) {
+        try {
+          // Guardar referencias antes de cualquier operación
+          const productoId = productoEnModal.id;
+          
           const response = await fetch('/api/carrito', {
             method: 'POST',
             headers: {
@@ -1662,10 +1647,9 @@ const info = categoryInfo[slug as string] || {
               'x-user-id': userId
             },
             body: JSON.stringify({
-              producto_id: productoEnModal.id,
+              producto_id: productoId,
               producto_variante_id: parseInt(varianteId),
               cantidad: 1,
-              precio_unitario: parseInt(precio),
               peso_kg: parseFloat(peso),
               user_id: userId
             })
@@ -1673,37 +1657,33 @@ const info = categoryInfo[slug as string] || {
 
           const result = await response.json();
           if (result.success) {
-            // Recargar variantes para asegurar sincronización con la BD
-            const variantesRes = await fetch(`/api/variantes/obtener-disponibles?producto_id=${productoEnModal.id}`);
-            const variantesData = await variantesRes.json();
-            if (variantesData.success) {
-              variantesMap[productoEnModal.id] = variantesData.variantes;
-              actualizarEstadoProducto(productoEnModal.id, variantesData.variantes.length);
+            mostrarNotificacion('✓ Añadido al carrito');
+            
+            // Actualizar variantes con las que devuelve la API o recargar
+            if (result.variantes) {
+              variantesMap[productoId] = result.variantes;
+              actualizarEstadoProducto(productoId, result.variantes.length);
+            } else {
+              // Recargar variantes para actualizar la UI
+              const variantesRes = await fetch(`/api/variantes/obtener-disponibles?producto_id=${productoId}`);
+              const variantesData = await variantesRes.json();
+              if (variantesData.success) {
+                variantesMap[productoId] = variantesData.variantes;
+                actualizarEstadoProducto(productoId, variantesData.variantes.length);
+              }
             }
+            
+            cerrarModales();
             window.dispatchEvent(new CustomEvent('carritoActualizado'));
           } else {
-            // Si hay error, revertir el cambio local
-            if (varianteAEliminar) {
-              variantesDisponibles.push(varianteAEliminar);
-              variantesDisponibles.sort((a: any, b: any) => a.id - b.id);
-              actualizarEstadoProducto(productoEnModal.id, variantesDisponibles.length);
-            }
-            mostrarNotificacion(result.error || 'Error al añadir al carrito', 'error');
+            alert(result.error || 'Error al añadir al carrito');
           }
-        } else {
-          await agregarAlCarritoLocalVariante(varianteId, peso, precio);
+        } catch (error) {
+          console.error('Error:', error);
+          alert('Error al añadir al carrito');
         }
-      } catch (error) {
-        console.error('Error:', error);
-        // Revertir el cambio si hay error
-        if (varianteAEliminar) {
-          variantesDisponibles.push(varianteAEliminar);
-          variantesDisponibles.sort((a: any, b: any) => a.id - b.id);
-          actualizarEstadoProducto(productoEnModal.id, variantesDisponibles.length);
-        }
-        mostrarNotificacion('Error al añadir al carrito', 'error');
-      } finally {
-        procesandoCarrito = false;
+      } else {
+        agregarAlCarritoLocalVariante(varianteId, peso, precio);
       }
     }
 
@@ -1797,36 +1777,13 @@ const info = categoryInfo[slug as string] || {
       }
     }
 
-    // Variable para bloquear mientras se procesa
-    let procesandoCarrito = false;
-
     async function agregarProductoAlCarrito(cantidad) {
       if (!productoEnModal) return;
-      if (procesandoCarrito) {
-        console.log('⏳ Ya hay una operación en curso...');
-        return;
-      }
-
-      procesandoCarrito = true;
-      const btnConfirm = document.getElementById('cantidadConfirm');
-      if (btnConfirm) {
-        btnConfirm.disabled = true;
-        btnConfirm.style.opacity = '0.5';
-      }
 
       const userId = localStorage.getItem('user_id');
-      const stockAnterior = productoEnModal.stock; // Guardar para revertir en caso de error
 
-      try {
-        if (userId) {
-          // ACTUALIZACIÓN OPTIMISTA: Actualizar stock inmediatamente en el UI
-          const stockOptimista = Math.max(0, productoEnModal.stock - cantidad);
-          productoEnModal.stock = stockOptimista;
-          actualizarStockVisual(productoEnModal.id, productoEnModal.stock);
-          mostrarNotificacion(`✓ ${cantidad} ${cantidad > 1 ? 'unidades añadidas' : 'unidad añadida'}`);
-          cerrarModales();
-
-          // Enviar petición a la API
+      if (userId) {
+        try {
           const response = await fetch('/api/carrito', {
             method: 'POST',
             headers: {
@@ -1842,128 +1799,115 @@ const info = categoryInfo[slug as string] || {
           });
 
           const result = await response.json();
-          console.log('📦 Respuesta de API:', result);
-          
           if (result.success) {
-            // SIEMPRE usar el stock que devuelve la BD (es la fuente de verdad)
-            if (result.stockRestante !== null && result.stockRestante !== undefined) {
-              console.log(`📊 Stock antes de actualizar: ${productoEnModal.stock}, Stock de BD: ${result.stockRestante}`);
-              productoEnModal.stock = result.stockRestante;
-              actualizarStockVisual(productoEnModal.id, productoEnModal.stock);
-              console.log(`✅ Stock actualizado desde BD: ${productoEnModal.stock} unidades`);
-            } else {
-              console.log('⚠️ stockRestante no vino en la respuesta');
-            }
+            // Guardar referencia antes de cerrar modal
+            const productoId = productoEnModal.id;
+            const nuevoStock = productoEnModal.stock - cantidad;
+            
+            mostrarNotificacion(`✓ ${cantidad} ${cantidad > 1 ? 'unidades añadidas' : 'unidad añadida'}`);
+            cerrarModales();
+            actualizarStockVisual(productoId, nuevoStock);
             window.dispatchEvent(new CustomEvent('carritoActualizado'));
           } else {
-            console.log('❌ Error en respuesta de API:', result.error);
-            // Si hay error, revertir el cambio al stock anterior
-            productoEnModal.stock = stockAnterior;
-            actualizarStockVisual(productoEnModal.id, productoEnModal.stock);
-            mostrarNotificacion(result.error || 'Error al añadir al carrito', 'error');
+            alert(result.error || 'Error al añadir al carrito');
           }
-        } else {
-          await agregarAlCarritoLocal(cantidad);
+        } catch (error) {
+          console.error('Error:', error);
+          alert('Error al añadir al carrito');
         }
-      } catch (error) {
-        console.error('Error:', error);
-        // Revertir al stock anterior en caso de error
-        productoEnModal.stock = stockAnterior;
-        actualizarStockVisual(productoEnModal.id, productoEnModal.stock);
-        mostrarNotificacion('Error al añadir al carrito', 'error');
-      } finally {
-        procesandoCarrito = false;
-        if (btnConfirm) {
-          btnConfirm.disabled = false;
-          btnConfirm.style.opacity = '1';
-        }
+      } else {
+        agregarAlCarritoLocal(cantidad);
       }
     }
 
     async function agregarAlCarritoLocal(cantidad) {
-      // PRIMERO: Reservar stock en la base de datos
-      const reservaRes = await fetch('/api/carrito/reservar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          producto_id: productoEnModal.id,
-          cantidad: cantidad
-        })
-      });
-      
-      const reservaData = await reservaRes.json();
-      if (!reservaData.success) {
-        console.error('❌ Error reservando stock:', reservaData.error);
-        mostrarNotificacion(reservaData.error || 'No hay suficiente stock', 'error');
-        return;
-      }
-      console.log('✅ Stock reservado en BD:', reservaData);
-
-      // DESPUÉS: Guardar en localStorage
-      const carrito = JSON.parse(localStorage.getItem('carrito_invitado') || '[]');
-      
-      const existente = carrito.find(item => 
-        item.producto_id === productoEnModal.id && !item.producto_variante_id
-      );
-
-      if (existente) {
-        existente.cantidad += cantidad;
-      } else {
-        carrito.push({
-          id: Date.now(),
-          producto_id: productoEnModal.id,
-          nombre: productoEnModal.nombre,
-          imagen: productoEnModal.imagen,
-          cantidad: cantidad,
-          precio_unitario: productoEnModal.precio_centimos,
-          fecha_agregado: new Date().toISOString(),
-          categoria: productoEnModal.categoria
+      try {
+        // Guardar referencias antes de operaciones async
+        const productoId = productoEnModal.id;
+        const productoNombre = productoEnModal.nombre;
+        const productoImagen = productoEnModal.imagen;
+        const productoPrecio = productoEnModal.precio_centimos;
+        const productoCategoria = productoEnModal.categoria;
+        
+        // Reservar stock en la base de datos primero
+        const reservaRes = await fetch('/api/carrito/reservar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            producto_id: productoId,
+            cantidad: cantidad
+          })
         });
-      }
+        
+        const reservaData = await reservaRes.json();
+        if (!reservaData.success) {
+          console.error('❌ Error reservando stock:', reservaData.error);
+          mostrarNotificacion(reservaData.error || 'Este producto ya no está disponible', 'error');
+          cerrarModales();
+          return;
+        }
+        console.log('✅ Stock reservado:', reservaData);
 
-      localStorage.setItem('carrito_invitado', JSON.stringify(carrito));
-      localStorage.setItem('carrito_invitado_fecha', String(Date.now()));
-      
-      mostrarNotificacion(`✓ ${cantidad} ${cantidad > 1 ? 'unidades añadidas' : 'unidad añadida'}`);
-      cerrarModales();
-      
-      // Usar el stock que devuelve la BD (más preciso)
-      productoEnModal.stock = reservaData.stockRestante;
-      actualizarStockVisual(productoEnModal.id, productoEnModal.stock);
-      window.dispatchEvent(new CustomEvent('carritoActualizado'));
+        const carrito = JSON.parse(localStorage.getItem('carrito_invitado') || '[]');
+        
+        const existente = carrito.find(item => 
+          item.producto_id === productoId && !item.producto_variante_id
+        );
+
+        if (existente) {
+          existente.cantidad += cantidad;
+        } else {
+          carrito.push({
+            id: Date.now(),
+            producto_id: productoId,
+            nombre: productoNombre,
+            imagen: productoImagen,
+            cantidad: cantidad,
+            precio_unitario: productoPrecio,
+            fecha_agregado: new Date().toISOString(),
+            categoria: productoCategoria
+          });
+        }
+
+        localStorage.setItem('carrito_invitado', JSON.stringify(carrito));
+        localStorage.setItem('carrito_invitado_fecha', String(Date.now()));
+        
+        mostrarNotificacion(`✓ ${cantidad} ${cantidad > 1 ? 'unidades añadidas' : 'unidad añadida'}`);
+        cerrarModales();
+        
+        // Actualizar stock visual con el valor del servidor
+        const nuevoStock = reservaData.stockRestante ?? (productoEnModal?.stock - cantidad);
+        actualizarStockVisual(productoId, nuevoStock);
+        window.dispatchEvent(new CustomEvent('carritoActualizado'));
+      } catch (error) {
+        console.error('❌ Error en agregarAlCarritoLocal:', error);
+        mostrarNotificacion('Error al añadir al carrito', 'error');
+      }
     }
 
     function actualizarStockVisual(productoId, nuevoStock) {
       const article = document.querySelector(`article[data-id="${productoId}"]`);
-      if (!article) {
-        console.log('❌ No se encontró artículo con ID:', productoId);
-        return;
-      }
+      if (!article) return;
 
-      const stockSpan = article.querySelector('.stock-info');
-      if (!stockSpan) {
-        console.log('❌ No se encontró .stock-info en artículo:', productoId);
-        return;
-      }
-
-      console.log(`✅ Actualizando stock visual de producto ${productoId} a ${nuevoStock} unidades`);
-      
-      if (nuevoStock <= 0) {
-        stockSpan.innerHTML = `
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-          </svg>
-          Agotado
-        `;
-        stockSpan.classList.add('stock-agotado');
-      } else {
-        stockSpan.classList.remove('stock-agotado');
-        stockSpan.innerHTML = `
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-          </svg>
-          ${nuevoStock} unidad${nuevoStock !== 1 ? 'es' : ''}
-        `;
+      const stockSpan = article.querySelector('span[style*="border-radius: 20px"]');
+      if (stockSpan) {
+        if (nuevoStock <= 0) {
+          stockSpan.innerHTML = `
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: #999">
+              <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+            </svg>
+            Agotado
+          `;
+          stockSpan.style.color = '#999';
+          stockSpan.style.background = '#f5f5f5';
+        } else {
+          stockSpan.innerHTML = `
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: #a89968">
+              <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+            </svg>
+            ${nuevoStock} unidad${nuevoStock !== 1 ? 'es' : ''}
+          `;
+        }
       }
     }
 
@@ -2134,8 +2078,8 @@ const info = categoryInfo[slug as string] || {
               const overlay = document.createElement('div');
               overlay.style.cssText = "position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; border-radius: 8px;";
               const badge = document.createElement('span');
-              badge.style.cssText = "background: linear-gradient(135deg, #c1121f 0%, #800000 100%); color: white; padding: 12px 24px; border-radius: 6px; font-weight: 700; font-size: 16px; text-shadow: 0 2px 4px rgba(0,0,0,0.3);";
-              badge.textContent = 'Agotado';
+              badge.style.cssText = "background: rgba(255,255,255,0.95); color: #1a1a1a; padding: 12px 24px; border-radius: 6px; font-weight: 700; font-size: 16px; text-shadow: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3);";
+              badge.textContent = 'AGOTADO';
               overlay.appendChild(badge);
               link.appendChild(overlay);
               console.log('✅ Overlay añadido para producto ' + productoId);
