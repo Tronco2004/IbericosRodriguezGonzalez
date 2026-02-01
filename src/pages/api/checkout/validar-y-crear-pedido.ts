@@ -247,13 +247,15 @@ export const POST: APIRoute = async ({ request }) => {
     });
 
     // ✅ ACTUALIZAR EL PEDIDO CON LOS TOTALES CORRECTOS
-    const { error: updateError } = await supabaseClient
+    const { data: pedidoActualizado, error: updateError } = await supabaseClient
       .from('pedidos')
       .update({
         subtotal: subtotalCalculado,
         total: totalCalculado
       })
-      .eq('id', pedidoId);
+      .eq('id', pedidoId)
+      .select('codigo_seguimiento')
+      .single();
 
     if (updateError) {
       console.error('⚠️ Error actualizando totales del pedido:', updateError);
@@ -262,12 +264,17 @@ export const POST: APIRoute = async ({ request }) => {
       console.log('✅ Totales del pedido actualizados correctamente');
     }
 
+    // Obtener el código de seguimiento (generado por trigger)
+    const codigoSeguimiento = pedidoActualizado?.codigo_seguimiento || null;
+    console.log('📦 Código de seguimiento:', codigoSeguimiento);
+
     // 🎁 ENVIAR EMAIL DE CONFIRMACIÓN
     console.log('📧 Enviando email de confirmación...');
     try {
       await enviarConfirmacionPedido({
         email_cliente: customerEmail,
         numero_pedido: numeroPedido,
+        codigo_seguimiento: codigoSeguimiento || undefined,
         fecha: new Date().toISOString(),
         items: cartItems.map((item: any) => ({
           nombre: item.nombre,
@@ -291,6 +298,7 @@ export const POST: APIRoute = async ({ request }) => {
         success: true,
         pedidoId: pedidoId,
         numeroPedido: numeroPedido,
+        codigoSeguimiento: codigoSeguimiento,
         total: totalCalculado,
         message: 'Pedido creado exitosamente'
       }),

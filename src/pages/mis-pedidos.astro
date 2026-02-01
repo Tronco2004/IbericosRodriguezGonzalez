@@ -362,6 +362,24 @@ import Layout from '../layouts/Layout.astro';
                   <p style="color: #5c4a3d; margin: 0; font-size: 0.9rem;">
                     ${new Date(pedido.fecha_creacion).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}
                   </p>
+                  ${pedido.codigo_seguimiento ? `
+                    <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                      <span style="color: #a89968; font-size: 0.8rem;">📦 Seguimiento:</span>
+                      <a href="/seguimiento?codigo=${pedido.codigo_seguimiento}" style="
+                        font-family: monospace;
+                        font-size: 0.85rem;
+                        font-weight: 600;
+                        color: #a89968;
+                        text-decoration: none;
+                        padding: 0.2rem 0.5rem;
+                        background: #a8996820;
+                        border-radius: 4px;
+                        transition: all 0.3s;
+                      " onmouseover="this.style.background='#a8996840'" onmouseout="this.style.background='#a8996820'">
+                        ${pedido.codigo_seguimiento}
+                      </a>
+                    </div>
+                  ` : ''}
                 </div>
                 <div style="text-align: right;">
                   <span style="

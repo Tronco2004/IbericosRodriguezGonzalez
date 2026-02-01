@@ -14,6 +14,8 @@ export const GET: APIRoute = async ({ request, cookies }) => {
       .select(`
         id,
         numero_pedido,
+        codigo_seguimiento,
+        estado_seguimiento,
         usuario_id,
         estado,
         subtotal,
@@ -24,6 +26,8 @@ export const GET: APIRoute = async ({ request, cookies }) => {
         telefono_cliente,
         fecha_creacion,
         fecha_pago,
+        fecha_envio,
+        fecha_entrega,
         pedido_items (
           id,
           nombre_producto,

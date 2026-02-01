@@ -430,9 +430,51 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         );
       }
 
+      // Decrementar stock por la cantidad adicional añadida
+      let stockRestante = null;
+      
+      if (producto_variante_id) {
+        // Decrementar stock de variante
+        const { data: variante } = await supabaseClient
+          .from('producto_variantes')
+          .select('cantidad_disponible')
+          .eq('id', producto_variante_id)
+          .single();
+        
+        if (variante) {
+          const nuevoStock = Math.max(0, (variante.cantidad_disponible || 0) - cantidad);
+          stockRestante = nuevoStock; // Devolver stock de variante
+          await supabaseClient
+            .from('producto_variantes')
+            .update({ 
+              cantidad_disponible: nuevoStock,
+              disponible: nuevoStock > 0
+            })
+            .eq('id', producto_variante_id);
+          console.log('✅ Stock variante decrementado:', { variante_id: producto_variante_id, nuevoStock });
+        }
+      } else {
+        // Decrementar stock de producto simple
+        const { data: producto } = await supabaseClient
+          .from('productos')
+          .select('stock')
+          .eq('id', producto_id)
+          .single();
+        
+        if (producto) {
+          const nuevoStock = Math.max(0, (producto.stock || 0) - cantidad);
+          stockRestante = nuevoStock;
+          await supabaseClient
+            .from('productos')
+            .update({ stock: nuevoStock })
+            .eq('id', producto_id);
+          console.log('✅ Stock producto decrementado:', { producto_id, nuevoStock });
+        }
+      }
+
       console.log('✅ Item actualizado:', actualizado);
       return new Response(
-        JSON.stringify({ success: true, item: actualizado }),
+        JSON.stringify({ success: true, item: actualizado, stockRestante }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
     } else {
@@ -461,6 +503,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
 
       // Si es un producto variable (con variante), decrementar stock de la variante
+      let stockRestante = null;
+      let variantes = null;
+      
       if (producto_variante_id) {
         console.log('📉 Decrementando stock de variante:', producto_variante_id, 'cantidad:', cantidad);
         
@@ -472,6 +517,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         
         if (!getError && variante) {
           const nuevoStock = Math.max(0, (variante.cantidad_disponible || 0) - cantidad);
+          stockRestante = nuevoStock;
           const nuevoDisponible = nuevoStock > 0;
           
           await supabaseClient
@@ -488,11 +534,19 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             nuevoStock,
             ahora_disponible: nuevoDisponible
           });
+          
+          // Obtener todas las variantes disponibles
+          const { data: todasVariantes } = await supabaseClient
+            .from('producto_variantes')
+            .select('*')
+            .eq('producto_id', producto_id)
+            .eq('disponible', true)
+            .order('peso_kg', { ascending: true });
+          
+          variantes = todasVariantes || [];
         }
-      }
-
-      // Si es un producto simple (no tiene variante), restar stock
-      if (!producto_variante_id) {
+      } else {
+        // Si es un producto simple (no tiene variante), restar stock
         console.log('📉 Restando stock del producto:', producto_id, 'cantidad:', cantidad);
         
         const { data: producto, error: getError } = await supabaseClient
@@ -503,6 +557,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         
         if (!getError && producto) {
           const nuevoStock = Math.max(0, producto.stock - cantidad);
+          stockRestante = nuevoStock;
           const { error: updateError } = await supabaseClient
             .from('productos')
             .update({ stock: nuevoStock })
@@ -519,7 +574,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
       console.log('✅ Item agregado:', nuevoItem);
       return new Response(
-        JSON.stringify({ success: true, item: nuevoItem }),
+        JSON.stringify({ success: true, item: nuevoItem, stockRestante, variantes }),
         { status: 201, headers: { 'Content-Type': 'application/json' } }
       );
     }

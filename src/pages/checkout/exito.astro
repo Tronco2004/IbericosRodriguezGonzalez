@@ -112,7 +112,7 @@ const success = params.get('status') === 'success';
 
           <!-- Countdown -->
           <div style="text-align: center; color: #5c4a3d; font-size: 0.875rem;">
-            Redirigiendo en <span id="countdown" style="font-weight: bold; color: #a89968;">5</span> segundos...
+            Redirigiendo en <span id="countdown" style="font-weight: bold; color: #a89968;">10</span> segundos...
           </div>
         </div>
       ) : (
@@ -283,6 +283,7 @@ const success = params.get('status') === 'success';
           console.log('✅ Pedido creado exitosamente:');
           console.log('  - ID:', data.pedidoId);
           console.log('  - Número:', data.numeroPedido);
+          console.log('  - Código Seguimiento:', data.codigoSeguimiento);
           console.log('  - Total:', data.total);
 
           // Limpiar localStorage
@@ -291,15 +292,15 @@ const success = params.get('status') === 'success';
           localStorage.removeItem('checkout_data');
           
           console.log('✅ Carrito limpiado de localStorage');
-          console.log('🟢 Redirigiendo a /mis-pedidos...\n');
 
-          // Mostrar mensaje de éxito
-          mostrarNotificacion(`Pedido #${data.numeroPedido} creado correctamente`, 'success');
+          // Mostrar código de seguimiento en la página
+          if (data.codigoSeguimiento) {
+            mostrarCodigoSeguimiento(data.codigoSeguimiento, data.numeroPedido);
+          }
 
-          // Redirigir
-          setTimeout(() => {
-            window.location.href = userId ? '/mis-pedidos' : '/productos';
-          }, 2000);
+          // Iniciar redirección automática con countdown
+          console.log('🟢 Pedido completado. Redirigiendo en 10 segundos...\n');
+          iniciarCountdownRedireccion();
         } else {
           console.error('❌ Error del API:', data.error);
           console.error('Detalles:', data.details);
@@ -314,6 +315,105 @@ const success = params.get('status') === 'success';
       console.log('🔄 ======= FIN: Validar y crear pedido =======\n');
     }
 
+    function mostrarCodigoSeguimiento(codigo, numeroPedido) {
+      // Crear el elemento del código de seguimiento
+      const seguimientoBox = document.createElement('div');
+      seguimientoBox.id = 'seguimientoBox';
+      seguimientoBox.style.cssText = `
+        background: linear-gradient(135deg, #f8f7f4 0%, #ede7dd 100%);
+        border: 2px solid #a89968;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+        text-align: center;
+        animation: slideIn 0.5s ease;
+      `;
+      seguimientoBox.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+          <svg style="width: 24px; height: 24px; color: #a89968;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+          <span style="font-weight: 600; color: #5c4a3d; font-size: 1rem;">Código de Seguimiento</span>
+        </div>
+        <div style="
+          background: white;
+          padding: 1rem;
+          border-radius: 8px;
+          font-family: monospace;
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #001a33;
+          letter-spacing: 2px;
+          margin-bottom: 0.75rem;
+          border: 1px dashed #a89968;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        " 
+        onclick="navigator.clipboard.writeText('${codigo}'); this.style.background='#e8f5e9'; setTimeout(() => this.style.background='white', 1000);"
+        title="Clic para copiar"
+        >
+          ${codigo}
+        </div>
+        <p style="color: #5c4a3d; font-size: 0.875rem; margin: 0 0 1rem 0;">
+          Guarda este código para rastrear tu pedido en cualquier momento
+        </p>
+        <a href="/seguimiento?codigo=${codigo}" style="
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.75rem 1.5rem;
+          background: linear-gradient(135deg, #a89968 0%, #8b7355 100%);
+          color: white;
+          text-decoration: none;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 0.9rem;
+          transition: all 0.3s ease;
+        " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+          <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+          Ver estado del pedido
+        </a>
+      `;
+
+      // Insertar después del paso 3 (antes de los botones)
+      const botones = document.querySelector('a[href="/mis-pedidos"]')?.parentElement;
+      if (botones) {
+        botones.parentElement?.insertBefore(seguimientoBox, botones);
+      }
+    }
+
+    function iniciarCountdownRedireccion() {
+      let segundos = 10;
+      const countdownElement = document.getElementById('countdown');
+      const countdownContainer = countdownElement?.parentElement;
+      
+      // Mostrar el countdown si estaba oculto
+      if (countdownContainer) {
+        countdownContainer.style.display = 'block';
+      }
+      
+      // Actualizar el valor inicial
+      if (countdownElement) {
+        countdownElement.textContent = segundos;
+      }
+      
+      const intervalo = setInterval(() => {
+        segundos--;
+        if (countdownElement) {
+          countdownElement.textContent = segundos;
+        }
+        
+        if (segundos <= 0) {
+          clearInterval(intervalo);
+          window.location.href = '/mis-pedidos';
+        }
+      }, 1000);
+    }
 
 
     // Crear el pedido solo si hay sessionId

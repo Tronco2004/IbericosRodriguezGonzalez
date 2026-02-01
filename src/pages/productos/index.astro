@@ -1935,11 +1935,23 @@ import Layout from '../../layouts/Layout.astro';
         const userId = localStorage.getItem('user_id');
         console.log('👤 User ID:', userId);
         
+        // Guardar stock anterior para revertir en caso de error
+        const productoEnGrilla = productosGlobal.find(p => p.id === parseInt(productoId));
+        const stockAnterior = productoEnGrilla?.stock || 0;
+        
         // Si es invitado, guardar en localStorage
         if (!userId) {
           console.log('👻 Invitado detectado - guardando en localStorage');
           agregarAlCarritoLocalSimple(productoId, cantidad, cortado);
           return;
+        }
+
+        // ACTUALIZACIÓN OPTIMISTA: Actualizar stock inmediatamente en la UI
+        if (productoEnGrilla) {
+          const nuevoStock = Math.max(0, stockAnterior - cantidad);
+          productoEnGrilla.stock = nuevoStock;
+          actualizarStockVisualEnGrilla(parseInt(productoId), nuevoStock);
+          console.log(`✅ Stock actualizado localmente: ${stockAnterior} → ${nuevoStock}`);
         }
 
         // Si está logueado, usar API del servidor
@@ -1973,14 +1985,72 @@ import Layout from '../../layouts/Layout.astro';
         console.log('✅ Resultado del API:', result);
         if (result.success) {
           console.log('✅ Producto agregado exitosamente');
+          
+          // Usar el stock que devuelve la BD (es la fuente de verdad)
+          if (result.stockRestante !== null && result.stockRestante !== undefined && productoEnGrilla) {
+            productoEnGrilla.stock = result.stockRestante;
+            actualizarStockVisualEnGrilla(parseInt(productoId), result.stockRestante);
+            console.log(`📊 Stock sincronizado desde BD: ${result.stockRestante}`);
+          }
+          
           const msg = cortado ? 'Producto agregado al carrito (cortado)' : 'Producto agregado al carrito';
           mostrarNotificacion(msg, 'exito');
           // Disparar evento para actualizar stock en tiempo real
           window.dispatchEvent(new CustomEvent('carritoActualizado'));
+        } else {
+          // Revertir cambio en caso de error
+          if (productoEnGrilla) {
+            productoEnGrilla.stock = stockAnterior;
+            actualizarStockVisualEnGrilla(parseInt(productoId), stockAnterior);
+            console.log(`⚠️ Stock revertido: ${stockAnterior}`);
+          }
+          mostrarNotificacion('Error: ' + (result.error || 'No se pudo agregar al carrito'), 'error');
         }
       } catch (error) {
         console.error('❌ Error en agregarAlCarrito:', error);
+        // Revertir cambio en caso de error
+        const productoEnGrilla = productosGlobal.find(p => p.id === parseInt(productoId));
+        if (productoEnGrilla) {
+          const stockAnterior = parseInt(document.querySelector(`article[data-id="${productoId}"] .stock-info`)?.textContent?.match(/\d+/) || 0) + cantidad;
+          productoEnGrilla.stock = stockAnterior;
+          actualizarStockVisualEnGrilla(parseInt(productoId), stockAnterior);
+        }
         mostrarNotificacion('Error al agregar el producto al carrito', 'error');
+      }
+    }
+
+    // Función para actualizar stock visual en la grilla
+    function actualizarStockVisualEnGrilla(productoId, nuevoStock) {
+      const article = document.querySelector(`article[data-id="${productoId}"]`);
+      if (!article) {
+        console.log('❌ No se encontró artículo con ID:', productoId);
+        return;
+      }
+
+      const stockSpan = article.querySelector('.stock-info');
+      if (!stockSpan) {
+        console.log('❌ No se encontró .stock-info en artículo:', productoId);
+        return;
+      }
+
+      console.log(`✅ Actualizando stock visual de producto ${productoId} a ${nuevoStock} unidades`);
+      
+      if (nuevoStock <= 0) {
+        stockSpan.innerHTML = `
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+          </svg>
+          Agotado
+        `;
+        stockSpan.classList.add('stock-agotado');
+      } else {
+        stockSpan.classList.remove('stock-agotado');
+        stockSpan.innerHTML = `
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+          </svg>
+          ${nuevoStock} unidad${nuevoStock !== 1 ? 'es' : ''}
+        `;
       }
     }
 

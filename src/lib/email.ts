@@ -13,6 +13,7 @@ const transporter = nodemailer.createTransport({
 export interface EmailPedido {
   email_cliente: string;
   numero_pedido: string;
+  codigo_seguimiento?: string;
   fecha: string;
   items: {
     nombre: string;
@@ -200,6 +201,16 @@ export async function enviarConfirmacionPedido(datos: EmailPedido) {
               <div class="section">
                 <h2>Detalles del Pedido</h2>
                 <p><strong>Número de Pedido:</strong> <span class="badge">${datos.numero_pedido}</span></p>
+                ${datos.codigo_seguimiento ? `
+                <p><strong>📦 Código de Seguimiento:</strong></p>
+                <div style="background: #f0e6d3; padding: 15px; border-radius: 8px; text-align: center; margin: 10px 0;">
+                  <span style="font-family: monospace; font-size: 24px; font-weight: bold; color: #001a33; letter-spacing: 2px;">${datos.codigo_seguimiento}</span>
+                  <p style="margin: 10px 0 0 0; font-size: 12px; color: #666;">Guarda este código para rastrear tu pedido</p>
+                </div>
+                <p style="text-align: center;">
+                  <a href="https://ibericosrg.com/seguimiento?codigo=${datos.codigo_seguimiento}" style="display: inline-block; background: #a89968; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 600;">Ver estado del pedido</a>
+                </p>
+                ` : ''}
                 <p><strong>Fecha:</strong> ${new Date(datos.fecha).toLocaleDateString('es-ES', {
                   year: 'numeric',
                   month: 'long',

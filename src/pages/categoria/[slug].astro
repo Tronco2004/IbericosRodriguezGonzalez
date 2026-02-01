@@ -1633,10 +1633,28 @@ const info = categoryInfo[slug as string] || {
     }
 
     async function agregarVarianteAlCarrito(varianteId, peso, precio) {
+      if (procesandoCarrito) {
+        console.log('⏳ Ya hay una operación en curso...');
+        return;
+      }
+
+      procesandoCarrito = true;
       const userId = localStorage.getItem('user_id');
+      let varianteAEliminar: any = null;
       
-      if (userId) {
-        try {
+      try {
+        if (userId) {
+          // ACTUALIZACIÓN OPTIMISTA: Filtrar variante localmente primero
+          const varianteAEliminar = variantesDisponibles.find((v: any) => v.id === parseInt(varianteId));
+          if (varianteAEliminar) {
+            variantesDisponibles = variantesDisponibles.filter((v: any) => v.id !== parseInt(varianteId));
+            actualizarEstadoProducto(productoEnModal.id, variantesDisponibles.length);
+          }
+
+          mostrarNotificacion('✓ Añadido al carrito');
+          cerrarModales();
+
+          // Enviar petición a la API
           const response = await fetch('/api/carrito', {
             method: 'POST',
             headers: {
@@ -1645,36 +1663,47 @@ const info = categoryInfo[slug as string] || {
             },
             body: JSON.stringify({
               producto_id: productoEnModal.id,
-              variante_id: parseInt(varianteId),
+              producto_variante_id: parseInt(varianteId),
               cantidad: 1,
               precio_unitario: parseInt(precio),
-              peso_kg: parseFloat(peso)
+              peso_kg: parseFloat(peso),
+              user_id: userId
             })
           });
 
           const result = await response.json();
           if (result.success) {
-            mostrarNotificacion('✓ Añadido al carrito');
-            
-            // Recargar variantes para actualizar la UI
+            // Recargar variantes para asegurar sincronización con la BD
             const variantesRes = await fetch(`/api/variantes/obtener-disponibles?producto_id=${productoEnModal.id}`);
             const variantesData = await variantesRes.json();
             if (variantesData.success) {
               variantesMap[productoEnModal.id] = variantesData.variantes;
               actualizarEstadoProducto(productoEnModal.id, variantesData.variantes.length);
             }
-            
-            cerrarModales();
             window.dispatchEvent(new CustomEvent('carritoActualizado'));
           } else {
-            alert(result.error || 'Error al añadir al carrito');
+            // Si hay error, revertir el cambio local
+            if (varianteAEliminar) {
+              variantesDisponibles.push(varianteAEliminar);
+              variantesDisponibles.sort((a: any, b: any) => a.id - b.id);
+              actualizarEstadoProducto(productoEnModal.id, variantesDisponibles.length);
+            }
+            mostrarNotificacion(result.error || 'Error al añadir al carrito', 'error');
           }
-        } catch (error) {
-          console.error('Error:', error);
-          alert('Error al añadir al carrito');
+        } else {
+          await agregarAlCarritoLocalVariante(varianteId, peso, precio);
         }
-      } else {
-        agregarAlCarritoLocalVariante(varianteId, peso, precio);
+      } catch (error) {
+        console.error('Error:', error);
+        // Revertir el cambio si hay error
+        if (varianteAEliminar) {
+          variantesDisponibles.push(varianteAEliminar);
+          variantesDisponibles.sort((a: any, b: any) => a.id - b.id);
+          actualizarEstadoProducto(productoEnModal.id, variantesDisponibles.length);
+        }
+        mostrarNotificacion('Error al añadir al carrito', 'error');
+      } finally {
+        procesandoCarrito = false;
       }
     }
 
@@ -1768,13 +1797,36 @@ const info = categoryInfo[slug as string] || {
       }
     }
 
+    // Variable para bloquear mientras se procesa
+    let procesandoCarrito = false;
+
     async function agregarProductoAlCarrito(cantidad) {
       if (!productoEnModal) return;
+      if (procesandoCarrito) {
+        console.log('⏳ Ya hay una operación en curso...');
+        return;
+      }
+
+      procesandoCarrito = true;
+      const btnConfirm = document.getElementById('cantidadConfirm');
+      if (btnConfirm) {
+        btnConfirm.disabled = true;
+        btnConfirm.style.opacity = '0.5';
+      }
 
       const userId = localStorage.getItem('user_id');
+      const stockAnterior = productoEnModal.stock; // Guardar para revertir en caso de error
 
-      if (userId) {
-        try {
+      try {
+        if (userId) {
+          // ACTUALIZACIÓN OPTIMISTA: Actualizar stock inmediatamente en el UI
+          const stockOptimista = Math.max(0, productoEnModal.stock - cantidad);
+          productoEnModal.stock = stockOptimista;
+          actualizarStockVisual(productoEnModal.id, productoEnModal.stock);
+          mostrarNotificacion(`✓ ${cantidad} ${cantidad > 1 ? 'unidades añadidas' : 'unidad añadida'}`);
+          cerrarModales();
+
+          // Enviar petición a la API
           const response = await fetch('/api/carrito', {
             method: 'POST',
             headers: {
@@ -1784,30 +1836,70 @@ const info = categoryInfo[slug as string] || {
             body: JSON.stringify({
               producto_id: productoEnModal.id,
               cantidad: cantidad,
-              precio_unitario: productoEnModal.precio_centimos
+              precio_unitario: productoEnModal.precio_centimos,
+              user_id: userId
             })
           });
 
           const result = await response.json();
+          console.log('📦 Respuesta de API:', result);
+          
           if (result.success) {
-            mostrarNotificacion(`✓ ${cantidad} ${cantidad > 1 ? 'unidades añadidas' : 'unidad añadida'}`);
-            cerrarModales();
-            productoEnModal.stock -= cantidad;
-            actualizarStockVisual(productoEnModal.id, productoEnModal.stock);
+            // SIEMPRE usar el stock que devuelve la BD (es la fuente de verdad)
+            if (result.stockRestante !== null && result.stockRestante !== undefined) {
+              console.log(`📊 Stock antes de actualizar: ${productoEnModal.stock}, Stock de BD: ${result.stockRestante}`);
+              productoEnModal.stock = result.stockRestante;
+              actualizarStockVisual(productoEnModal.id, productoEnModal.stock);
+              console.log(`✅ Stock actualizado desde BD: ${productoEnModal.stock} unidades`);
+            } else {
+              console.log('⚠️ stockRestante no vino en la respuesta');
+            }
             window.dispatchEvent(new CustomEvent('carritoActualizado'));
           } else {
-            alert(result.error || 'Error al añadir al carrito');
+            console.log('❌ Error en respuesta de API:', result.error);
+            // Si hay error, revertir el cambio al stock anterior
+            productoEnModal.stock = stockAnterior;
+            actualizarStockVisual(productoEnModal.id, productoEnModal.stock);
+            mostrarNotificacion(result.error || 'Error al añadir al carrito', 'error');
           }
-        } catch (error) {
-          console.error('Error:', error);
-          alert('Error al añadir al carrito');
+        } else {
+          await agregarAlCarritoLocal(cantidad);
         }
-      } else {
-        agregarAlCarritoLocal(cantidad);
+      } catch (error) {
+        console.error('Error:', error);
+        // Revertir al stock anterior en caso de error
+        productoEnModal.stock = stockAnterior;
+        actualizarStockVisual(productoEnModal.id, productoEnModal.stock);
+        mostrarNotificacion('Error al añadir al carrito', 'error');
+      } finally {
+        procesandoCarrito = false;
+        if (btnConfirm) {
+          btnConfirm.disabled = false;
+          btnConfirm.style.opacity = '1';
+        }
       }
     }
 
-    function agregarAlCarritoLocal(cantidad) {
+    async function agregarAlCarritoLocal(cantidad) {
+      // PRIMERO: Reservar stock en la base de datos
+      const reservaRes = await fetch('/api/carrito/reservar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          producto_id: productoEnModal.id,
+          cantidad: cantidad
+        })
+      });
+      
+      const reservaData = await reservaRes.json();
+      if (!reservaData.success) {
+        console.error('❌ Error reservando stock:', reservaData.error);
+        mostrarNotificacion(reservaData.error || 'No hay suficiente stock', 'error');
+        return;
+      }
+      console.log('✅ Stock reservado en BD:', reservaData);
+
+      // DESPUÉS: Guardar en localStorage
       const carrito = JSON.parse(localStorage.getItem('carrito_invitado') || '[]');
       
       const existente = carrito.find(item => 
@@ -1835,34 +1927,43 @@ const info = categoryInfo[slug as string] || {
       mostrarNotificacion(`✓ ${cantidad} ${cantidad > 1 ? 'unidades añadidas' : 'unidad añadida'}`);
       cerrarModales();
       
-      productoEnModal.stock -= cantidad;
+      // Usar el stock que devuelve la BD (más preciso)
+      productoEnModal.stock = reservaData.stockRestante;
       actualizarStockVisual(productoEnModal.id, productoEnModal.stock);
       window.dispatchEvent(new CustomEvent('carritoActualizado'));
     }
 
     function actualizarStockVisual(productoId, nuevoStock) {
       const article = document.querySelector(`article[data-id="${productoId}"]`);
-      if (!article) return;
+      if (!article) {
+        console.log('❌ No se encontró artículo con ID:', productoId);
+        return;
+      }
 
-      const stockSpan = article.querySelector('span[style*="border-radius: 20px"]');
-      if (stockSpan) {
-        if (nuevoStock <= 0) {
-          stockSpan.innerHTML = `
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: #999">
-              <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-            </svg>
-            Agotado
-          `;
-          stockSpan.style.color = '#999';
-          stockSpan.style.background = '#f5f5f5';
-        } else {
-          stockSpan.innerHTML = `
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: #a89968">
-              <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-            </svg>
-            ${nuevoStock} unidad${nuevoStock !== 1 ? 'es' : ''}
-          `;
-        }
+      const stockSpan = article.querySelector('.stock-info');
+      if (!stockSpan) {
+        console.log('❌ No se encontró .stock-info en artículo:', productoId);
+        return;
+      }
+
+      console.log(`✅ Actualizando stock visual de producto ${productoId} a ${nuevoStock} unidades`);
+      
+      if (nuevoStock <= 0) {
+        stockSpan.innerHTML = `
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+          </svg>
+          Agotado
+        `;
+        stockSpan.classList.add('stock-agotado');
+      } else {
+        stockSpan.classList.remove('stock-agotado');
+        stockSpan.innerHTML = `
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+          </svg>
+          ${nuevoStock} unidad${nuevoStock !== 1 ? 'es' : ''}
+        `;
       }
     }
 
