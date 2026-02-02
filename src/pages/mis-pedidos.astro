@@ -201,38 +201,92 @@ import Layout from '../layouts/Layout.astro';
         await new Promise(resolve => setTimeout(resolve, 100));
         
         const userId = localStorage.getItem('user_id');
+        const userEmail = localStorage.getItem('user_email');
         console.log('👤 userId desde localStorage:', userId);
-        console.log('👤 Tipo de userId:', typeof userId);
+        console.log('📧 userEmail desde localStorage:', userEmail);
 
-        if (!userId || userId === 'null' || userId === 'undefined') {
-          console.warn('❌ userId no está disponible o es nulo');
+        // Si no hay ni userId ni email, mostrar que debe iniciar sesión o ingresar email
+        if ((!userId || userId === 'null' || userId === 'undefined') && 
+            (!userEmail || userEmail === 'null' || userEmail === 'undefined')) {
+          console.warn('❌ userId y email no están disponibles');
           document.getElementById('loadingMessage').style.display = 'none';
           document.getElementById('pedidosContent').innerHTML = `
             <div class="pedido-card" style="background: var(--bg-card); padding: 2rem; border-radius: 8px; text-align: center; border-left: 4px solid var(--color-accent); transition: var(--theme-transition);">
-              <h2 style="color: var(--text-primary); margin: 0 0 1rem 0;">Debes iniciar sesión</h2>
-              <p style="color: var(--text-secondary); margin: 0 0 1.5rem 0;">Por favor, inicia sesión para ver tus pedidos.</p>
-              <a href="/login" style="
-                display: inline-block;
-                background: var(--color-accent);
-                color: white;
-                padding: 0.75rem 2rem;
-                border-radius: 4px;
-                text-decoration: none;
-                font-weight: 600;
-                transition: background 0.3s;
-              ">
-                Ir a Login
-              </a>
+              <h2 style="color: var(--text-primary); margin: 0 0 1rem 0;">Ver tus pedidos</h2>
+              <p style="color: var(--text-secondary); margin: 0 0 1.5rem 0;">Inicia sesión con tu cuenta para ver todos tus pedidos, o ingresa el email con el que realizaste compras como invitado.</p>
+              <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <a href="/login" style="
+                  display: inline-block;
+                  background: var(--color-accent);
+                  color: white;
+                  padding: 0.75rem 2rem;
+                  border-radius: 4px;
+                  text-decoration: none;
+                  font-weight: 600;
+                  transition: background 0.3s;
+                ">
+                  Iniciar Sesión
+                </a>
+                <button onclick="mostrarFormularioEmail()" style="
+                  display: inline-block;
+                  background: var(--bg-tertiary);
+                  color: var(--text-primary);
+                  padding: 0.75rem 2rem;
+                  border-radius: 4px;
+                  border: 2px solid var(--border-color);
+                  font-weight: 600;
+                  transition: all 0.3s;
+                  cursor: pointer;
+                ">
+                  Ver pedidos por Email
+                </button>
+              </div>
+            </div>
+            <div id="emailFormContainer" style="display: none; margin-top: 2rem;">
+              <div class="pedido-card" style="background: var(--bg-card); padding: 2rem; border-radius: 8px; border-left: 4px solid var(--color-accent); transition: var(--theme-transition);">
+                <h3 style="color: var(--text-primary); margin: 0 0 1rem 0;">Ingresa tu correo electrónico</h3>
+                <p style="color: var(--text-secondary); margin: 0 0 1rem 0; font-size: 0.9rem;">Ingresa el email con el que realizaste tus compras</p>
+                <div style="display: flex; gap: 0.5rem;">
+                  <input 
+                    type="email" 
+                    id="emailInput" 
+                    placeholder="tu@email.com"
+                    style="
+                      flex: 1;
+                      padding: 0.75rem;
+                      border: 1px solid var(--border-color);
+                      border-radius: 4px;
+                      background: var(--bg-secondary);
+                      color: var(--text-primary);
+                      font-size: 1rem;
+                      transition: var(--theme-transition);
+                    "
+                  />
+                  <button onclick="buscarPedidosPorEmail()" style="
+                    padding: 0.75rem 1.5rem;
+                    background: var(--color-accent);
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-weight: 600;
+                    transition: background 0.3s;
+                  ">
+                    Buscar
+                  </button>
+                </div>
+              </div>
             </div>
           `;
           return;
         }
 
-        console.log('🔍 Llamando a GET /api/pedidos con userId:', userId);
+        console.log('🔍 Llamando a GET /api/pedidos');
         const response = await fetch('/api/pedidos', {
           credentials: 'include',
           headers: {
-            'x-user-id': userId
+            ...(userId && userId !== 'null' && { 'x-user-id': userId }),
+            ...(userEmail && userEmail !== 'null' && { 'x-user-email': userEmail })
           }
         });
 
@@ -479,6 +533,38 @@ import Layout from '../layouts/Layout.astro';
           </div>
         `;
       }
+    }
+
+    // Mostrar formulario para buscar por email
+    function mostrarFormularioEmail() {
+      const container = document.getElementById('emailFormContainer');
+      if (container) {
+        container.style.display = 'block';
+      }
+    }
+
+    // Buscar pedidos por email
+    async function buscarPedidosPorEmail() {
+      const emailInput = document.getElementById('emailInput');
+      const email = emailInput?.value.trim() || '';
+
+      if (!email) {
+        alert('Por favor ingresa un email');
+        return;
+      }
+
+      // Validar email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        alert('Por favor ingresa un email válido');
+        return;
+      }
+
+      // Guardar email en localStorage
+      localStorage.setItem('user_email', email);
+
+      // Recargar pedidos con el nuevo email
+      await cargarPedidos();
     }
 
     // Estilos para animaciones

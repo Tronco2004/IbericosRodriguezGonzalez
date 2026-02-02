@@ -4,32 +4,26 @@ import { enviarConfirmacionPedido } from '../../../lib/email';
 
 export const prerender = false;
 
-// GET - Obtener todos los pedidos del usuario autenticado
+// GET - Obtener todos los pedidos del usuario autenticado o por email
 export const GET: APIRoute = async ({ request, cookies }) => {
   try {
     const userId = request.headers.get('x-user-id');
+    const userEmail = request.headers.get('x-user-email');
 
-    console.log('🔍 GET /api/pedidos - userId:', userId);
-    console.log('🔍 Tipo de userId:', typeof userId);
+    console.log('🔍 GET /api/pedidos');
+    console.log('🔍 userId:', userId);
+    console.log('🔍 userEmail:', userEmail);
 
-    if (!userId) {
-      console.error('❌ Usuario no autenticado');
+    if (!userId && !userEmail) {
+      console.error('❌ Usuario no autenticado - ni userId ni email disponibles');
       return new Response(
         JSON.stringify({ error: 'Usuario no autenticado' }),
         { status: 401 }
       );
     }
 
-    // Primero, obtener TODOS los pedidos para debug
-    const { data: todosPedidos, error: errorTodos } = await supabaseClient
-      .from('pedidos')
-      .select('id, usuario_id, numero_pedido, estado');
-
-    console.log('📊 TODOS los pedidos en BD:', todosPedidos?.length ?? 0);
-    console.log('📊 Primeros 5 pedidos:', todosPedidos?.slice(0, 5));
-
-    // Obtener pedidos del usuario específico
-    const { data: pedidos, error } = await supabaseClient
+    // Construir consulta dinámicamente
+    let query = supabaseClient
       .from('pedidos')
       .select(`
         id,
@@ -46,6 +40,7 @@ export const GET: APIRoute = async ({ request, cookies }) => {
         nombre_cliente,
         email_cliente,
         telefono_cliente,
+        direccion_envio,
         pedido_items (
           id,
           nombre_producto,
@@ -53,15 +48,23 @@ export const GET: APIRoute = async ({ request, cookies }) => {
           precio_unitario,
           peso_kg
         )
-      `)
-      .eq('usuario_id', userId)
+      `);
+
+    // Si hay userId, buscar por usuario_id
+    if (userId && userId !== 'null') {
+      console.log('🔍 Buscando pedidos con usuario_id:', userId);
+      query = query.eq('usuario_id', userId);
+    } 
+    // Si no hay userId pero hay email, buscar por email
+    else if (userEmail && userEmail !== 'null') {
+      console.log('🔍 Buscando pedidos con email:', userEmail);
+      query = query.eq('email_cliente', userEmail);
+    }
+
+    const { data: pedidos, error } = await query
       .order('fecha_creacion', { ascending: false });
 
-    console.log('🔍 Buscando pedidos con usuario_id:', userId);
-    console.log('📦 Pedidos encontrados para este usuario:', pedidos?.length ?? 0);
-    if (pedidos && pedidos.length > 0) {
-      console.log('📋 Primer pedido del usuario:', JSON.stringify(pedidos[0], null, 2));
-    }
+    console.log('📦 Pedidos encontrados:', pedidos?.length ?? 0);
 
     if (error) {
       console.error('❌ Error obteniendo pedidos:', error);
@@ -230,8 +233,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       producto_variante_id: item.producto_variante_id || null,
       nombre_producto: item.nombre,
       cantidad: item.cantidad,
-      precio_unitario: item.precio,
-      subtotal: item.precio * item.cantidad,
+      precio_unitario: item.precio, // En centimos
+      subtotal: item.precio * item.cantidad, // En centimos
       peso_kg: item.peso_kg || null
     }));
 

@@ -273,7 +273,7 @@ const success = params.get('status') === 'success';
             cartItems,
             codigoDescuento: null,
             descuentoAplicado: 0,
-            datosInvitado: null
+            datosInvitado: JSON.parse(localStorage.getItem('checkout_invitado') || 'null')
           })
         });
 

@@ -112,9 +112,28 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     </div>
   </div>
 
+  <!-- Modal de confirmación para eliminar oferta -->
+  <div id="modalEliminarOferta" class="admin-modal-overlay" style="display: none;">
+    <div class="admin-modal" style="max-width: 400px;">
+      <h2 class="admin-modal-title">Confirmar Eliminación</h2>
+      <p style="color: var(--text-muted); margin: 1.5rem 0;">
+        ¿Está seguro de que desea eliminar esta oferta? Esta acción no se puede deshacer.
+      </p>
+      <div class="admin-form-actions" style="gap: 1rem;">
+        <button id="btnConfirmarEliminarOferta" class="admin-btn-primary" style="background: #ef4444;">
+          Eliminar
+        </button>
+        <button id="btnCancelarEliminarOferta" class="admin-btn-secondary">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     let ofertas: any[] = [];
     let productos: any[] = [];
+    let eliminandoOfertaId: number | null = null;
 
     // Cargar productos y ofertas
     async function cargarDatos() {
@@ -307,6 +326,41 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     (window as any).editarOferta = editarOferta;
     (window as any).eliminarOferta = eliminarOferta;
 
+    // Event Listeners para modal de eliminar oferta
+    document.getElementById('btnConfirmarEliminarOferta')!.addEventListener('click', async () => {
+      if (eliminandoOfertaId) {
+        try {
+          const response = await fetch(`/api/admin/ofertas/${eliminandoOfertaId}`, { 
+            method: 'DELETE',
+            credentials: 'include'
+          });
+          const data = await response.json();
+          if (data.success) {
+            cargarOfertas();
+            document.getElementById('modalEliminarOferta')!.style.display = 'none';
+            eliminandoOfertaId = null;
+          } else {
+            alert('Error: ' + data.error);
+          }
+        } catch (error) {
+          console.error('Error eliminando oferta:', error);
+          alert('Error al eliminar la oferta');
+        }
+      }
+    });
+
+    document.getElementById('btnCancelarEliminarOferta')!.addEventListener('click', () => {
+      document.getElementById('modalEliminarOferta')!.style.display = 'none';
+      eliminandoOfertaId = null;
+    });
+
+    document.getElementById('modalEliminarOferta')!.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).id === 'modalEliminarOferta') {
+        document.getElementById('modalEliminarOferta')!.style.display = 'none';
+        eliminandoOfertaId = null;
+      }
+    });
+
     async function editarOferta(id: number) {
       const oferta = ofertas.find(o => o.id === id);
       if (!oferta) {
@@ -314,14 +368,34 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         return;
       }
 
+      // Abrir el modal primero
+      abrirModal();
+
+      // Esperar un poco para que el DOM se actualice
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       // Poblar el formulario con los datos de la oferta
-      (document.getElementById('productoSelect') as HTMLSelectElement).value = oferta.producto_id;
-      (document.getElementById('nombreOferta') as HTMLInputElement).value = oferta.nombre_oferta;
-      (document.getElementById('descripcion') as HTMLTextAreaElement).value = oferta.descripcion || '';
-      (document.getElementById('precioOriginal') as HTMLInputElement).value = (oferta.precio_original_centimos / 100).toString();
-      (document.getElementById('precioDescuento') as HTMLInputElement).value = (oferta.precio_descuento_centimos / 100).toString();
-      (document.getElementById('fechaInicio') as HTMLInputElement).value = new Date(oferta.fecha_inicio).toISOString().split('T')[0];
-      (document.getElementById('fechaFin') as HTMLInputElement).value = new Date(oferta.fecha_fin).toISOString().split('T')[0];
+      const selectProducto = document.getElementById('productoSelect') as HTMLSelectElement;
+      const inputNombre = document.getElementById('nombreOferta') as HTMLInputElement;
+      const inputDescripcion = document.getElementById('descripcion') as HTMLTextAreaElement;
+      const inputPrecioOriginal = document.getElementById('precioOriginal') as HTMLInputElement;
+      const inputPrecioDescuento = document.getElementById('precioDescuento') as HTMLInputElement;
+      const inputFechaInicio = document.getElementById('fechaInicio') as HTMLInputElement;
+      const inputFechaFin = document.getElementById('fechaFin') as HTMLInputElement;
+
+      // Asignar valores
+      selectProducto.value = oferta.producto_id.toString();
+      inputNombre.value = oferta.nombre_oferta;
+      inputDescripcion.value = oferta.descripcion || '';
+      inputPrecioOriginal.value = (oferta.precio_original_centimos / 100).toString();
+      inputPrecioDescuento.value = (oferta.precio_descuento_centimos / 100).toString();
+      
+      // Formato correcto para datetime-local
+      const fechaInicioISO = new Date(oferta.fecha_inicio).toISOString().slice(0, 16);
+      const fechaFinISO = new Date(oferta.fecha_fin).toISOString().slice(0, 16);
+      
+      inputFechaInicio.value = fechaInicioISO;
+      inputFechaFin.value = fechaFinISO;
 
       // Cambiar el título del modal
       const tituloModal = document.querySelector('#modalOferta h2') as HTMLElement;
@@ -332,29 +406,11 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 
       // Guardar el ID de la oferta para saber que es una edición
       (document.getElementById('formOferta') as HTMLFormElement).dataset.ofertaId = id.toString();
-
-      abrirModal();
     }
 
     async function eliminarOferta(id: number) {
-      if (!confirm('¿Estás seguro de que deseas eliminar esta oferta?')) return;
-
-      try {
-        const response = await fetch(`/api/admin/ofertas/${id}`, { 
-          method: 'DELETE',
-          credentials: 'include'
-        });
-        const data = await response.json();
-        if (data.success) {
-          cargarOfertas();
-          alert('Oferta eliminada');
-        } else {
-          alert('Error: ' + data.error);
-        }
-      } catch (error) {
-        console.error('Error eliminando oferta:', error);
-        alert('Error al eliminar oferta');
-      }
+      eliminandoOfertaId = id;
+      document.getElementById('modalEliminarOferta')!.style.display = 'flex';
     }
 
     // Event listeners

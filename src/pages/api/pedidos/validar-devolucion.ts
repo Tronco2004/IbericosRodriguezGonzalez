@@ -142,20 +142,24 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Enviar correo de validación de devolución (sin bloquear la respuesta)
     try {
-      if (usuario) {
-        console.log('📧 Enviando correo de validación de devolución...');
+      const emailCliente = usuario?.email || pedido.email_cliente;
+      const nombreCliente = usuario?.nombre;
+      
+      if (emailCliente) {
+        console.log('📧 Enviando correo de validación de devolución a:', emailCliente);
         
         await notificarDevolucionValidada(
-          usuario.email || pedido.email_cliente,
+          emailCliente,
           pedido.numero_pedido,
-          usuario.nombre,
+          nombreCliente,
           pedido.total
         );
         
-        console.log('✅ Correo de validación enviado');
+        console.log('✅ Correo de validación enviado exitosamente');
       }
     } catch (emailError) {
-      console.error('⚠️ Error enviando correo, pero devolución fue validada:', emailError);
+      console.error('⚠️ Error enviando correo de validación:', emailError);
+      // No bloqueamos la respuesta si hay error en el email
     }
 
     return new Response(

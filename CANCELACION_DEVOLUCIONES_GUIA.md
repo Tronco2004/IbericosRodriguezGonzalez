@@ -402,6 +402,83 @@ Esto garantiza que **nunca** habrá inconsistencia: o se cancela todo o no se ca
 
 ---
 
+## � Sistema de Notificaciones por Email
+
+### Devolución Aceptada (validar-devolucion)
+
+Cuando el admin hace clic en **✓ Validar**, se envía un email profesional al cliente con:
+
+- ✅ Título: "Devolución Recibida y Validada"
+- ✅ Información del pedido (número, estado)
+- ✅ Monto de reembolso autorizado
+- ✅ Timeline visual del proceso
+- ✅ Información sobre cuándo aparecerá el reembolso (3-5 días)
+- ✅ Instrucciones importantes y contacto de soporte
+- ✅ Diseño profesional con colores (verde para aceptación)
+
+**Función**: `notificarDevolucionValidada()` en `src/lib/email.ts`
+**Endpoint**: `POST /api/pedidos/validar-devolucion`
+
+```typescript
+await notificarDevolucionValidada(
+  emailCliente,
+  numeroPedido,
+  nombreCliente,
+  totalReembolso
+);
+```
+
+### Devolución Denegada (denegar-devolucion)
+
+Cuando el admin hace clic en **✕ Denegar**, se envía un email profesional al cliente con:
+
+- ❌ Título: "Devolución Denegada"
+- ❌ Información del pedido (número, fecha)
+- ❌ Motivo de la denegación
+- ❌ Explicación clara de por qué no cumple requisitos
+- ❌ Opción de contactar soporte para revisar el caso
+- ❌ Información de contacto (email, teléfono, horarios)
+- ❌ Diseño profesional con colores (rojo para denegación)
+
+**Función**: `notificarDevolucionDenegada()` en `src/lib/email.ts`
+**Endpoint**: `POST /api/pedidos/denegar-devolucion`
+
+```typescript
+await notificarDevolucionDenegada(
+  emailCliente,
+  numeroPedido,
+  nombreCliente,
+  motivo
+);
+```
+
+### Flujo de Emails
+
+```
+Cliente solicita devolución
+        ↓
+Email: "notificarDevolucionAlAdmin" → Admin
+        ↓
+Admin valida o deniega en panel
+        ↓
+        ├─→ VALIDAR: Email aceptación al cliente (verde ✅)
+        │
+        └─→ DENEGAR: Email denegación al cliente (rojo ❌)
+```
+
+### Características de Diseño
+
+Ambos emails incluyen:
+
+- 📐 **Responsive**: Se ve bien en móvil y desktop
+- 🎨 **Profesional**: Colores coordinados con la marca
+- 🏷️ **Branding**: Logo e información de la empresa (Ibéricos Rodríguez González)
+- ⚡ **HTML moderno**: Estilos CSS inline para compatibilidad máxima
+- 🌙 **Optimizado**: Funciona en clientes de email antiguos
+- 📞 **Contacto claro**: Información de soporte incluida en denegaciones
+
+---
+
 ## 📞 Soporte
 
 Si hay problemas:
@@ -410,8 +487,10 @@ Si hay problemas:
 2. **Error 500 en devolución**: Verificar que el email está configurado en `.env`
 3. **Modal no abre**: Verificar que la variable `pedidoEnDevolucion` está siendo asignada
 4. **Email no llega**: Verificar logs en console (`console.log` en solicitar-devolucion.ts)
+5. **Email de aceptación no se envía**: Verificar que `GMAIL_USER` y `GMAIL_PASSWORD` están en `.env`
+6. **Email de denegación no se envía**: Verificar que ambas funciones están importadas en denegar-devolucion.ts
 
 ---
 
 **Última actualización**: 2025
-**Versión**: 1.0 Completa
+**Versión**: 2.0 - Con Sistema de Notificaciones Email Profesionales

@@ -67,22 +67,97 @@ export const GET: APIRoute = async () => {
     const stockTotal = stockProductosSimples + stockVariantes;
     console.log('✅ Stock TOTAL:', stockTotal);
 
-    // 6. Obtener ingresos totales (suma de pedidos CON ESTADO PAGADO)
-    const { data: todosLosPedidos, error: ingresosError } = await supabaseClient
+    // 6. Obtener ingresos totales de ESTE MES (suma de SUBTOTAL de pedidos CON ESTADO PAGADO del mes actual)
+    const ahora = new Date();
+    const primerDiaDelMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1).toISOString();
+    const ultimoDiaDelMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0).toISOString();
+    
+    console.log('📅 Buscando ingresos entre:', primerDiaDelMes, 'y', ultimoDiaDelMes);
+    
+    // Obtener pedidos CON sus items para calcular subtotal desde los items
+    const { data: pedidosMes, error: ingresosError } = await supabaseClient
       .from('pedidos')
-      .select('total')
-      .eq('estado', 'pagado');
+      .select(`
+        id,
+        fecha_creacion,
+        pedido_items (
+          subtotal
+        )
+      `)
+      .eq('estado', 'pagado')
+      .gte('fecha_creacion', primerDiaDelMes)
+      .lte('fecha_creacion', ultimoDiaDelMes);
+
+    console.log('📋 Pedidos pagados del mes:', pedidosMes?.length || 0, 'Error:', ingresosError);
+    if (pedidosMes) {
+      console.log('📊 Primeros pedidos (para debug):', JSON.stringify(pedidosMes.slice(0, 3), null, 2));
+    }
+
+    // Obtener devoluciones validadas del mes para restarlas
+    const { data: devolucionesValidadas } = await supabaseClient
+      .from('pedidos')
+      .select(`
+        id,
+        fecha_creacion,
+        pedido_items (
+          subtotal
+        )
+      `)
+      .eq('estado', 'devolucion_recibida')
+      .gte('fecha_creacion', primerDiaDelMes)
+      .lte('fecha_creacion', ultimoDiaDelMes);
+
+    console.log('🔄 Devoluciones validadas del mes:', devolucionesValidadas?.length || 0);
 
     let ingresosTotal = 0;
-    if (!ingresosError && todosLosPedidos) {
-      ingresosTotal = todosLosPedidos.reduce((total, pedido) => {
-        // total está en centimos, convertir a euros
-        return total + (parseFloat(pedido.total) || 0);
+    let ingresosHoy = 0;
+    let pedidosHoy = 0;
+    
+    if (!ingresosError && pedidosMes) {
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      
+      // Sumar ingresos de pedidos pagados (suma directa de subtotales)
+      ingresosTotal = pedidosMes.reduce((total, pedido) => {
+        const subtotalPedido = pedido.pedido_items?.reduce((sum: number, item: any) => {
+          const valor = parseFloat(item.subtotal) || 0;
+          return sum + valor;
+        }, 0) || 0;
+        
+        return total + subtotalPedido;
       }, 0);
-      // Convertir de centimos a euros
-      ingresosTotal = ingresosTotal / 100;
+      
+      // Restar ingresos de devoluciones validadas
+      if (devolucionesValidadas && devolucionesValidadas.length > 0) {
+        const restoDevoluciones = devolucionesValidadas.reduce((total, pedido) => {
+          return total + (pedido.pedido_items?.reduce((sum: number, item: any) => {
+            return sum + (parseFloat(item.subtotal) || 0);
+          }, 0) || 0);
+        }, 0);
+        ingresosTotal -= restoDevoluciones;
+      }
+      
+      // Calcular ingresos de hoy
+      const pedidosDeHoy = pedidosMes.filter(pedido => {
+        const fechaPedido = new Date(pedido.fecha_creacion);
+        fechaPedido.setHours(0, 0, 0, 0);
+        return fechaPedido.getTime() === hoy.getTime();
+      });
+      
+      ingresosHoy = pedidosDeHoy.reduce((total, pedido) => {
+        return total + (pedido.pedido_items?.reduce((sum: number, item: any) => {
+          return sum + (parseFloat(item.subtotal) || 0);
+        }, 0) || 0);
+      }, 0);
+      
+      pedidosHoy = pedidosDeHoy.length;
     }
-    console.log('✅ Ingresos totales (pedidos pagados):', ingresosTotal);
+    console.log('✅ Ingresos del mes actual:', ingresosTotal);
+    console.log('✅ Ingresos de hoy:', ingresosHoy);
+    console.log('✅ Pedidos de hoy:', pedidosHoy);
+
+    // Calcular ticket promedio (ingresos totales / número de pedidos)
+    const ticketPromedio = pedidosPendientes > 0 ? ingresosTotal / pedidosPendientes : 0;
 
     return new Response(
       JSON.stringify({
@@ -90,7 +165,10 @@ export const GET: APIRoute = async () => {
         clientesActivos: clientesActivos,
         pedidosPendientes: pedidosPendientes,
         stockTotal: stockTotal,
-        ingresosTotal: ingresosTotal.toFixed(2)
+        ingresosTotal: ingresosTotal.toFixed(2),
+        ingresosHoy: ingresosHoy.toFixed(2),
+        pedidosHoy: pedidosHoy,
+        ticketPromedio: ticketPromedio.toFixed(2)
       }),
       { status: 200 }
     );
@@ -103,6 +181,9 @@ export const GET: APIRoute = async () => {
         pedidosPendientes: 0,
         stockTotal: 0,
         ingresosTotal: '0.00',
+        ingresosHoy: '0.00',
+        pedidosHoy: 0,
+        ticketPromedio: '0.00',
         error: error.toString()
       }),
       { status: 200 }

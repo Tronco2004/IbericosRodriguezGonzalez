@@ -13,7 +13,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 
       <!-- Botón crear código -->
       <div class="admin-action-bar">
-        <button id="btnCrearCodigo" class="admin-btn-primary">
+        <button id="btnCrearCodigo" class="admin-btn-primary" style="background: var(--color-accent); color: #fff; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
           Crear Nuevo Código
         </button>
       </div>
@@ -156,6 +156,24 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     </div>
   </div>
 
+  <!-- Modal de confirmación para eliminar código -->
+  <div id="modalEliminarCodigo" class="admin-modal-overlay" style="display: none;">
+    <div class="admin-modal" style="max-width: 400px;">
+      <h2 class="admin-modal-title">Confirmar Eliminación</h2>
+      <p style="color: var(--text-muted); margin: 1.5rem 0;">
+        ¿Está seguro de que desea eliminar este código de descuento? Esta acción no se puede deshacer.
+      </p>
+      <div class="admin-form-actions" style="gap: 1rem;">
+        <button id="btnConfirmarEliminarCodigo" class="admin-btn-primary" style="background: #ef4444;">
+          Eliminar
+        </button>
+        <button id="btnCancelarEliminarCodigo" class="admin-btn-secondary">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
   <style>
     /* Estilos específicos de esta página */
     .codigo-cell {
@@ -175,51 +193,160 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 
     /* Detalles del código */
     .detalles-container {
-      padding: 1rem 0;
+      padding: 2rem 0;
     }
 
     .detalles-header {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1.5rem;
+      align-items: flex-start;
+      margin-bottom: 2rem;
+      padding: 1.5rem;
+      background: linear-gradient(135deg, rgba(168, 153, 104, 0.05) 0%, rgba(168, 153, 104, 0.02) 100%);
+      border-left: 4px solid #a89968;
+      border-radius: 8px;
+    }
+
+    .detalles-header > div:first-child {
+      flex: 1;
     }
 
     .detalles-title {
-      margin: 0;
+      margin: 0 0 0.5rem 0;
       color: #001a33;
-      font-size: 1.5rem;
+      font-size: 2rem;
       font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .detalles-descripcion {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .detalles-info {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-bottom: 2rem;
+      padding: 1.5rem;
+      background: rgba(0, 26, 51, 0.02);
+      border-radius: 8px;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid rgba(0, 26, 51, 0.05);
+    }
+
+    .info-row:last-child {
+      border-bottom: none;
+    }
+
+    .info-label {
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .info-valor {
+      color: #001a33;
+      font-weight: 500;
     }
 
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 1rem;
+      gap: 1.5rem;
       margin-bottom: 2rem;
     }
 
     .stat-card {
-      background: #f8f7f4;
-      padding: 1rem;
-      border-radius: 8px;
+      background: linear-gradient(135deg, #f8f7f4 0%, rgba(248, 247, 244, 0.7) 100%);
+      padding: 1.5rem;
+      border-radius: 12px;
+      border: 1px solid rgba(168, 153, 104, 0.1);
+      box-shadow: 0 2px 8px rgba(0, 26, 51, 0.04);
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 26, 51, 0.08);
+      border-color: rgba(168, 153, 104, 0.2);
     }
 
     .stat-label {
-      margin: 0 0 0.5rem 0;
+      margin: 0 0 0.75rem 0;
       font-size: 0.85rem;
-      color: #999;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     .stat-value {
       margin: 0;
-      font-size: 1.5rem;
+      font-size: 2rem;
       font-weight: 700;
       color: #a89968;
     }
 
     .historial-title {
-      margin: 0 0 1rem 0;
+      margin: 2rem 0 1.5rem 0;
+      color: #001a33;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .admin-empty-state {
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-muted);
+      background: rgba(0, 26, 51, 0.02);
+      border-radius: 8px;
+    }
+
+    .admin-table-scroll {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 26, 51, 0.05);
+    }
+
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .admin-table thead {
+      background: rgba(168, 153, 104, 0.08);
+    }
+
+    .admin-table th {
+      padding: 1rem;
+      text-align: left;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #001a33;
+      border-bottom: 2px solid rgba(168, 153, 104, 0.2);
+    }
+
+    .admin-table tbody tr {
+      border-bottom: 1px solid rgba(0, 26, 51, 0.05);
+      transition: background 0.2s ease;
+    }
+
+    .admin-table tbody tr:hover {
+      background: rgba(168, 153, 104, 0.03);
+    }
+
+    .admin-table td {
+      padding: 1rem;
+      font-size: 0.95rem;
       color: #001a33;
     }
 
@@ -242,15 +369,70 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       border-radius: 8px;
     }
 
+    /* Badge styling */
+    .admin-badge {
+      display: inline-block;
+      padding: 0.35rem 0.75rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .admin-badge.success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .admin-badge.danger {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    /* Botones con tema */
+    :root .admin-btn-primary {
+      background: var(--color-primary);
+      color: #fff;
+    }
+
+    :root .admin-btn-primary:hover {
+      background: var(--color-primary-light);
+    }
+
+    [data-theme="dark"] .admin-btn-primary {
+      background: var(--color-accent);
+      color: #000;
+    }
+
+    [data-theme="dark"] .admin-btn-primary:hover {
+      background: var(--color-accent-light);
+    }
+
     @media (max-width: 768px) {
-      .stats-grid {
-        grid-template-columns: 1fr;
-      }
-      
       .detalles-header {
         flex-direction: column;
         gap: 1rem;
-        align-items: flex-start;
+      }
+
+      .detalles-title {
+        font-size: 1.5rem;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .detalles-info {
+        grid-template-columns: 1fr;
+      }
+      
+      .admin-table {
+        font-size: 0.85rem;
+      }
+
+      .admin-table th,
+      .admin-table td {
+        padding: 0.75rem 0.5rem;
       }
     }
   </style>
@@ -260,6 +442,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     const btnCrear = document.getElementById('btnCrearCodigo');
     const btnCancelar = document.getElementById('btnCancelarCodigo');
     const form = document.getElementById('formCrearCodigo');
+    let eliminandoCodigoId = null;
 
     btnCrear.addEventListener('click', () => {
       modal.style.display = 'flex';
@@ -334,8 +517,11 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
             <td>${codigo.descuento_total?.toFixed(2) || '0.00'}€</td>
             <td><span class="admin-badge ${estadoClase(estado)}">${estado}</span></td>
             <td>
-              <button onclick="verDetalles(${codigo.id})" class="admin-btn-primary btn-small">
+              <button onclick="window.verDetalles(${codigo.id})" class="admin-btn-secondary btn-small">
                 Ver Detalles
+              </button>
+              <button onclick="eliminarCodigo(${codigo.id})" class="admin-btn-danger btn-small">
+                Eliminar
               </button>
             </td>
           </tr>
@@ -348,16 +534,14 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 
     async function verDetalles(codigoId) {
       try {
-        const response = await fetch(`/api/admin/codigos-detalles?codigo_id=${codigoId}`, {
-          headers: {
-            'x-user-id': localStorage.getItem('user_id') || ''
-          }
-        });
+        const response = await fetch(`/api/admin/codigos-detalles?id=${codigoId}`);
 
         const data = await response.json();
 
         if (data.success) {
           mostrarDetalles(data);
+        } else {
+          alert('Error: ' + (data.message || 'No se pudo obtener los detalles'));
         }
       } catch (error) {
         console.error('Error:', error);
@@ -370,51 +554,80 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       const usos = data.usos || [];
       const stats = data.estadisticas;
 
+      const badgeColor = codigo.activo ? '#d1fae5' : '#fee2e2';
+      const badgeTextColor = codigo.activo ? '#065f46' : '#991b1b';
+      const badgeText = codigo.activo ? 'Activo' : 'Inactivo';
+
       let html = `
-        <div class="detalles-container">
-          <div class="detalles-header">
-            <h2 class="detalles-title">${codigo.codigo}</h2>
-            <button onclick="cargarCodigos()" class="admin-btn-secondary">← Volver</button>
+        <div class="detalles-container" style="padding: 2rem 0;">
+          <div class="detalles-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; padding: 1.5rem; background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary)); border-left: 4px solid var(--color-accent); border-radius: 8px; box-shadow: 0 2px 8px var(--shadow-color);">
+            <div style="flex: 1;">
+              <h2 class="detalles-title" style="margin: 0 0 0.5rem 0; color: var(--text-primary); font-size: 2.5rem; font-weight: 700; letter-spacing: -0.5px;">${codigo.codigo}</h2>
+              <p style="margin: 0; color: var(--text-muted); font-size: 0.95rem;">${codigo.descripcion || 'Sin descripción'}</p>
+            </div>
+            <button onclick="cargarCodigos()" class="admin-btn-secondary" style="margin-left: 1rem; white-space: nowrap;">← Volver</button>
           </div>
-          <div class="stats-grid">
-            <div class="stat-card">
-              <p class="stat-label">Total Usos</p>
-              <p class="stat-value">${stats.total_usos}</p>
+          
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 2rem; padding: 1.5rem; background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--border-light);">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border-light);">
+              <span style="font-weight: 600; color: var(--text-muted); font-size: 0.9rem;">Tipo de Descuento:</span>
+              <span style="color: var(--text-primary); font-weight: 500;">${codigo.tipo_descuento === 'porcentaje' ? 'Porcentaje' : 'Monto Fijo'}</span>
             </div>
-            <div class="stat-card">
-              <p class="stat-label">Descuento Total</p>
-              <p class="stat-value">${stats.descuento_total.toFixed(2)}€</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border-light);">
+              <span style="font-weight: 600; color: var(--text-muted); font-size: 0.9rem;">Valor:</span>
+              <span style="color: var(--color-accent); font-weight: 700; font-size: 1.1rem;">${codigo.tipo_descuento === 'porcentaje' ? codigo.valor_descuento + '%' : codigo.valor_descuento.toFixed(2) + '€'}</span>
             </div>
-            <div class="stat-card">
-              <p class="stat-label">Promedio</p>
-              <p class="stat-value">${stats.promedio_descuento}€</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border-light);">
+              <span style="font-weight: 600; color: var(--text-muted); font-size: 0.9rem;">Estado:</span>
+              <span style="display: inline-block; padding: 0.35rem 0.75rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; background: ${badgeColor}; color: ${badgeTextColor};">${badgeText}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border-light);">
+              <span style="font-weight: 600; color: var(--text-muted); font-size: 0.9rem;">Período:</span>
+              <span style="color: var(--text-primary); font-weight: 500;">${new Date(codigo.fecha_inicio).toLocaleDateString('es-ES')} - ${new Date(codigo.fecha_fin).toLocaleDateString('es-ES')}</span>
             </div>
           </div>
           
-          <h3 class="historial-title">Historial de Uso</h3>
-          ${usos.length === 0 ? '<p class="admin-empty-state">No hay usos registrados</p>' : `
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>Usuario</th>
-                  <th>Email</th>
-                  <th>Descuento</th>
-                  <th>Fecha</th>
-                  <th>Pedido</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${usos.map(uso => `
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
+            <div style="background: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-light); box-shadow: 0 2px 8px var(--shadow-color); transition: all 0.3s ease; cursor: pointer;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px var(--shadow-medium)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px var(--shadow-color)'">
+              <p style="margin: 0 0 0.75rem 0; font-size: 0.85rem; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Total Usos</p>
+              <p style="margin: 0; font-size: 2.5rem; font-weight: 700; color: var(--color-accent);">${stats.total_usos}</p>
+            </div>
+            <div style="background: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-light); box-shadow: 0 2px 8px var(--shadow-color); transition: all 0.3s ease; cursor: pointer;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px var(--shadow-medium)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px var(--shadow-color)'">
+              <p style="margin: 0 0 0.75rem 0; font-size: 0.85rem; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Descuento Total</p>
+              <p style="margin: 0; font-size: 2.5rem; font-weight: 700; color: var(--color-accent);">${stats.descuento_total.toFixed(2)}€</p>
+            </div>
+            <div style="background: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-light); box-shadow: 0 2px 8px var(--shadow-color); transition: all 0.3s ease; cursor: pointer;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px var(--shadow-medium)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px var(--shadow-color)'">
+              <p style="margin: 0 0 0.75rem 0; font-size: 0.85rem; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Promedio por Uso</p>
+              <p style="margin: 0; font-size: 2.5rem; font-weight: 700; color: var(--color-accent);">${stats.promedio_descuento}€</p>
+            </div>
+          </div>
+          
+          <h3 style="margin: 2rem 0 1.5rem 0; color: var(--text-primary); font-size: 1.25rem; font-weight: 600;">Historial de Uso</h3>
+          ${usos.length === 0 ? '<p style="text-align: center; padding: 2rem; color: var(--text-muted); background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--border-light);">No hay usos registrados</p>' : `
+            <div style="overflow-x: auto; border-radius: 8px; border: 1px solid var(--border-light); box-shadow: 0 2px 8px var(--shadow-color);">
+              <table style="width: 100%; border-collapse: collapse;">
+                <thead style="background: var(--bg-tertiary);">
                   <tr>
-                    <td>${uso.nombre_usuario}</td>
-                    <td>${uso.email_usuario || '-'}</td>
-                    <td class="descuento-cell">${uso.descuento_aplicado.toFixed(2)}€</td>
-                    <td>${new Date(uso.fecha_uso).toLocaleDateString('es-ES')}</td>
-                    <td>#${uso.pedido_id}</td>
+                    <th style="padding: 1rem; text-align: left; font-weight: 600; font-size: 0.9rem; color: var(--text-primary); border-bottom: 2px solid var(--border-light);">Usuario</th>
+                    <th style="padding: 1rem; text-align: left; font-weight: 600; font-size: 0.9rem; color: var(--text-primary); border-bottom: 2px solid var(--border-light);">Email</th>
+                    <th style="padding: 1rem; text-align: left; font-weight: 600; font-size: 0.9rem; color: var(--text-primary); border-bottom: 2px solid var(--border-light);">Descuento Aplicado</th>
+                    <th style="padding: 1rem; text-align: left; font-weight: 600; font-size: 0.9rem; color: var(--text-primary); border-bottom: 2px solid var(--border-light);">Fecha</th>
+                    <th style="padding: 1rem; text-align: left; font-weight: 600; font-size: 0.9rem; color: var(--text-primary); border-bottom: 2px solid var(--border-light);">Pedido</th>
                   </tr>
-                `).join('')}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  ${usos.map((uso, index) => `
+                    <tr style="border-bottom: 1px solid var(--border-light); transition: background 0.2s ease; background: ${index % 2 === 0 ? 'transparent' : 'var(--bg-tertiary)'};" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='${index % 2 === 0 ? 'transparent' : 'var(--bg-tertiary)'}'">
+                      <td style="padding: 1rem; font-size: 0.95rem; color: var(--text-primary);">${uso.nombre_usuario}</td>
+                      <td style="padding: 1rem; font-size: 0.95rem; color: var(--text-primary);">${uso.email_usuario || '-'}</td>
+                      <td style="padding: 1rem; font-size: 0.95rem; color: var(--color-accent); font-weight: 600;">${uso.descuento_aplicado.toFixed(2)}€</td>
+                      <td style="padding: 1rem; font-size: 0.95rem; color: var(--text-primary);">${new Date(uso.fecha_uso).toLocaleDateString('es-ES')}</td>
+                      <td style="padding: 1rem; font-size: 0.95rem; color: var(--text-primary); font-weight: 500;">#${uso.pedido_id}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
           `}
         </div>
       `;
@@ -482,5 +695,48 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     });
 
     document.addEventListener('DOMContentLoaded', cargarCodigos);
+
+    // Funciones globales para eliminar código
+    window.eliminarCodigo = function(codigoId) {
+      eliminandoCodigoId = codigoId;
+      document.getElementById('modalEliminarCodigo').style.display = 'flex';
+    };
+
+    window.verDetalles = verDetalles;
+
+    // Event listeners para modal de eliminar código
+    document.getElementById('btnConfirmarEliminarCodigo').addEventListener('click', async () => {
+      if (eliminandoCodigoId) {
+        try {
+          const response = await fetch(`/api/admin/codigos-detalles?id=${eliminandoCodigoId}`, {
+            method: 'DELETE'
+          });
+          const data = await response.json();
+          
+          if (data.success) {
+            cargarCodigos();
+            document.getElementById('modalEliminarCodigo').style.display = 'none';
+            eliminandoCodigoId = null;
+          } else {
+            alert('Error: ' + (data.message || 'No se pudo eliminar el código'));
+          }
+        } catch (error) {
+          console.error('Error eliminando código:', error);
+          alert('Error al eliminar el código');
+        }
+      }
+    });
+
+    document.getElementById('btnCancelarEliminarCodigo').addEventListener('click', () => {
+      document.getElementById('modalEliminarCodigo').style.display = 'none';
+      eliminandoCodigoId = null;
+    });
+
+    document.getElementById('modalEliminarCodigo').addEventListener('click', (e) => {
+      if (e.target.id === 'modalEliminarCodigo') {
+        document.getElementById('modalEliminarCodigo').style.display = 'none';
+        eliminandoCodigoId = null;
+      }
+    });
   </script>
 </ProtectedLayout>

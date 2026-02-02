@@ -148,6 +148,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         success: true,
         message: 'Registro y login exitosos',
         userId,
+        email,
+        nombre,
         redirect_url: '/productos'
       }),
       { status: 201 }
