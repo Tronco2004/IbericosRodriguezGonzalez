@@ -260,6 +260,12 @@ import Layout from '../layouts/Layout.astro';
         if (data.success) {
           messageContainer.innerHTML = '<div style="padding: 1rem; background: #efe; border: 1px solid #cfc; color: #3c3; border-radius: 4px; font-size: 0.9rem;">✅ Registro exitoso! Iniciando sesión automáticamente...</div>';
           console.log('✅ Registro exitoso:', data.userId);
+          
+          // Guardar datos en localStorage para acceso posterior
+          localStorage.setItem('user_id', data.userId);
+          localStorage.setItem('user_email', email);
+          localStorage.setItem('user_name', nombre);
+          
           setTimeout(() => {
             // Siempre redirigir a /productos después del registro
             window.location.href = '/productos';

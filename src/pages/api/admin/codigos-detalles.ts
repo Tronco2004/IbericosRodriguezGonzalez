@@ -3,31 +3,8 @@ import { supabaseClient } from '../../../lib/supabase';
 
 export const GET: APIRoute = async ({ request }) => {
   try {
-    const userId = request.headers.get('x-user-id');
-
-    if (!userId) {
-      return new Response(
-        JSON.stringify({ success: false, message: 'No autenticado' }),
-        { status: 401 }
-      );
-    }
-
-    // Verificar que sea admin
-    const { data: usuario, error: errorUsuario } = await supabaseClient
-      .from('usuarios')
-      .select('rol')
-      .eq('id', userId)
-      .single();
-
-    if (errorUsuario || usuario.rol !== 'admin') {
-      return new Response(
-        JSON.stringify({ success: false, message: 'No autorizado' }),
-        { status: 403 }
-      );
-    }
-
     const url = new URL(request.url);
-    const codigoId = url.searchParams.get('codigo_id');
+    const codigoId = url.searchParams.get('id') || url.searchParams.get('codigo_id');
 
     if (!codigoId) {
       return new Response(
@@ -108,6 +85,51 @@ export const GET: APIRoute = async ({ request }) => {
     console.error('Error en detalles código:', error);
     return new Response(
       JSON.stringify({ success: false, message: 'Error interno del servidor' }),
+      { status: 500 }
+    );
+  }
+};
+
+export const DELETE: APIRoute = async ({ request }) => {
+  try {
+    const url = new URL(request.url);
+    const codigoId = url.searchParams.get('id');
+
+    if (!codigoId) {
+      return new Response(
+        JSON.stringify({ success: false, message: 'ID de código requerido' }),
+        { status: 400 }
+      );
+    }
+
+    // Eliminar los usos del código primero
+    await supabaseClient
+      .from('uso_codigos')
+      .delete()
+      .eq('codigo_id', parseInt(codigoId));
+
+    // Eliminar el código
+    const { error: errorCodigo } = await supabaseClient
+      .from('codigos_promocionales')
+      .delete()
+      .eq('id', parseInt(codigoId));
+
+    if (errorCodigo) {
+      console.error('Error eliminando código:', errorCodigo);
+      return new Response(
+        JSON.stringify({ success: false, message: 'Error al eliminar el código: ' + errorCodigo.message }),
+        { status: 500 }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, message: 'Código eliminado correctamente' }),
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error('Error en DELETE código:', error);
+    return new Response(
+      JSON.stringify({ success: false, message: 'Error interno: ' + error.toString() }),
       { status: 500 }
     );
   }

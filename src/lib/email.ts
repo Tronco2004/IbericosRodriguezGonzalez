@@ -899,3 +899,115 @@ export async function notificarDevolucionValidada(
   }
 }
 
+export async function notificarDevolucionDenegada(
+  emailCliente: string,
+  numeroPedido: string,
+  nombreCliente?: string,
+  motivo?: string
+) {
+  try {
+    console.log('📧 Preparando email de devolución denegada para:', emailCliente);
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: 'Inter', Arial, sans-serif; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #dc3545, #c82333); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+          .content { background: white; padding: 20px; border: 1px solid #e0d5c7; }
+          .section { margin: 20px 0; }
+          .section h3 { color: #001a33; margin-top: 0; }
+          .warning-box { background: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 4px; color: #721c24; margin: 15px 0; }
+          .reason-box { background: #f8f7f4; border-left: 4px solid #dc3545; padding: 15px; border-radius: 4px; margin: 15px 0; }
+          .info-box { background: #f8f7f4; padding: 15px; border-left: 4px solid #ff6b6b; border-radius: 4px; margin: 15px 0; }
+          .footer { background: #f8f7f4; padding: 15px; text-align: center; font-size: 0.85rem; color: #666; }
+          .contact-info { margin: 15px 0; padding: 10px; background: #fff5f5; border-radius: 4px; }
+          .contact-info strong { color: #001a33; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1 style="margin: 0; font-size: 1.8rem;">❌ Devolución Denegada</h1>
+            <p style="margin: 5px 0 0 0;">Pedido: ${numeroPedido}</p>
+          </div>
+          
+          <div class="content">
+            <div class="section">
+              <p>Hola${nombreCliente ? ' ' + nombreCliente : ''},</p>
+              <p>Tras revisar tu solicitud de devolución, nos vemos en la necesidad de comunicarte que ha sido denegada.</p>
+            </div>
+
+            <div class="warning-box">
+              <strong>❌ Estado: Devolución Denegada</strong><br>
+              <strong>📦 Número de Pedido:</strong> ${numeroPedido}<br>
+              <strong>📅 Fecha de Decisión:</strong> ${new Date().toLocaleDateString('es-ES', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </div>
+
+            ${motivo ? `
+            <div class="reason-box">
+              <h3 style="margin-top: 0; color: #721c24;">Motivo de la Denegación</h3>
+              <p style="margin: 0; color: #721c24;">${motivo}</p>
+            </div>
+            ` : ''}
+
+            <div class="section">
+              <h3>¿Qué significa esto?</h3>
+              <ul>
+                <li>Tu solicitud de devolución ha sido revisada por nuestro equipo</li>
+                <li>El producto no cumple con los requisitos para devolución</li>
+                <li>No se procesará reembolso en esta ocasión</li>
+                <li>El artículo permanecerá en tu poder</li>
+              </ul>
+            </div>
+
+            <div class="info-box">
+              <h3 style="margin-top: 0; color: #001a33;">¿Tienes dudas?</h3>
+              <p>Si crees que esta decisión es incorrecta o tienes más información que aportar, nos gustaría escucharte. Puedes contactarnos para revisar tu caso.</p>
+              <div class="contact-info">
+                <strong>📧 Email de Soporte:</strong> ${import.meta.env.GMAIL_USER || 'soporte@ibericosrodriguez.es'}<br>
+                <strong>📞 Teléfono:</strong> +34 XXX XXX XXX<br>
+                <strong>⏰ Horario:</strong> Lunes a Viernes, 9:00 - 18:00
+              </div>
+            </div>
+
+            <div class="section">
+              <h3>Información del Pedido</h3>
+              <p>Número de Pedido: <strong>${numeroPedido}</strong></p>
+              <p>Si necesitas información adicional sobre tu pedido, por favor, consulta tu panel de cliente.</p>
+            </div>
+          </div>
+
+          <div class="footer">
+            <p>© 2026 Ibéricos Rodríguez González. Todos los derechos reservados.</p>
+            <p>Este es un correo automático. Por favor, no respondas directamente a este email.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    await transporter.sendMail({
+      from: import.meta.env.GMAIL_USER,
+      to: emailCliente,
+      subject: `Solicitud de Devolución Denegada - ${numeroPedido}`,
+      html: htmlContent
+    });
+
+    console.log('✅ Email de devolución denegada enviado a:', emailCliente);
+    return true;
+  } catch (error) {
+    console.error('❌ Error enviando email de devolución denegada:', error);
+    throw error;
+  }
+}
+

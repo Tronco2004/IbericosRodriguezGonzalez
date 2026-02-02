@@ -73,12 +73,26 @@ export const POST: APIRoute = async ({ request }) => {
     // ✅ BUSCAR SI EXISTE UN USUARIO CON ESTE EMAIL (para vincular pedidos de invitados)
     let finalUserId = userId;
     let esInvitado = !userId;
+    let usuarioDatos: any = {};
     
-    if (!userId && customerEmail) {
+    if (finalUserId) {
+      // Usuario logueado: obtener sus datos (incluyendo dirección)
+      console.log('👤 Obteniendo datos del usuario logueado:', finalUserId);
+      const { data: usuario, error: errorUsuario } = await supabaseClient
+        .from('usuarios')
+        .select('nombre, email, telefono, direccion')
+        .eq('id', finalUserId)
+        .single();
+      
+      if (!errorUsuario && usuario) {
+        usuarioDatos = usuario;
+        console.log('✅ Datos del usuario obtenidos');
+      }
+    } else if (!userId && customerEmail) {
       console.log('🔍 Buscando usuario existente con email:', customerEmail);
       const { data: usuarioExistente, error: errorBusqueda } = await supabaseClient
         .from('usuarios')
-        .select('id')
+        .select('id, nombre, email, telefono, direccion')
         .eq('email', customerEmail)
         .single();
       
@@ -86,6 +100,7 @@ export const POST: APIRoute = async ({ request }) => {
         console.log('✅ Usuario encontrado con este email. Vinculando pedido a usuario:', usuarioExistente.id);
         finalUserId = usuarioExistente.id;
         esInvitado = false; // Ya no es invitado, tiene cuenta
+        usuarioDatos = usuarioExistente;
       } else {
         console.log('ℹ️ No se encontró usuario con este email. Será pedido de invitado.');
       }
@@ -135,7 +150,8 @@ export const POST: APIRoute = async ({ request }) => {
         impuestos: 0,
         total: envio, // Será actualizado después de insertar items
         email_cliente: customerEmail,
-        telefono_cliente: datosInvitado?.telefono || null,
+        telefono_cliente: datosInvitado?.telefono || usuarioDatos?.telefono || null,
+        direccion_envio: datosInvitado?.direccion || usuarioDatos?.direccion || null,
         fecha_pago: new Date().toISOString(),
         es_invitado: esInvitado // true solo si no tiene cuenta
       })

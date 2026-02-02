@@ -197,6 +197,67 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       }
     }
   </style>
+
+  <!-- Modal de confirmación para devoluciones -->
+  <div id="modalConfirmacion" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: var(--bg-card); border-radius: 12px; padding: 2rem; max-width: 450px; border: 1px solid var(--border-color); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2); animation: modalSlideIn 0.3s ease; transition: var(--theme-transition);">
+      <h2 id="modalTitulo" style="color: var(--text-primary); margin: 0 0 1rem 0; font-size: 1.2rem; transition: var(--theme-transition);">Confirmar Devolución</h2>
+      <p id="modalMensaje" style="color: var(--text-secondary); margin: 0 0 2rem 0; line-height: 1.6; transition: var(--theme-transition);">¿Confirmar que la devolución ha llegado correctamente? Se notificará al cliente y se procesará el reembolso.</p>
+      <div style="display: flex; gap: 1rem; justify-content: flex-end; flex-wrap: wrap;">
+        <button id="btnCancelarModal" style="
+          padding: 0.75rem 1.5rem;
+          background: var(--bg-tertiary);
+          color: var(--text-primary);
+          border: 1px solid var(--border-color);
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 600;
+          transition: all 0.3s;
+        " onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background='var(--bg-tertiary)'">
+          Cancelar
+        </button>
+        <button id="btnDenegarModal" style="
+          padding: 0.75rem 1.5rem;
+          background: #dc3545;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 600;
+          transition: all 0.3s;
+          display: none;
+        " onmouseover="this.style.background='#c82333'" onmouseout="this.style.background='#dc3545'">
+          Denegar
+        </button>
+        <button id="btnAceptarModal" style="
+          padding: 0.75rem 1.5rem;
+          background: #28a745;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 600;
+          transition: all 0.3s;
+          display: none;
+        " onmouseover="this.style.background='#218838'" onmouseout="this.style.background='#28a745'">
+          Validar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
   
   <div class="admin-page">
     <div class="admin-container" style="max-width: 1200px;">
@@ -336,7 +397,8 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
             'entregado': '#6c757d',
             'cancelado': '#dc3545',
             'devolucion_solicitada': '#ff9800',
-            'devolucion_recibida': '#9c27b0'
+            'devolucion_recibida': '#9c27b0',
+            'devolucion_denegada': '#6c757d'
           };
 
           html += `
@@ -354,7 +416,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
                   </p>
                 </div>
                 <div>
-                  <p class="pedido-contacto">📧 ${pedido.email_cliente || 'N/A'}</p>
+                  <p class="pedido-contacto">📍 ${pedido.direccion_envio || 'N/A'}</p>
                   <p class="pedido-contacto">📱 ${pedido.telefono_cliente || 'N/A'}</p>
                 </div>
                 <div style="display: flex; gap: 0.75rem; align-items: center;">
@@ -376,11 +438,37 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
                     <option value="cancelado" ${pedido.estado === 'cancelado' ? 'selected' : ''}>Cancelado</option>
                     <option value="devolucion_solicitada" ${pedido.estado === 'devolucion_solicitada' ? 'selected' : ''}>Devolución Solicitada</option>
                     <option value="devolucion_recibida" ${pedido.estado === 'devolucion_recibida' ? 'selected' : ''}>Devolución Recibida</option>
+                    <option value="devolucion_denegada" ${pedido.estado === 'devolucion_denegada' ? 'selected' : ''}>Devolución Denegada</option>
                   </select>
                   ${pedido.estado === 'devolucion_solicitada' ? `
-                    <button class="validar-devolucion pedido-btn-validar" data-pedido-id="${pedido.id}">
-                      ✓ Validar
-                    </button>
+                    <div style="display: flex; gap: 0.5rem;">
+                      <button class="validar-devolucion pedido-btn-validar" data-pedido-id="${pedido.id}" style="
+                        background: #28a745;
+                        color: white;
+                        border: none;
+                        padding: 0.5rem 1rem;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-weight: 600;
+                        font-size: 0.85rem;
+                        transition: all 0.3s;
+                      " onmouseover="this.style.background='#218838'; this.style.boxShadow='0 2px 8px rgba(40, 167, 69, 0.3)'" onmouseout="this.style.background='#28a745'; this.style.boxShadow='none'">
+                        ✓ Validar
+                      </button>
+                      <button class="denegar-devolucion pedido-btn-denegar" data-pedido-id="${pedido.id}" style="
+                        background: #dc3545;
+                        color: white;
+                        border: none;
+                        padding: 0.5rem 1rem;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-weight: 600;
+                        font-size: 0.85rem;
+                        transition: all 0.3s;
+                      " onmouseover="this.style.background='#c82333'; this.style.boxShadow='0 2px 8px rgba(220, 53, 69, 0.3)'" onmouseout="this.style.background='#dc3545'; this.style.boxShadow='none'">
+                        ✕ Denegar
+                      </button>
+                    </div>
                   ` : ''}
                 </div>
                 <div style="text-align: right;">
@@ -463,47 +551,150 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     document.getElementById('filtro-mes').addEventListener('click', () => cargarPedidos('mes'));
 
     // Event listeners para validar devolución
-    document.addEventListener('click', async (e) => {
-      if (e.target.classList.contains('validar-devolucion')) {
-        const pedidoId = e.target.dataset.pedidoId;
-        const userRole = localStorage.getItem('user_role');
+    let pedidoIdEnConfirmacion = null;
+    let btnValidarEnConfirmacion = null;
+    let tipoAccion = null; // 'validar' o 'denegar'
 
-        if (!confirm('¿Confirmar que la devolución ha llegado correctamente? Se notificará al cliente y se procesará el reembolso.')) {
+    document.addEventListener('click', async (e) => {
+      if (e.target.classList.contains('validar-devolucion') || e.target.classList.contains('denegar-devolucion')) {
+        pedidoIdEnConfirmacion = e.target.dataset.pedidoId;
+        btnValidarEnConfirmacion = e.target;
+        tipoAccion = e.target.classList.contains('validar-devolucion') ? 'validar' : 'denegar';
+        
+        // Actualizar modal según el tipo de acción
+        const modal = document.getElementById('modalConfirmacion');
+        const titulo = document.getElementById('modalTitulo');
+        const mensaje = document.getElementById('modalMensaje');
+        const btnDenegar = document.getElementById('btnDenegarModal');
+        const btnAceptar = document.getElementById('btnAceptarModal');
+
+        if (tipoAccion === 'denegar') {
+          titulo.textContent = 'Denegar Devolución';
+          mensaje.textContent = '¿Estás seguro de que deseas denegar esta devolución? El cliente será notificado del rechazo.';
+          btnDenegar.style.display = 'block';
+          btnAceptar.style.display = 'none';
+        } else {
+          titulo.textContent = 'Validar Devolución';
+          mensaje.textContent = '¿Confirmar que la devolución ha llegado correctamente? Se notificará al cliente y se procesará el reembolso.';
+          btnDenegar.style.display = 'none';
+          btnAceptar.style.display = 'block';
+        }
+        
+        // Mostrar modal
+        modal.style.display = 'flex';
+      }
+    });
+
+    // Manejar botón de cancelar
+    document.getElementById('btnCancelarModal').addEventListener('click', () => {
+      const modal = document.getElementById('modalConfirmacion');
+      modal.style.display = 'none';
+      pedidoIdEnConfirmacion = null;
+      btnValidarEnConfirmacion = null;
+    });
+
+    // Manejar botón de denegar
+    document.getElementById('btnDenegarModal').addEventListener('click', async () => {
+      if (!pedidoIdEnConfirmacion) return;
+
+      const userRole = localStorage.getItem('user_role');
+      const modal = document.getElementById('modalConfirmacion');
+
+      try {
+        btnValidarEnConfirmacion.disabled = true;
+        btnValidarEnConfirmacion.textContent = '⏳ Procesando...';
+
+        const response = await fetch('/api/pedidos/denegar-devolucion', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-role': userRole || 'admin'
+          },
+          body: JSON.stringify({
+            pedido_id: pedidoIdEnConfirmacion
+          })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          mostrarNotificacion('error', 'Error al denegar', error.error || 'No se pudo denegar la devolución');
+          btnValidarEnConfirmacion.disabled = false;
+          btnValidarEnConfirmacion.innerHTML = '✕ Denegar';
+          modal.style.display = 'none';
           return;
         }
 
-        try {
-          e.target.disabled = true;
-          e.target.textContent = '⏳ Procesando...';
+        mostrarNotificacion('success', '✓ Devolución Denegada', 'El cliente ha sido notificado de la denegación.');
+        // Recargar los pedidos
+        cargarPedidos(filtroActual);
+        modal.style.display = 'none';
+      } catch (error) {
+        console.error('Error:', error);
+        mostrarNotificacion('error', 'Error', 'No se pudo denegar la devolución');
+        btnValidarEnConfirmacion.disabled = false;
+        btnValidarEnConfirmacion.innerHTML = '✕ Denegar';
+        modal.style.display = 'none';
+      }
 
-          const response = await fetch('/api/pedidos/validar-devolucion', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-user-role': userRole || 'admin'
-            },
-            body: JSON.stringify({
-              pedido_id: pedidoId
-            })
-          });
+      pedidoIdEnConfirmacion = null;
+      btnValidarEnConfirmacion = null;
+      tipoAccion = null;
+    });
 
-          if (!response.ok) {
-            const error = await response.json();
-            mostrarNotificacion('error', 'Error al validar', error.error || 'No se pudo validar la devolución');
-            e.target.disabled = false;
-            e.target.textContent = '✓ Validar';
-            return;
-          }
+    // Manejar botón de aceptar (Validar)
+    document.getElementById('btnAceptarModal').addEventListener('click', async () => {
+      if (!pedidoIdEnConfirmacion) return;
 
-          mostrarNotificacion('success', '✓ Devolución Validada', 'El cliente ha sido notificado. Reembolso autorizado.');
-          // Recargar los pedidos
-          cargarPedidos(filtroActual);
-        } catch (error) {
-          console.error('Error:', error);
-          mostrarNotificacion('error', 'Error', 'No se pudo validar la devolución');
-          e.target.disabled = false;
-          e.target.textContent = '✓ Validar';
+      const userRole = localStorage.getItem('user_role');
+      const modal = document.getElementById('modalConfirmacion');
+
+      try {
+        btnValidarEnConfirmacion.disabled = true;
+        btnValidarEnConfirmacion.textContent = '⏳ Procesando...';
+
+        const response = await fetch('/api/pedidos/validar-devolucion', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-role': userRole || 'admin'
+          },
+          body: JSON.stringify({
+            pedido_id: pedidoIdEnConfirmacion
+          })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          mostrarNotificacion('error', 'Error al validar', error.error || 'No se pudo validar la devolución');
+          btnValidarEnConfirmacion.disabled = false;
+          btnValidarEnConfirmacion.innerHTML = '✓ Validar';
+          modal.style.display = 'none';
+          return;
         }
+
+        mostrarNotificacion('success', '✓ Devolución Validada', 'El cliente ha sido notificado. Reembolso autorizado.');
+        // Recargar los pedidos
+        cargarPedidos(filtroActual);
+        modal.style.display = 'none';
+      } catch (error) {
+        console.error('Error:', error);
+        mostrarNotificacion('error', 'Error', 'No se pudo validar la devolución');
+        btnValidarEnConfirmacion.disabled = false;
+        btnValidarEnConfirmacion.innerHTML = '✓ Validar';
+        modal.style.display = 'none';
+      }
+
+      pedidoIdEnConfirmacion = null;
+      btnValidarEnConfirmacion = null;
+      tipoAccion = null;
+    });
+
+    // Cerrar modal al hacer clic fuera del contenido
+    document.getElementById('modalConfirmacion').addEventListener('click', (e) => {
+      if (e.target.id === 'modalConfirmacion') {
+        document.getElementById('modalConfirmacion').style.display = 'none';
+        pedidoIdEnConfirmacion = null;
+        btnValidarEnConfirmacion = null;
       }
     });
 

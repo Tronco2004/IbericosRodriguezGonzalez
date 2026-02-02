@@ -558,16 +558,37 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           const pedidosEl = document.getElementById('pedidosCount');
           const clientesEl = document.getElementById('clientesCount');
           const ingresosEl = document.getElementById('ingresosCount');
+          const ingresosHoyEl = document.getElementById('ingresosHoy');
+          const pedidosHoyEl = document.getElementById('pedidosHoy');
+          const ticketPromedioEl = document.getElementById('ticketPromedio');
           
           if (productosEl) productosEl.textContent = String(data.stockTotal || 0);
           if (pedidosEl) pedidosEl.textContent = String(data.pedidosPendientes || 0);
           if (clientesEl) clientesEl.textContent = String(data.clientesActivos || 0);
           if (ingresosEl) ingresosEl.textContent = '€' + (data.ingresosTotal || '0.00');
+          if (ingresosHoyEl) ingresosHoyEl.textContent = '€' + (data.ingresosHoy || '0.00');
+          if (pedidosHoyEl) pedidosHoyEl.textContent = String(data.pedidosHoy || 0);
+          if (ticketPromedioEl) ticketPromedioEl.textContent = '€' + (data.ticketPromedio || '0.00');
+          
+          // Guardar datos para usarlos en los gráficos
+          window.dashboardData = data;
           
           console.log('✅ Estadísticas cargadas:', data);
         }
       } catch (error) {
         console.error('Error cargando estadísticas:', error);
+      }
+    }
+
+    // Obtener datos reales de ingresos por día del mes
+    async function obtenerIngresosDelMes() {
+      try {
+        const response = await fetch('/api/admin/ingresos-diarios');
+        const data = await response.json();
+        return data.ingresosMatriz || { dias: [], ingresos: [] };
+      } catch (error) {
+        console.error('Error obteniendo ingresos diarios:', error);
+        return { dias: [], ingresos: [] };
       }
     }
 
@@ -585,18 +606,30 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     }
 
     // Crear gráfico de ingresos
-    function crearGraficoIngresos() {
-      const { dias, ingresos } = generarDatosIngresos();
+    async function crearGraficoIngresos() {
+      const datosIngresos = await obtenerIngresosDelMes();
+      let dias = datosIngresos.dias || [];
+      let ingresos = datosIngresos.ingresos || [];
+      
+      // Si no hay datos reales, usar placeholders
+      if (dias.length === 0) {
+        const { dias: diasGeneados, ingresos: ingresosGenerados } = generarDatosIngresos();
+        dias = diasGeneados;
+        ingresos = ingresosGenerados;
+      }
+      
       const canvas = document.getElementById('ingresosChart') as HTMLCanvasElement | null;
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
       
+      const mesActual = new Date().toLocaleString('es-ES', { month: 'long' });
+      
       // @ts-ignore
       new Chart(ctx, {
         type: 'line',
         data: {
-          labels: dias.map(d => `${d} Ene`),
+          labels: dias.map(d => `${d} ${mesActual[0].toUpperCase() + mesActual.slice(1)}`),
           datasets: [{
             label: 'Ingresos (€)',
             data: ingresos,
@@ -659,31 +692,33 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         }
       });
 
-      // Calcular totales
-      const totalIngresos = ingresos.reduce((a, b) => a + b, 0);
-      const promedioPedidos = ingresos.length > 0 ? (totalIngresos / 20).toFixed(2) : '0';
-      const ingresosCountEl = document.getElementById('ingresosCount');
+      // Usar datos del API si están disponibles
       const ticketPromedioEl = document.getElementById('ticketPromedio');
-      const ingresosHoyEl = document.getElementById('ingresosHoy');
-      
-      if (ingresosCountEl) ingresosCountEl.textContent = '€' + totalIngresos.toFixed(2);
-      if (ticketPromedioEl) ticketPromedioEl.textContent = '€' + promedioPedidos;
-      if (ingresosHoyEl) ingresosHoyEl.textContent = '€' + (ingresos[29] || 0).toFixed(2);
+      if (window.dashboardData && ticketPromedioEl) {
+        // Calcular ticket promedio
+        const totalIngresos = parseFloat(window.dashboardData.ingresosTotal || '0');
+        const totalPedidos = window.dashboardData.pedidosPendientes || 1;
+        const ticketPromedio = (totalIngresos / totalPedidos).toFixed(2);
+        ticketPromedioEl.textContent = '€' + ticketPromedio;
+      }
     }
 
     // Crear gráfico de pedidos
     function crearGraficoPedidos() {
-      const { dias, pedidos } = generarDatosPedidos();
+      const dias = Array.from({ length: 30 }, (_, i) => i + 1);
+      const pedidos = dias.map(() => Math.floor(Math.random() * 15) + 3);
       const canvas = document.getElementById('pedidosChart') as HTMLCanvasElement | null;
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
       
+      const mesActual = new Date().toLocaleString('es-ES', { month: 'long' });
+      
       // @ts-ignore
       new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: dias.map(d => `${d} Ene`),
+          labels: dias.map(d => `${d} ${mesActual[0].toUpperCase() + mesActual.slice(1)}`),
           datasets: [{
             label: 'Cantidad de Pedidos',
             data: pedidos,
@@ -744,12 +779,8 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 
       // Calcular totales
       const totalPedidos = pedidos.reduce((a, b) => a + b, 0);
-      const pedidosCountEl = document.getElementById('pedidosCount');
-      const pedidosHoyEl = document.getElementById('pedidosHoy');
       const crecimientoEl = document.getElementById('crecimiento');
       
-      if (pedidosCountEl) pedidosCountEl.textContent = String(totalPedidos);
-      if (pedidosHoyEl) pedidosHoyEl.textContent = String(pedidos[29] || 0);
       if (crecimientoEl) crecimientoEl.textContent = '+' + Math.floor(Math.random() * 25 + 5) + '%';
     }
 
