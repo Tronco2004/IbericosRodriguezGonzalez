@@ -7,7 +7,12 @@ export const GET: APIRoute = async ({ cookies, request }) => {
     // Intentar obtener userId del header x-user-id primero
     let userId = request.headers.get('x-user-id');
     
-    // Si no viene en header, intentar desde el token
+    // Si no viene en header, intentar desde la cookie user_id directamente
+    if (!userId) {
+      userId = cookies.get('user_id')?.value;
+    }
+    
+    // Si no viene en cookie, intentar desde el token
     if (!userId) {
       const token = cookies.get('auth_token')?.value;
       if (token) {
