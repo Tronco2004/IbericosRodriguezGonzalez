@@ -1177,6 +1177,7 @@ const ofertaUrgente = ofertas.find(o => o.fecha_fin) || null;
     .urgency-banner {
       border-radius: 8px;
       margin-bottom: 0.75rem;
+      padding: 0.6rem 2rem 0.6rem 0.75rem;
     }
     
     .urgency-fire {
@@ -1195,22 +1196,36 @@ const ofertaUrgente = ofertas.find(o => o.fecha_fin) || null;
       font-size: 1.25rem;
     }
     
+    .timer-boxes {
+      gap: 2px;
+    }
+    
     .timer-box {
-      padding: 3px 6px;
-      min-width: 32px;
+      padding: 3px 5px;
+      min-width: 28px;
     }
     
     .timer-value {
-      font-size: 0.9rem;
+      font-size: 0.85rem;
     }
     
     .timer-unit {
-      font-size: 0.5rem;
+      font-size: 0.45rem;
+    }
+    
+    .timer-separator {
+      font-size: 1rem;
     }
     
     .urgency-cta {
-      padding: 0.5rem 1rem;
-      font-size: 0.75rem;
+      padding: 0.5rem 0.85rem;
+      font-size: 0.7rem;
+    }
+    
+    .urgency-close {
+      width: 24px;
+      height: 24px;
+      right: 0.5rem;
     }
   }
 </style>
