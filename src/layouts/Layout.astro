@@ -952,6 +952,11 @@ const { data: categorias } = await supabaseClient
         Seguimiento
       </a>
       <a href="/contacto" class="nav-link">Contacto</a>
+      
+      <!-- Contenedor dinámico para autenticación móvil -->
+      <div id="mobileAuthContainer" style="margin-top: auto; width: 100%; padding-top: 2rem; border-top: 1px solid var(--border-color);">
+        <!-- Se renderiza dinámicamente por JavaScript -->
+      </div>
     </nav>
     <div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
 
@@ -1442,6 +1447,141 @@ const { data: categorias } = await supabaseClient
       #authContainer {
         display: flex;
         align-items: center;
+      }
+
+      /* Botón de Iniciar Sesión en el menú móvil */
+      .nav-login-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        padding: 0.8rem 1rem;
+        background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .nav-login-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(168, 153, 104, 0.4);
+      }
+
+      .nav-login-button:active {
+        transform: translateY(0);
+      }
+
+      /* ===== PERFIL USUARIO EN MENÚ MÓVIL ===== */
+      .mobile-user-profile {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .mobile-user-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        background: var(--bg-tertiary);
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+      }
+
+      .mobile-user-avatar {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+      }
+
+      .mobile-user-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        overflow: hidden;
+      }
+
+      .mobile-user-name {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.95rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .mobile-user-role {
+        font-size: 0.75rem;
+        color: var(--color-accent);
+        text-transform: uppercase;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+      }
+
+      .mobile-profile-link {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.875rem 1rem;
+        background: var(--bg-secondary);
+        border-radius: 8px;
+        color: var(--text-primary);
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+        min-height: 44px; /* tap target mínimo */
+      }
+
+      .mobile-profile-link:hover,
+      .mobile-profile-link:active {
+        background: var(--bg-tertiary);
+        transform: translateX(4px);
+      }
+
+      .mobile-profile-link svg {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+        color: var(--color-accent);
+      }
+
+      .mobile-logout-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        width: 100%;
+        padding: 0.875rem 1rem;
+        background: rgba(220, 53, 69, 0.1);
+        border: 1px solid rgba(220, 53, 69, 0.3);
+        border-radius: 8px;
+        color: #dc3545;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-top: 0.5rem;
+        min-height: 44px; /* tap target mínimo */
+      }
+
+      .mobile-logout-btn:hover,
+      .mobile-logout-btn:active {
+        background: rgba(220, 53, 69, 0.2);
       }
 
       /* ========== RESPONSIVE ========== */
@@ -2155,120 +2295,227 @@ const { data: categorias } = await supabaseClient
 
       // Renderizar navbar dinámicamente
       const authContainer = document.getElementById('authContainer');
-      const token = localStorage.getItem('auth_token');
-      const userName = localStorage.getItem('user_name');
-      const userRole = localStorage.getItem('user_role');
+      let token = localStorage.getItem('auth_token');
+      let userName = localStorage.getItem('user_name');
+      let userRole = localStorage.getItem('user_role');
 
-      if (token && userName && authContainer) {
-        // Usuario autenticado - mostrar nombre y menú
-        authContainer.innerHTML = `
-          <div style="position: relative;">
-            <button id="userBtn" style="
-              background: linear-gradient(135deg, #001a33, #2d2d2d);
-              color: white;
-              padding: 0.6rem 1rem;
-              border-radius: 4px;
-              border: none;
-              font-weight: 600;
-              cursor: pointer;
-              font-size: 0.9rem;
-              display: flex;
-              align-items: center;
-              gap: 0.5rem;
-            ">
-              ${userName} ▼
-            </button>
+      // Si no hay datos en localStorage, intentar obtener del endpoint
+      if ((!token || !userName) && authContainer) {
+        fetch('/api/auth/me', { credentials: 'include' })
+          .then(res => res.ok ? res.json() : null)
+          .then(data => {
+            if (data?.success && data?.usuario) {
+              token = data.usuario.id;
+              userName = data.usuario.nombre;
+              userRole = data.usuario.rol;
+              // Guardar en localStorage para próximas visitas
+              localStorage.setItem('auth_token', token);
+              localStorage.setItem('user_name', userName);
+              localStorage.setItem('user_role', userRole);
+              localStorage.setItem('user_id', token);
+              localStorage.setItem('user_email', data.usuario.email);
+              renderAuthUI();
+            } else {
+              renderAuthUI();
+            }
+          })
+          .catch(() => renderAuthUI());
+      } else {
+        renderAuthUI();
+      }
 
-            <div id="menu" style="
-              display: none;
-              position: absolute;
-              top: 110%;
-              right: 0;
-              background: white;
-              border: 1px solid #eee;
-              border-radius: 4px;
-              min-width: 180px;
-              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-              z-index: 1000;
-            ">
-              <div style="padding: 0.75rem 1rem; border-bottom: 1px solid #eee;">
-                <p style="font-weight: 600; margin: 0; color: #001a33; font-size: 0.9rem;">${userName}</p>
-                <span style="background: #a89968; color: white; padding: 0.2rem 0.6rem; border-radius: 3px; font-size: 0.7rem; text-transform: uppercase; display: inline-block; margin-top: 0.3rem;">${userRole}</span>
+      function renderAuthUI() {
+        const mobileAuthContainer = document.getElementById('mobileAuthContainer');
+        
+        if (token && userName && authContainer) {
+          // Usuario autenticado - mostrar nombre y menú (DESKTOP)
+          authContainer.innerHTML = `
+            <div style="position: relative;">
+              <button id="userBtn" style="
+                background: linear-gradient(135deg, #001a33, #2d2d2d);
+                color: white;
+                padding: 0.6rem 1rem;
+                border-radius: 4px;
+                border: none;
+                font-weight: 600;
+                cursor: pointer;
+                font-size: 0.9rem;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+              ">
+                ${userName} ▼
+              </button>
+
+              <div id="menu" style="
+                display: none;
+                position: absolute;
+                top: 110%;
+                right: 0;
+                background: white;
+                border: 1px solid #eee;
+                border-radius: 4px;
+                min-width: 180px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                z-index: 1000;
+              ">
+                <div style="padding: 0.75rem 1rem; border-bottom: 1px solid #eee;">
+                  <p style="font-weight: 600; margin: 0; color: #001a33; font-size: 0.9rem;">${userName}</p>
+                  <span style="background: #a89968; color: white; padding: 0.2rem 0.6rem; border-radius: 3px; font-size: 0.7rem; text-transform: uppercase; display: inline-block; margin-top: 0.3rem;">${userRole}</span>
+                </div>
+                ${userRole === 'admin' ? `
+                  <div id="adminMenuWrapper" style="position: relative;">
+                    <button id="adminMenuBtn" style="width: 100%; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee; text-align: left; background: #f8f7f4; font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
+                      Panel Admin
+                      <span id="adminArrow" style="transform: rotate(0deg); transition: transform 0.3s;">▼</span>
+                    </button>
+                    <div id="adminSubMenu" style="display: none; background: #f8f7f4; border-top: 1px solid #eee;">
+                      <a href="/admin/dashboard" style="display: block; padding: 0.5rem 1.5rem; color: #001a33; border-bottom: 1px solid #eee; font-size: 0.9rem;">Dashboard</a>
+                      <a href="/admin/productos" style="display: block; padding: 0.5rem 1.5rem; color: #001a33; border-bottom: 1px solid #eee; font-size: 0.9rem;">Productos</a>
+                      <a href="/admin/pedidos" style="display: block; padding: 0.5rem 1.5rem; color: #001a33; border-bottom: 1px solid #eee; font-size: 0.9rem;">Pedidos</a>
+                      <a href="/admin/usuarios" style="display: block; padding: 0.5rem 1.5rem; color: #001a33; border-bottom: 1px solid #eee; font-size: 0.9rem;">Usuarios</a>
+                      <a href="/admin/codigos-descuento" style="display: block; padding: 0.5rem 1.5rem; color: #a89968; font-weight: 600; font-size: 0.9rem;">Códigos Descuento</a>
+                    </div>
+                  </div>
+                ` : ''}
+                <!-- <a href="/carrito" style="display: block; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee;">Carrito</a> -->
+                <a href="/mi-cuenta" style="display: block; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee;">Mi Cuenta</a>
+                <a href="/mi-perfil" style="display: block; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee;">Mi Perfil</a>
+                <a href="/mis-pedidos" style="display: block; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee;">Mis Pedidos</a>
+                <button id="logoutBtn" style="width: 100%; padding: 0.6rem 1rem; background: #fee; color: #c33; text-align: left; font-weight: 600;">Cerrar Sesión</button>
               </div>
-              ${userRole === 'admin' ? `
-                <div id="adminMenuWrapper" style="position: relative;">
-                  <button id="adminMenuBtn" style="width: 100%; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee; text-align: left; background: #f8f7f4; font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
-                    Panel Admin
-                    <span id="adminArrow" style="transform: rotate(0deg); transition: transform 0.3s;">▼</span>
-                  </button>
-                  <div id="adminSubMenu" style="display: none; background: #f8f7f4; border-top: 1px solid #eee;">
-                    <a href="/admin/dashboard" style="display: block; padding: 0.5rem 1.5rem; color: #001a33; border-bottom: 1px solid #eee; font-size: 0.9rem;">Dashboard</a>
-                    <a href="/admin/productos" style="display: block; padding: 0.5rem 1.5rem; color: #001a33; border-bottom: 1px solid #eee; font-size: 0.9rem;">Productos</a>
-                    <a href="/admin/pedidos" style="display: block; padding: 0.5rem 1.5rem; color: #001a33; border-bottom: 1px solid #eee; font-size: 0.9rem;">Pedidos</a>
-                    <a href="/admin/usuarios" style="display: block; padding: 0.5rem 1.5rem; color: #001a33; border-bottom: 1px solid #eee; font-size: 0.9rem;">Usuarios</a>
-                    <a href="/admin/codigos-descuento" style="display: block; padding: 0.5rem 1.5rem; color: #a89968; font-weight: 600; font-size: 0.9rem;">Códigos Descuento</a>
+            </div>
+          `;
+
+          // MENÚ MÓVIL - Usuario autenticado
+          if (mobileAuthContainer) {
+            const userInitial = userName.charAt(0).toUpperCase();
+            mobileAuthContainer.innerHTML = `
+              <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: var(--bg-tertiary); border-radius: 12px; margin-bottom: 0.5rem;">
+                  <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #a89968 0%, #8b6f47 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.3rem; flex-shrink: 0;">${userInitial}</div>
+                  <div style="display: flex; flex-direction: column; gap: 0.2rem; overflow: hidden;">
+                    <span style="font-weight: 600; color: var(--text-primary); font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${userName}</span>
+                    <span style="font-size: 0.75rem; color: #a89968; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">${userRole}</span>
                   </div>
                 </div>
-              ` : ''}
-              <!-- <a href="/carrito" style="display: block; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee;">Carrito</a> -->
-              <a href="/mi-cuenta" style="display: block; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee;">Mi Cuenta</a>
-              <a href="/mi-perfil" style="display: block; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee;">Mi Perfil</a>
-              <a href="/mis-pedidos" style="display: block; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee;">Mis Pedidos</a>
-              <button id="logoutBtn" style="width: 100%; padding: 0.6rem 1rem; background: #fee; color: #c33; text-align: left; font-weight: 600;">Cerrar Sesión</button>
-            </div>
-          </div>
-        `;
+                
+                <a href="/mi-perfil" style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem 1.25rem; background: var(--bg-secondary); border-radius: 10px; color: var(--text-primary); text-decoration: none; font-weight: 500; font-size: 1rem; border: 1px solid var(--border-color);">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a89968" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  Mi Perfil
+                </a>
+                
+                <a href="/mis-pedidos" style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem 1.25rem; background: var(--bg-secondary); border-radius: 10px; color: var(--text-primary); text-decoration: none; font-weight: 500; font-size: 1rem; border: 1px solid var(--border-color);">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a89968" stroke-width="2">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                  </svg>
+                  Mis Pedidos
+                </a>
+                
+                ${userRole === 'admin' ? `
+                  <a href="/admin/dashboard" style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem 1.25rem; background: linear-gradient(135deg, rgba(168, 153, 104, 0.2), rgba(168, 153, 104, 0.1)); border-radius: 10px; color: var(--text-primary); text-decoration: none; font-weight: 600; font-size: 1rem; border: 1px solid rgba(168, 153, 104, 0.3);">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a89968" stroke-width="2">
+                      <rect x="3" y="3" width="7" height="9"></rect>
+                      <rect x="14" y="3" width="7" height="5"></rect>
+                      <rect x="14" y="12" width="7" height="9"></rect>
+                      <rect x="3" y="16" width="7" height="5"></rect>
+                    </svg>
+                    Panel Admin
+                  </a>
+                ` : ''}
+                
+                <button id="mobileLogoutBtn" style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; width: 100%; padding: 1rem 1.25rem; background: rgba(220, 53, 69, 0.1); border: 1px solid rgba(220, 53, 69, 0.3); border-radius: 10px; color: #dc3545; font-weight: 600; font-size: 1rem; cursor: pointer; margin-top: 0.5rem;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                  </svg>
+                  Cerrar Sesión
+                </button>
+              </div>
+            `;
+            
+            // Event listener para logout en móvil
+            setTimeout(() => {
+              const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
+              mobileLogoutBtn?.addEventListener('click', async () => {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                localStorage.clear();
+                window.location.href = '/';
+              });
+            }, 0);
+          }
 
-        setTimeout(() => {
-          const userBtn = document.getElementById('userBtn');
-          const menu = document.getElementById('menu');
-          const logoutBtn = document.getElementById('logoutBtn');
-          const adminMenuBtn = document.getElementById('adminMenuBtn');
-          const adminSubMenu = document.getElementById('adminSubMenu');
-          const adminArrow = document.getElementById('adminArrow');
+          setTimeout(() => {
+            const userBtn = document.getElementById('userBtn');
+            const menu = document.getElementById('menu');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const adminMenuBtn = document.getElementById('adminMenuBtn');
+            const adminSubMenu = document.getElementById('adminSubMenu');
+            const adminArrow = document.getElementById('adminArrow');
 
-          userBtn?.addEventListener('click', () => {
-            if (menu) menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
-          });
+            userBtn?.addEventListener('click', () => {
+              if (menu) menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+            });
 
-          adminMenuBtn?.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (adminSubMenu) adminSubMenu.style.display = adminSubMenu.style.display === 'none' ? 'block' : 'none';
-            if (adminArrow && adminSubMenu) adminArrow.style.transform = adminSubMenu.style.display === 'block' ? 'rotate(180deg)' : 'rotate(0deg)';
-          });
+            adminMenuBtn?.addEventListener('click', (e) => {
+              e.preventDefault();
+              if (adminSubMenu) adminSubMenu.style.display = adminSubMenu.style.display === 'none' ? 'block' : 'none';
+              if (adminArrow && adminSubMenu) adminArrow.style.transform = adminSubMenu.style.display === 'block' ? 'rotate(180deg)' : 'rotate(0deg)';
+            });
 
-          logoutBtn?.addEventListener('click', async () => {
-            await fetch('/api/auth/logout', { method: 'POST' });
-            localStorage.clear();
-            window.location.href = '/';
-          });
+            logoutBtn?.addEventListener('click', async () => {
+              await fetch('/api/auth/logout', { method: 'POST' });
+              localStorage.clear();
+              window.location.href = '/';
+            });
 
-          document.addEventListener('click', (e) => {
-            const target = e.target as Node;
-            if (!userBtn?.contains(target) && !menu?.contains(target)) {
-              if (menu) menu.style.display = 'none';
-            }
-          });
-        }, 0);
-      } else {
-        // No autenticado
-        if (authContainer) authContainer.innerHTML = `
-          <a href="/login" style="
-            background: linear-gradient(135deg, #a89968, #8b7a5f);
-            color: white;
-            padding: 0.75rem 2rem;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            box-shadow: 0 4px 12px rgba(168, 153, 104, 0.3);
-            transition: all 0.3s ease;
-          " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(168, 153, 104, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(168, 153, 104, 0.3)'">Iniciar Sesión</a>
-        `;
+            document.addEventListener('click', (e) => {
+              const target = e.target as Node;
+              if (!userBtn?.contains(target) && !menu?.contains(target)) {
+                if (menu) menu.style.display = 'none';
+              }
+            });
+          }, 0);
+        } else {
+          // No autenticado - DESKTOP
+          if (authContainer) authContainer.innerHTML = `
+            <a href="/login" style="
+              background: linear-gradient(135deg, #a89968, #8b7a5f);
+              color: white;
+              padding: 0.75rem 2rem;
+              border-radius: 6px;
+              font-size: 0.85rem;
+              font-weight: 700;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+              display: inline-flex;
+              align-items: center;
+              gap: 0.5rem;
+              box-shadow: 0 4px 12px rgba(168, 153, 104, 0.3);
+              transition: all 0.3s ease;
+            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(168, 153, 104, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(168, 153, 104, 0.3)'">Iniciar Sesión</a>
+          `;
+          
+          // MENÚ MÓVIL - No autenticado
+          if (mobileAuthContainer) {
+            mobileAuthContainer.innerHTML = `
+              <a href="/login" class="nav-login-button">
+                <svg style="width: 18px; height: 18px; margin-right: 6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                  <polyline points="10 17 15 12 10 7"></polyline>
+                  <line x1="15" y1="12" x2="3" y2="12"></line>
+                </svg>
+                Iniciar Sesión
+              </a>
+            `;
+          }
+        }
       }
     </script>
 

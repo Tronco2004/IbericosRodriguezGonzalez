@@ -3,19 +3,41 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
 ---
 
 <ProtectedLayout>
+  <style>
+    .perfil-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+    
+    @media (max-width: 768px) {
+      .perfil-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .perfil-header h1 {
+        font-size: 2rem !important;
+      }
+      
+      .perfil-card {
+        padding: 1.5rem !important;
+      }
+    }
+  </style>
+  
   <div style="max-width: 1000px; margin: 0 auto; padding: 2rem 1rem;">
     <!-- Header -->
-    <div style="margin-bottom: 3rem;">
+    <div class="perfil-header" style="margin-bottom: 3rem;">
       <h1 style="font-size: 3rem; margin: 0 0 0.5rem 0; color: #001a33; font-weight: 800; letter-spacing: -1px;">Mi Perfil</h1>
       <div style="width: 80px; height: 3px; background: linear-gradient(90deg, #a89968, #d4a574); border-radius: 10px; margin-bottom: 1.5rem;"></div>
       <p style="color: #666; font-size: 1.05rem; margin: 0;">Gestiona tu información personal y seguridad</p>
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+    <div class="perfil-grid">
       <!-- Columna izquierda: Información Personal -->
       <div>
         <!-- Tarjeta de Información Personal -->
-        <div style="background: linear-gradient(135deg, #f5f3f0 0%, #faf8f6 100%); border-radius: 12px; padding: 2rem; border: 1px solid #e8e4e0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <div class="perfil-card" style="background: linear-gradient(135deg, #f5f3f0 0%, #faf8f6 100%); border-radius: 12px; padding: 2rem; border: 1px solid #e8e4e0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
           <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
             <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #a89968, #d4a574); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
               <span style="color: white; font-weight: 700; font-size: 1.2rem; font-style: italic;">i</span>
@@ -77,7 +99,7 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
       <!-- Columna derecha: Cambiar Contraseña -->
       <div>
         <!-- Tarjeta de Cambiar Contraseña -->
-        <div style="background: linear-gradient(135deg, #f5f3f0 0%, #faf8f6 100%); border-radius: 12px; padding: 2rem; border: 1px solid #e8e4e0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <div class="perfil-card" style="background: linear-gradient(135deg, #f5f3f0 0%, #faf8f6 100%); border-radius: 12px; padding: 2rem; border: 1px solid #e8e4e0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
           <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
             <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #a89968, #d4a574); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
               <span style="color: white; font-weight: 700; font-size: 1.2rem;">S</span>
@@ -163,12 +185,33 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
   <script>
     async function cargarDatosUsuario() {
       try {
-        const userId = localStorage.getItem('user_id');
+        let userId = localStorage.getItem('user_id');
         console.log('🔍 userId desde localStorage:', userId);
         
+        // Si no hay userId en localStorage, intentar obtenerlo del endpoint
+        if (!userId || userId === 'null' || userId === 'undefined') {
+          console.log('🔄 Intentando obtener usuario desde /api/auth/me');
+          try {
+            const meResponse = await fetch('/api/auth/me', {
+              credentials: 'include'
+            });
+            if (meResponse.ok) {
+              const meData = await meResponse.json();
+              if (meData.success && meData.usuario) {
+                userId = meData.usuario.id;
+                console.log('✅ Usuario obtenido del endpoint:', userId);
+                localStorage.setItem('user_id', userId);
+              }
+            }
+          } catch (e) {
+            console.log('⚠️ No se pudo obtener usuario del endpoint');
+          }
+        }
+        
         const response = await fetch('/api/auth/me', {
+          credentials: 'include',
           headers: {
-            'x-user-id': userId || ''
+            ...(userId && userId !== 'null' && { 'x-user-id': userId })
           }
         });
         

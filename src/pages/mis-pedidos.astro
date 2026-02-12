@@ -200,10 +200,32 @@ import Layout from '../layouts/Layout.astro';
         // Pequeño delay para asegurar que localStorage está disponible
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        const userId = localStorage.getItem('user_id');
-        const userEmail = localStorage.getItem('user_email');
+        let userId = localStorage.getItem('user_id');
+        let userEmail = localStorage.getItem('user_email');
         console.log('👤 userId desde localStorage:', userId);
         console.log('📧 userEmail desde localStorage:', userEmail);
+
+        // Si no hay userId en localStorage, intentar obtenerlo del endpoint /api/auth/me
+        if (!userId || userId === 'null' || userId === 'undefined') {
+          console.log('🔄 Intentando obtener usuario desde /api/auth/me');
+          try {
+            const meResponse = await fetch('/api/auth/me', {
+              credentials: 'include'
+            });
+            if (meResponse.ok) {
+              const meData = await meResponse.json();
+              if (meData.success && meData.usuario) {
+                userId = meData.usuario.id;
+                userEmail = meData.usuario.email;
+                console.log('✅ Usuario obtenido del endpoint:', userId);
+                localStorage.setItem('user_id', userId);
+                localStorage.setItem('user_email', userEmail);
+              }
+            }
+          } catch (e) {
+            console.log('⚠️ No se pudo obtener usuario del endpoint');
+          }
+        }
 
         // Si no hay ni userId ni email, mostrar que debe iniciar sesión o ingresar email
         if ((!userId || userId === 'null' || userId === 'undefined') && 
@@ -392,7 +414,7 @@ import Layout from '../layouts/Layout.astro';
 
           html += `
             <div class="pedido-card" style="background: var(--bg-card); border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); transition: var(--theme-transition);">
-              <div style="padding: 1.5rem; background: var(--bg-tertiary); border-bottom: 1px solid var(--border-color); display: grid; grid-template-columns: 1fr auto auto; gap: 2rem; align-items: center; transition: var(--theme-transition);">
+              <div class="pedido-header" style="padding: 1.5rem; background: var(--bg-tertiary); border-bottom: 1px solid var(--border-color); display: grid; grid-template-columns: 1fr auto auto; gap: 2rem; align-items: center; transition: var(--theme-transition);">
                 <div>
                   <h3 style="color: var(--text-primary); margin: 0 0 0.5rem 0; transition: var(--theme-transition);">Pedido #${pedido.numero_pedido}</h3>
                   <p style="color: var(--text-secondary); margin: 0; font-size: 0.9rem; transition: var(--theme-transition);">
@@ -566,6 +588,33 @@ import Layout from '../layouts/Layout.astro';
       // Recargar pedidos con el nuevo email
       await cargarPedidos();
     }
+
+    // Estilos responsivos para el header de pedidos
+    const responsiveStyle = document.createElement('style');
+    responsiveStyle.textContent = `
+      @media (max-width: 768px) {
+        .pedido-header {
+          grid-template-columns: 1fr !important;
+          gap: 1rem !important;
+          align-items: flex-start !important;
+        }
+        
+        .pedido-header > div:nth-child(2) {
+          width: 100%;
+          text-align: left !important;
+        }
+        
+        .pedido-header > div:nth-child(3) {
+          width: 100%;
+          text-align: left !important;
+        }
+        
+        .pedido-header > div:nth-child(3) p {
+          font-size: 1.5rem !important;
+        }
+      }
+    `;
+    document.head.appendChild(responsiveStyle);
 
     // Estilos para animaciones
     const style = document.createElement('style');

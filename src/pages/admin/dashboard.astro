@@ -128,7 +128,6 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       padding-left: 2rem;
     }
 
-    .menu-item-icon { font-size: 1.5rem; margin-right: 1rem; }
     .menu-item-title { font-weight: 700; font-size: 0.95rem; }
     .menu-item-desc { color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem; }
 
@@ -308,10 +307,43 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     .analytics-desc { color: var(--text-muted); font-size: 0.85rem; margin: 0; }
 
     @media (max-width: 768px) {
-      .side-menu { width: 100%; right: -100%; }
+      .side-menu { 
+        width: 100%; 
+        right: -100%; 
+      }
+      .side-menu.open { 
+        right: 0; 
+      }
       .admin-page { padding: 1.5rem 1rem; }
       .admin-title { font-size: 2rem; }
       .kpi-grid { grid-template-columns: 1fr; }
+      .charts-grid { 
+        grid-template-columns: 1fr; 
+        margin-top: 2rem;
+      }
+      .chart-card {
+        padding: 1rem;
+      }
+      .chart-container {
+        height: 200px;
+      }
+      .analytics-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-top: 2rem;
+      }
+      .analytics-card {
+        padding: 1rem;
+      }
+      .analytics-value {
+        font-size: 1.6rem;
+      }
+      .kpi-card {
+        padding: 1.5rem;
+      }
+      .kpi-value {
+        font-size: 2rem;
+      }
     }
   </style>
 
@@ -343,7 +375,6 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
             <!-- Menu Items -->
             <nav class="menu-nav">
               <a href="/admin/productos" class="menu-item">
-                <div class="menu-item-icon"></div>
                 <div>
                   <div class="menu-item-title">Productos</div>
                   <div class="menu-item-desc">Administra tu catálogo</div>
@@ -351,7 +382,6 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
               </a>
 
               <a href="/admin/categorias" class="menu-item">
-                <div class="menu-item-icon"></div>
                 <div>
                   <div class="menu-item-title">Categorías</div>
                   <div class="menu-item-desc">Gestiona categorías</div>
@@ -359,7 +389,6 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
               </a>
 
               <a href="/admin/empresas" class="menu-item">
-                <div class="menu-item-icon"></div>
                 <div>
                   <div class="menu-item-title">Empresas</div>
                   <div class="menu-item-desc">Ver todas las empresas</div>
@@ -367,7 +396,6 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
               </a>
 
               <a href="/admin/usuarios" class="menu-item">
-                <div class="menu-item-icon"></div>
                 <div>
                   <div class="menu-item-title">Clientes</div>
                   <div class="menu-item-desc">Gestiona usuarios</div>
@@ -375,7 +403,6 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
               </a>
 
               <a href="/admin/pedidos" class="menu-item">
-                <div class="menu-item-icon"></div>
                 <div>
                   <div class="menu-item-title">Pedidos</div>
                   <div class="menu-item-desc">Ver órdenes</div>
@@ -383,7 +410,6 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
               </a>
 
               <a href="/admin/ofertas" class="menu-item">
-                <div class="menu-item-icon"></div>
                 <div>
                   <div class="menu-item-title">Ofertas</div>
                   <div class="menu-item-desc">Gestiona promociones</div>
@@ -391,7 +417,6 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
               </a>
 
               <a href="/admin/codigos-descuento" class="menu-item">
-                <div class="menu-item-icon"></div>
                 <div>
                   <div class="menu-item-title">Códigos Descuento</div>
                   <div class="menu-item-desc">Crear y gestionar códigos</div>
