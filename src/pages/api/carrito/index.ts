@@ -82,14 +82,49 @@ export const GET: APIRoute = async ({ cookies, request }) => {
       categoriaMap[cat.id] = cat.nombre;
     });
 
-    // Enriquecer items con nombre de categoría
-    const itemsEnriquecidos = items?.map(item => ({
-      ...item,
-      productos: item.productos ? {
-        ...item.productos,
-        categoria: categoriaMap[item.productos.categoria_id] || 'Sin categoría'
-      } : null
-    })) || [];
+    // Obtener ofertas activas para verificar precios
+    const ahoraISO = new Date().toISOString();
+    const { data: ofertasActivas } = await supabaseClient
+      .from('ofertas')
+      .select('producto_id, precio_descuento_centimos, porcentaje_descuento, nombre_oferta')
+      .eq('activa', true)
+      .lte('fecha_inicio', ahoraISO)
+      .gte('fecha_fin', ahoraISO);
+
+    const ofertasMap: Record<number, any> = {};
+    ofertasActivas?.forEach((oferta: any) => {
+      ofertasMap[oferta.producto_id] = oferta;
+    });
+
+    // Enriquecer items con nombre de categoría y corregir precios con ofertas activas
+    const itemsEnriquecidos = [];
+    for (const item of (items || [])) {
+      const oferta = ofertasMap[item.producto_id];
+      let precioCorregido = item.precio_unitario;
+
+      // Si el producto tiene oferta activa y NO es una variante, verificar/corregir precio
+      if (oferta && !item.producto_variante_id) {
+        const precioOferta = oferta.precio_descuento_centimos;
+        if (item.precio_unitario !== precioOferta) {
+          console.log(`🏷️ Corrigiendo precio item ${item.id}: ${item.precio_unitario} → ${precioOferta} (oferta: ${oferta.nombre_oferta})`);
+          precioCorregido = precioOferta;
+          // Actualizar en BD para que el precio esté correcto en checkout
+          await supabaseClient
+            .from('carrito_items')
+            .update({ precio_unitario: precioOferta })
+            .eq('id', item.id);
+        }
+      }
+
+      itemsEnriquecidos.push({
+        ...item,
+        precio_unitario: precioCorregido,
+        productos: item.productos ? {
+          ...item.productos,
+          categoria: categoriaMap[item.productos.categoria_id] || 'Sin categoría'
+        } : null
+      });
+    }
 
     console.log('📦 Items obtenidos del carrito:', itemsEnriquecidos?.length ?? 0, 'items');
     console.log('🔵 Items completos:', JSON.stringify(itemsEnriquecidos, null, 2));
@@ -362,7 +397,30 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
 
       precioUnitario = producto.precio_centimos;
-      console.log('✅ Precio producto:', precioUnitario);
+      console.log('✅ Precio base producto:', precioUnitario);
+
+      // Verificar si el producto tiene una oferta activa
+      const ahora = new Date().toISOString();
+      const { data: ofertaActiva } = await supabaseClient
+        .from('ofertas')
+        .select('id, precio_descuento_centimos, porcentaje_descuento, nombre_oferta')
+        .eq('producto_id', producto_id)
+        .eq('activa', true)
+        .lte('fecha_inicio', ahora)
+        .gte('fecha_fin', ahora)
+        .order('precio_descuento_centimos', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (ofertaActiva) {
+        console.log(`🏷️ Oferta activa encontrada: "${ofertaActiva.nombre_oferta}" - ${ofertaActiva.porcentaje_descuento}% descuento`);
+        console.log(`💰 Precio original: ${precioUnitario} → Precio oferta: ${ofertaActiva.precio_descuento_centimos}`);
+        precioUnitario = ofertaActiva.precio_descuento_centimos;
+      } else {
+        console.log('ℹ️ Sin oferta activa para este producto');
+      }
+
+      console.log('✅ Precio final producto:', precioUnitario);
     }
 
     // Verificar si el producto ya está en el carrito (con misma variante si aplica)
