@@ -14,16 +14,38 @@ export const GET: APIRoute = async ({ request, cookies }) => {
     console.log('🔍 userId:', userId);
     console.log('🔍 userEmail:', userEmail);
 
-    if (!userId && !userEmail) {
-      console.error('❌ Usuario no autenticado - ni userId ni email disponibles');
+    // Determinar el email para buscar pedidos
+    let emailBusqueda = userEmail;
+
+    // Si hay userId pero no email, obtener el email del usuario desde la BD
+    if ((!emailBusqueda || emailBusqueda === 'null') && userId && userId !== 'null') {
+      console.log('🔍 Obteniendo email del usuario desde BD...');
+      const { data: usuario, error: userError } = await supabaseClient
+        .from('usuarios')
+        .select('email')
+        .eq('id', userId)
+        .single();
+
+      if (usuario?.email) {
+        emailBusqueda = usuario.email;
+        console.log('✅ Email obtenido de BD:', emailBusqueda);
+      } else {
+        console.warn('⚠️ No se pudo obtener email del usuario:', userError?.message);
+      }
+    }
+
+    if (!emailBusqueda || emailBusqueda === 'null') {
+      console.error('❌ No se pudo determinar email para buscar pedidos');
       return new Response(
-        JSON.stringify({ error: 'Usuario no autenticado' }),
+        JSON.stringify({ error: 'Usuario no autenticado o email no disponible' }),
         { status: 401 }
       );
     }
 
-    // Construir consulta dinámicamente
-    let query = supabaseClient
+    console.log('🔍 Buscando pedidos por email:', emailBusqueda);
+
+    // Buscar TODOS los pedidos por email (tanto logueado como invitado)
+    const { data: pedidos, error } = await supabaseClient
       .from('pedidos')
       .select(`
         id,
@@ -48,20 +70,8 @@ export const GET: APIRoute = async ({ request, cookies }) => {
           precio_unitario,
           peso_kg
         )
-      `);
-
-    // Si hay userId, buscar por usuario_id
-    if (userId && userId !== 'null') {
-      console.log('🔍 Buscando pedidos con usuario_id:', userId);
-      query = query.eq('usuario_id', userId);
-    } 
-    // Si no hay userId pero hay email, buscar por email
-    else if (userEmail && userEmail !== 'null') {
-      console.log('🔍 Buscando pedidos con email:', userEmail);
-      query = query.eq('email_cliente', userEmail);
-    }
-
-    const { data: pedidos, error } = await query
+      `)
+      .eq('email_cliente', emailBusqueda)
       .order('fecha_creacion', { ascending: false });
 
     console.log('📦 Pedidos encontrados:', pedidos?.length ?? 0);
