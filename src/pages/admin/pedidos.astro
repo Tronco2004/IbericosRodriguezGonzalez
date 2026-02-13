@@ -416,8 +416,8 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
                   </p>
                 </div>
                 <div>
-                  <p class="pedido-contacto">📍 ${pedido.direccion_envio || 'N/A'}</p>
-                  <p class="pedido-contacto">📱 ${pedido.telefono_cliente || 'N/A'}</p>
+                  <p class="pedido-contacto">${pedido.email_cliente || 'N/A'}</p>
+                  <p class="pedido-contacto">${pedido.direccion_envio || 'N/A'}</p>
                 </div>
                 <div style="display: flex; gap: 0.75rem; align-items: center;">
                   <select class="cambiar-estado" data-pedido-id="${pedido.id}" style="
@@ -437,7 +437,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
                     <option value="entregado" ${pedido.estado === 'entregado' ? 'selected' : ''}>Entregado</option>
                     <option value="cancelado" ${pedido.estado === 'cancelado' ? 'selected' : ''}>Cancelado</option>
                     <option value="devolucion_solicitada" ${pedido.estado === 'devolucion_solicitada' ? 'selected' : ''}>Devolución Solicitada</option>
-                    <option value="devolucion_recibida" ${pedido.estado === 'devolucion_recibida' ? 'selected' : ''}>Devolución Recibida</option>
+                    <option value="devolucion_recibida" ${pedido.estado === 'devolucion_recibida' ? 'selected' : ''}>Devolución Aceptada</option>
                     <option value="devolucion_denegada" ${pedido.estado === 'devolucion_denegada' ? 'selected' : ''}>Devolución Denegada</option>
                   </select>
                   ${pedido.estado === 'devolucion_solicitada' ? `

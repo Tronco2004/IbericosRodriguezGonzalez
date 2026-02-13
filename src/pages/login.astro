@@ -272,6 +272,9 @@ const redirect = Astro.url.searchParams.get('redirect') || '/';
       </div>
 
       <div id="errorMessage" class="error-message"></div>
+      <div id="expiredMessage" style="display: none; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; color: #856404; font-size: 0.9rem; text-align: center;">
+        ⏰ Tu sesión ha expirado por inactividad. Por favor, inicia sesión de nuevo.
+      </div>
       <div id="loadingMessage" class="loading-text">Verificando credenciales...</div>
 
       <div class="info-box">
@@ -322,6 +325,12 @@ const redirect = Astro.url.searchParams.get('redirect') || '/';
     googleBtn.addEventListener('click', () => handleSocialLogin('google'));
     appleBtn.addEventListener('click', () => handleSocialLogin('apple'));
     facebookBtn.addEventListener('click', () => handleSocialLogin('facebook'));
+
+    // Mostrar mensaje de sesión expirada si viene de cierre automático
+    if (new URLSearchParams(window.location.search).get('expired') === '1') {
+      const expMsg = document.getElementById('expiredMessage');
+      if (expMsg) expMsg.style.display = 'block';
+    }
   </script>
 </Layout>
     </div>
@@ -364,6 +373,7 @@ const redirect = Astro.url.searchParams.get('redirect') || '/';
             localStorage.setItem('user_id', data.usuario.id);
             localStorage.setItem('user_name', data.usuario.nombre);
             localStorage.setItem('user_email', data.usuario.email);
+            localStorage.setItem('last_activity', String(Date.now()));
           }
           
           window.location.href = data.redirect_url;

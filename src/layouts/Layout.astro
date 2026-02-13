@@ -1993,6 +1993,64 @@ const { data: categorias } = await supabaseClient
         document.documentElement.setAttribute('data-theme', theme);
       })();
     </script>
+
+    <!-- Script de cierre de sesión por inactividad -->
+    <script is:inline>
+      (function() {
+        const INACTIVIDAD_MS = 30 * 60 * 1000; // 30 minutos de inactividad
+        const CLAVE_ULTIMA_ACTIVIDAD = 'last_activity';
+
+        // Solo aplicar si hay sesión activa
+        if (!localStorage.getItem('user_id')) return;
+
+        // Registrar actividad
+        function registrarActividad() {
+          localStorage.setItem(CLAVE_ULTIMA_ACTIVIDAD, String(Date.now()));
+        }
+
+        // Comprobar inactividad
+        function comprobarInactividad() {
+          const userId = localStorage.getItem('user_id');
+          if (!userId) return; // Ya no hay sesión
+
+          const ultimaActividad = parseInt(localStorage.getItem(CLAVE_ULTIMA_ACTIVIDAD) || '0');
+          if (ultimaActividad === 0) {
+            registrarActividad();
+            return;
+          }
+
+          const tiempoInactivo = Date.now() - ultimaActividad;
+          if (tiempoInactivo >= INACTIVIDAD_MS) {
+            // Sesión expirada por inactividad
+            console.log('⏰ Sesión cerrada por inactividad (' + Math.round(tiempoInactivo / 60000) + ' min)');
+            fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+            const tema = localStorage.getItem('theme'); // Preservar preferencia de tema
+            localStorage.clear();
+            if (tema) localStorage.setItem('theme', tema);
+            window.location.href = '/login?expired=1';
+            return;
+          }
+        }
+
+        // Registrar actividad inicial (al cargar la página)
+        registrarActividad();
+
+        // Registrar actividad en interacciones del usuario
+        ['click', 'keydown', 'scroll', 'mousemove', 'touchstart'].forEach(function(evento) {
+          document.addEventListener(evento, registrarActividad, { passive: true });
+        });
+
+        // Comprobar inactividad cada minuto
+        setInterval(comprobarInactividad, 60 * 1000);
+
+        // Comprobar también al volver a la pestaña (usuario que la dejó en segundo plano)
+        document.addEventListener('visibilitychange', function() {
+          if (document.visibilityState === 'visible') {
+            comprobarInactividad();
+          }
+        });
+      })();
+    </script>
     
     <script>
       // ========== TOGGLE DE TEMA ==========
@@ -2444,8 +2502,10 @@ const { data: categorias } = await supabaseClient
             setTimeout(() => {
               const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
               mobileLogoutBtn?.addEventListener('click', async () => {
-                await fetch('/api/auth/logout', { method: 'POST' });
+                await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+                const tema = localStorage.getItem('theme');
                 localStorage.clear();
+                if (tema) localStorage.setItem('theme', tema);
                 window.location.href = '/';
               });
             }, 0);
@@ -2470,8 +2530,10 @@ const { data: categorias } = await supabaseClient
             });
 
             logoutBtn?.addEventListener('click', async () => {
-              await fetch('/api/auth/logout', { method: 'POST' });
+              await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+              const tema = localStorage.getItem('theme');
               localStorage.clear();
+              if (tema) localStorage.setItem('theme', tema);
               window.location.href = '/';
             });
 

@@ -12,7 +12,7 @@ export default defineConfig({
   }),
   vite: {
     ssr: {
-      external: ['node:fs', 'node:path', 'node:util']
+      external: ['node:fs', 'node:path', 'node:util', 'nodemailer', 'pdfkit']
     },
     resolve: {
       alias: {

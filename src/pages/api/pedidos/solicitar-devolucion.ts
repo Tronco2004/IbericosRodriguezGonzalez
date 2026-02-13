@@ -17,7 +17,7 @@ export const POST: APIRoute = async ({ request }) => {
     // Verificar que el pedido pertenece al usuario y está entregado
     const { data: pedido, error: errorPedido } = await supabaseClient
       .from('pedidos')
-      .select('id, estado, usuario_id, numero_pedido, email_cliente')
+      .select('id, estado, usuario_id, numero_pedido, email_cliente, nombre_cliente')
       .eq('id', pedido_id)
       .eq('usuario_id', userId)
       .single();
@@ -72,16 +72,12 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Notificar al admin sobre la devolución
     try {
-      const { data: usuario } = await supabaseClient
-        .from('usuarios')
-        .select('nombre')
-        .eq('id', userId)
-        .single();
+      console.log('📧 Notificando al admin sobre devolución. Email cliente:', pedido.email_cliente, 'Nombre:', pedido.nombre_cliente);
       
       await notificarDevolucionAlAdmin(
         pedido.numero_pedido,
         pedido.email_cliente,
-        usuario?.nombre
+        pedido.nombre_cliente
       );
       console.log('✅ Admin notificado sobre la devolución');
     } catch (adminEmailError) {

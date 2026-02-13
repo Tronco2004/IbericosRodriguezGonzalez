@@ -28,7 +28,7 @@ export const POST: APIRoute = async ({ request }) => {
       esInvitado: !!datosInvitado
     });
 
-    // Obtener la sesión de Stripe
+    // Obtener la sesión de Stripe (shipping_details se incluye automáticamente)
     const session = await stripe.checkout.sessions.retrieve(sessionId);
     
     console.log('📋 Sesión Stripe completa:', {
@@ -137,23 +137,36 @@ export const POST: APIRoute = async ({ request }) => {
 
     console.log('📝 Número de pedido generado:', numeroPedido);
 
+    // Construir dirección de envío desde Stripe o datos del usuario
+    let direccionEnvio: string | null = null;
+    const shipping = session.shipping_details;
+    if (shipping?.address) {
+      const a = shipping.address;
+      const partes = [a.line1, a.line2, a.postal_code, a.city, a.state, a.country].filter(Boolean);
+      direccionEnvio = partes.join(', ');
+      if (shipping.name) direccionEnvio = shipping.name + ' - ' + direccionEnvio;
+    }
+    if (!direccionEnvio) {
+      direccionEnvio = datosInvitado?.direccion || usuarioDatos?.direccion || null;
+    }
+
     // ✅ CREAR PEDIDO DIRECTAMENTE con subtotal inicial en 0
     const { data: pedidoCreado, error: pedidoError } = await supabaseClient
       .from('pedidos')
       .insert({
-        usuario_id: finalUserId || null, // null si es invitado sin cuenta
+        usuario_id: finalUserId || null,
         stripe_session_id: sessionId,
         numero_pedido: numeroPedido,
         estado: 'pagado',
-        subtotal: 0, // Será actualizado después de insertar items
-        envio: envio, // En euros
+        subtotal: 0,
+        envio: envio,
         impuestos: 0,
-        total: envio, // Será actualizado después de insertar items
+        total: envio,
         email_cliente: customerEmail,
         telefono_cliente: datosInvitado?.telefono || usuarioDatos?.telefono || null,
-        direccion_envio: datosInvitado?.direccion || usuarioDatos?.direccion || null,
+        direccion_envio: direccionEnvio,
         fecha_pago: new Date().toISOString(),
-        es_invitado: esInvitado // true solo si no tiene cuenta
+        es_invitado: esInvitado
       })
       .select('id');
 

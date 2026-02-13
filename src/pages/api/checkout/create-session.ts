@@ -149,6 +149,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       cancel_url: `${new URL(request.url).origin}/carrito`,
       customer_email: customerEmail,
       ...(discounts.length > 0 && { discounts }),
+      // Recoger dirección de envío
+      shipping_address_collection: {
+        allowed_countries: ['ES', 'PT', 'FR', 'DE', 'IT', 'GB', 'AD'],
+      },
       // Guardar metadata para identificar invitados
       metadata: {
         es_invitado: datosInvitado ? 'true' : 'false',
