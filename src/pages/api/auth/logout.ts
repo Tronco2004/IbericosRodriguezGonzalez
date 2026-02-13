@@ -1,18 +1,22 @@
 import type { APIRoute } from 'astro';
-import { cerrarSesion } from '../../../lib/auth';
+import { supabaseClient } from '../../../lib/supabase';
 
 export const POST: APIRoute = async ({ cookies }) => {
-  const token = cookies.get('auth_token')?.value;
-
-  if (token) {
-    cerrarSesion(token);
+  // Cerrar sesión en Supabase
+  try {
+    await supabaseClient.auth.signOut();
+  } catch (e) {
+    console.error('Error cerrando sesión en Supabase:', e);
   }
 
-  // Eliminar cookie
-  cookies.delete('auth_token');
+  // Eliminar todas las cookies de sesión
+  cookies.delete('auth_token', { path: '/' });
+  cookies.delete('user_id', { path: '/' });
+  cookies.delete('user_role', { path: '/' });
+  cookies.delete('user_name', { path: '/' });
 
   return new Response(
     JSON.stringify({ success: true, message: 'Sesión cerrada' }),
-    { status: 200 }
+    { status: 200, headers: { 'Content-Type': 'application/json' } }
   );
 };

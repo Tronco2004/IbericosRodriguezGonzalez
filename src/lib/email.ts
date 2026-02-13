@@ -1,14 +1,23 @@
 import nodemailer from 'nodemailer';
 import PDFDocument from 'pdfkit';
 
-// Configuración del transporte de email
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: import.meta.env.GMAIL_USER,
-    pass: import.meta.env.GMAIL_PASSWORD
+// Configuración del transporte de email (lazy para asegurar que env vars estén disponibles)
+let _transporter: ReturnType<typeof nodemailer.createTransport> | null = null;
+
+function getTransporter() {
+  if (!_transporter) {
+    const user = import.meta.env.GMAIL_USER;
+    const pass = import.meta.env.GMAIL_PASSWORD;
+    console.log('📧 Creando transporter con usuario:', user ? user : '⚠️ NO CONFIGURADO');
+    console.log('📧 Password configurada:', pass ? 'Sí' : '⚠️ NO');
+    
+    _transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user, pass }
+    });
   }
-});
+  return _transporter;
+}
 
 export interface EmailPedido {
   email_cliente: string;
@@ -49,46 +58,66 @@ function generarPDFFactura(datos: EmailPedido): Promise<Buffer> {
 
       doc.on('error', reject);
 
-      // Header
-      doc.fontSize(24).font('Helvetica-Bold').text('FACTURA', { align: 'center' });
+      // === HEADER CON LÍNEA DECORATIVA ===
+      doc.rect(50, 45, 495, 3).fill('#a89968');
       doc.moveDown(0.5);
-      doc.fontSize(10).font('Helvetica').text('Ibéricos Rodríguez González', { align: 'center' });
+      
+      doc.fontSize(22).font('Helvetica-Bold').fillColor('#001a33').text('Ibéricos Rodríguez González', { align: 'center' });
+      doc.moveDown(0.2);
+      doc.fontSize(9).font('Helvetica').fillColor('#555');
       doc.text('Calle de la Moda 123, Polígono Industrial, 28001 Madrid', { align: 'center' });
-      doc.text('NIF: XX-XXX-XXX', { align: 'center' });
+      doc.text('NIF: XX-XXX-XXX  |  info@ibericosrg.com  |  +34 XXX XXX XXX', { align: 'center' });
+      doc.moveDown(0.5);
+      doc.rect(50, doc.y, 495, 1).fill('#e0d5c7');
       doc.moveDown(1);
 
-      // Información del pedido
-      doc.fontSize(11).font('Helvetica-Bold').text('INFORMACIÓN DEL PEDIDO', { underline: true });
+      // === TÍTULO FACTURA ===
+      doc.fontSize(18).font('Helvetica-Bold').fillColor('#a89968').text('FACTURA', { align: 'right' });
       doc.moveDown(0.3);
-      doc.fontSize(10).font('Helvetica');
-      doc.text(`Número de Pedido: ${datos.numero_pedido}`, { width: 250 });
-      doc.text(`Fecha: ${new Date(datos.fecha).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}`, { width: 250 });
-      doc.text(`Email Cliente: ${datos.email_cliente}`, { width: 250 });
+      doc.fontSize(9).font('Helvetica').fillColor('#888').text(`Nº ${datos.numero_pedido}`, { align: 'right' });
       doc.moveDown(1);
 
-      // Tabla de productos
-      doc.fontSize(11).font('Helvetica-Bold').text('PRODUCTOS PEDIDOS', { underline: true });
-      doc.moveDown(0.3);
+      // === INFORMACIÓN DEL PEDIDO ===
+      doc.fillColor('#001a33');
+      doc.fontSize(11).font('Helvetica-Bold').text('DATOS DEL PEDIDO');
+      doc.moveDown(0.15);
+      doc.rect(50, doc.y, 80, 2).fill('#a89968');
+      doc.moveDown(0.4);
+      doc.fontSize(9.5).font('Helvetica').fillColor('#333');
+      doc.text(`Número de Pedido:   ${datos.numero_pedido}`);
+      doc.text(`Fecha:   ${new Date(datos.fecha).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}`);
+      doc.text(`Email Cliente:   ${datos.email_cliente}`);
+      doc.moveDown(1.2);
 
-      // Headers de tabla
+      // === TABLA DE PRODUCTOS ===
+      doc.fillColor('#001a33');
+      doc.fontSize(11).font('Helvetica-Bold').text('PRODUCTOS');
+      doc.moveDown(0.15);
+      doc.rect(50, doc.y, 80, 2).fill('#a89968');
+      doc.moveDown(0.5);
+
+      // Headers de tabla con fondo
       const tableTop = doc.y;
       const col1 = 50;
-      const col2 = 320;
-      const col3 = 380;
-      const col4 = 480;
+      const col2 = 270;
+      const col3 = 370;
+      const col4 = 470;
 
-      doc.fontSize(10).font('Helvetica-Bold');
-      doc.text('Producto', col1, tableTop);
-      doc.text('Cantidad', col2, tableTop);
-      doc.text('P. Unitario', col3, tableTop);
-      doc.text('Subtotal', col4, tableTop);
+      // Fondo header tabla
+      doc.rect(col1, tableTop - 4, 500, 20).fill('#f5f0e8');
+      
+      doc.fontSize(9).font('Helvetica-Bold').fillColor('#001a33');
+      doc.text('Producto', col1 + 5, tableTop, { width: 200 });
+      doc.text('Cant.', col2, tableTop, { width: 70, align: 'center' });
+      doc.text('P. Unitario', col3, tableTop, { width: 80, align: 'center' });
+      doc.text('Subtotal', col4, tableTop, { width: 75, align: 'center' });
 
-      // Línea divisoria
-      doc.moveTo(col1, tableTop + 15).lineTo(550, tableTop + 15).stroke();
-      doc.moveDown(0.5);
+      // Línea bajo header
+      doc.moveTo(col1, tableTop + 18).lineTo(545, tableTop + 18).lineWidth(0.5).strokeColor('#a89968').stroke();
+      doc.moveDown(0.8);
 
       // Productos
-      doc.font('Helvetica').fontSize(9);
+      doc.font('Helvetica').fontSize(9).fillColor('#333');
       let yPosition = doc.y;
 
       datos.items.forEach((item) => {
@@ -99,36 +128,50 @@ function generarPDFFactura(datos: EmailPedido): Promise<Buffer> {
           ? `${item.nombre} (${item.peso_kg.toFixed(3)} kg)`
           : item.nombre;
 
-        doc.text(productText, col1, yPosition, { width: 200, height: 30 });
-        doc.text(item.cantidad.toString(), col2, yPosition, { width: 40, align: 'center' });
-        doc.text(`€${precioUnitario.toFixed(2)}`, col3, yPosition, { width: 60, align: 'right' });
-        doc.text(`€${subtotal.toFixed(2)}`, col4, yPosition, { width: 60, align: 'right' });
+        // Fondo alterno para filas
+        const rowIndex = datos.items.indexOf(item);
+        if (rowIndex % 2 === 1) {
+          doc.rect(col1, yPosition - 3, 500, 26).fill('#faf8f5');
+        }
 
-        yPosition += 30;
+        doc.fillColor('#333').font('Helvetica').fontSize(9);
+        doc.text(productText, col1 + 5, yPosition, { width: 200, height: 25 });
+        doc.text(item.cantidad.toString(), col2, yPosition, { width: 70, align: 'center' });
+        doc.text(`${precioUnitario.toFixed(2)} €`, col3, yPosition, { width: 80, align: 'center' });
+        doc.text(`${subtotal.toFixed(2)} €`, col4, yPosition, { width: 75, align: 'center' });
+
+        yPosition += 26;
       });
 
       // Línea divisoria final
-      doc.moveTo(col1, yPosition).lineTo(550, yPosition).stroke();
+      doc.moveTo(col1, yPosition + 2).lineTo(545, yPosition + 2).lineWidth(0.5).strokeColor('#a89968').stroke();
+      yPosition += 18;
+
+      // Totales con diseño mejorado
+      doc.fontSize(9.5).font('Helvetica').fillColor('#555');
+      doc.text('Subtotal:', col3, yPosition, { width: 80, align: 'right' });
+      doc.text(`${(datos.subtotal / 100).toFixed(2)} €`, col4, yPosition, { width: 75, align: 'center' });
+
+      yPosition += 18;
+      doc.text('Envío:', col3, yPosition, { width: 80, align: 'right' });
+      doc.text(`${(datos.envio / 100).toFixed(2)} €`, col4, yPosition, { width: 75, align: 'center' });
+
+      yPosition += 8;
+      doc.moveTo(col3, yPosition).lineTo(545, yPosition).lineWidth(0.5).strokeColor('#ccc').stroke();
       yPosition += 10;
 
-      // Totales
-      doc.fontSize(10).font('Helvetica');
-      doc.text('Subtotal:', col3 - 20, yPosition, { width: 100, align: 'right' });
-      doc.text(`€${(datos.subtotal / 100).toFixed(2)}`, col4, yPosition, { width: 60, align: 'right' });
+      // Total destacado con fondo
+      doc.rect(col3 - 5, yPosition - 5, 180, 28).fill('#001a33');
+      doc.font('Helvetica-Bold').fontSize(12).fillColor('#ffffff');
+      doc.text('TOTAL:', col3, yPosition, { width: 80, align: 'right' });
+      doc.text(`${(datos.total / 100).toFixed(2)} €`, col4, yPosition, { width: 75, align: 'center' });
 
-      yPosition += 20;
-      doc.text('Envío:', col3 - 20, yPosition, { width: 100, align: 'right' });
-      doc.text(`€${(datos.envio / 100).toFixed(2)}`, col4, yPosition, { width: 60, align: 'right' });
-
-      yPosition += 25;
-      doc.font('Helvetica-Bold').fontSize(12);
-      doc.text('TOTAL:', col3 - 20, yPosition, { width: 100, align: 'right' });
-      doc.text(`€${(datos.total / 100).toFixed(2)}`, col4, yPosition, { width: 60, align: 'right' });
-
-      // Footer
-      doc.moveDown(2);
-      doc.fontSize(9).font('Helvetica').text('Gracias por tu compra en Ibéricos Rodríguez González', { align: 'center' });
-      doc.text('Este documento es una factura oficial de compra', { align: 'center' });
+      // === FOOTER LIMPIO ===
+      const footerY = doc.page.height - 80;
+      doc.rect(50, footerY, 495, 1).fill('#e0d5c7');
+      doc.fontSize(8).font('Helvetica').fillColor('#999');
+      doc.text('Ibéricos Rodríguez González  |  ibericosrg.com', 50, footerY + 10, { align: 'center', width: 495 });
+      doc.text('Gracias por confiar en nosotros', 50, footerY + 22, { align: 'center', width: 495 });
 
       doc.end();
     } catch (error) {
@@ -158,14 +201,14 @@ export async function enviarConfirmacionPedido(datos: EmailPedido) {
 
     const itemsHtml = datos.items
       .map(
-        item => `
-        <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #e0d5c7;">
-            <strong>${item.nombre}</strong>
-            ${item.peso_kg ? `<br><small>${item.peso_kg.toFixed(3)} kg</small>` : ''}
+        (item, idx) => `
+        <tr style="background: ${idx % 2 === 0 ? '#ffffff' : '#faf7f2'};">
+          <td style="padding: 12px 15px; border-bottom: 1px solid #f0ebe3;">
+            <span style="font-weight: 600; color: #001a33; font-size: 14px;">${item.nombre}</span>
+            ${item.peso_kg ? `<br><span style="color: #999; font-size: 12px;">${item.peso_kg.toFixed(3)} kg</span>` : ''}
           </td>
-          <td style="padding: 10px; border-bottom: 1px solid #e0d5c7; text-align: center;">${item.cantidad}</td>
-          <td style="padding: 10px; border-bottom: 1px solid #e0d5c7; text-align: right;">${(item.precio / 100).toFixed(2)}€</td>
+          <td style="padding: 12px 10px; border-bottom: 1px solid #f0ebe3; text-align: center; color: #555; font-size: 14px;">${item.cantidad}</td>
+          <td style="padding: 12px 15px; border-bottom: 1px solid #f0ebe3; text-align: right; color: #333; font-size: 14px; font-weight: 500;">${(item.precio / 100).toFixed(2)} €</td>
         </tr>
       `
       )
@@ -176,96 +219,114 @@ export async function enviarConfirmacionPedido(datos: EmailPedido) {
       <html>
         <head>
           <meta charset="UTF-8">
-          <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: #001a33; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-            .content { background: #f8f4f0; padding: 20px; border-radius: 0 0 8px 8px; }
-            .section { margin-bottom: 20px; }
-            .section h2 { color: #001a33; border-bottom: 2px solid #a89968; padding-bottom: 10px; }
-            table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-            .total-row { background: #e0d5c7; font-weight: bold; }
-            .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; }
-            .badge { display: inline-block; background: #a89968; color: white; padding: 5px 10px; border-radius: 20px; font-size: 12px; }
-            .info-box { background: white; padding: 15px; border-left: 4px solid #a89968; border-radius: 4px; margin: 15px 0; }
-          </style>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
         </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>¡Pedido Confirmado! 🎉</h1>
-              <p>Gracias por tu compra en Ibéricos RG</p>
-            </div>
-            
-            <div class="content">
-              <div class="section">
-                <h2>Detalles del Pedido</h2>
-                <p><strong>Número de Pedido:</strong> <span class="badge">${datos.numero_pedido}</span></p>
-                ${datos.codigo_seguimiento ? `
-                <p><strong>📦 Código de Seguimiento:</strong></p>
-                <div style="background: #f0e6d3; padding: 15px; border-radius: 8px; text-align: center; margin: 10px 0;">
-                  <span style="font-family: monospace; font-size: 24px; font-weight: bold; color: #001a33; letter-spacing: 2px;">${datos.codigo_seguimiento}</span>
-                  <p style="margin: 10px 0 0 0; font-size: 12px; color: #666;">Guarda este código para rastrear tu pedido</p>
-                </div>
-                <p style="text-align: center;">
-                  <a href="https://ibericosrg.com/seguimiento?codigo=${datos.codigo_seguimiento}" style="display: inline-block; background: #a89968; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 600;">Ver estado del pedido</a>
-                </p>
-                ` : ''}
-                <p><strong>Fecha:</strong> ${new Date(datos.fecha).toLocaleDateString('es-ES', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}</p>
-              </div>
-
-              <div class="section">
-                <h2>Productos</h2>
-                <table>
-                  <thead>
-                    <tr style="background: #a89968; color: white;">
-                      <th style="padding: 10px; text-align: left;">Producto</th>
-                      <th style="padding: 10px; text-align: center;">Cantidad</th>
-                      <th style="padding: 10px; text-align: right;">Precio</th>
+        <body style="margin: 0; padding: 0; background-color: #f2ede6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f2ede6; padding: 30px 0;">
+            <tr><td align="center">
+              <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+                
+                <!-- BARRA DORADA SUPERIOR -->
+                <tr><td style="background: linear-gradient(90deg, #a89968, #c4b07d, #a89968); height: 5px;"></td></tr>
+                
+                <!-- HEADER -->
+                <tr><td style="background: #001a33; padding: 35px 40px; text-align: center;">
+                  <h1 style="margin: 0; color: #ffffff; font-size: 26px; font-weight: 700; letter-spacing: 0.5px;">Pedido Confirmado</h1>
+                  <p style="margin: 8px 0 0 0; color: #a89968; font-size: 15px; font-weight: 500;">Gracias por tu compra en Ibéricos Rodríguez González</p>
+                </td></tr>
+                
+                <!-- CONTENIDO PRINCIPAL -->
+                <tr><td style="padding: 35px 40px;">
+                  
+                  <!-- DETALLES DEL PEDIDO -->
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 30px;">
+                    <tr><td>
+                      <h2 style="margin: 0 0 15px 0; color: #001a33; font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #a89968; padding-bottom: 8px;">Detalles del Pedido</h2>
+                      <table role="presentation" width="100%" cellpadding="8" cellspacing="0">
+                        <tr>
+                          <td style="color: #888; font-size: 13px; width: 140px;">Nº de Pedido</td>
+                          <td style="font-weight: 600; color: #001a33; font-size: 13px;">${datos.numero_pedido}</td>
+                        </tr>
+                        <tr>
+                          <td style="color: #888; font-size: 13px;">Fecha</td>
+                          <td style="color: #333; font-size: 13px;">${new Date(datos.fecha).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}</td>
+                        </tr>
+                      </table>
+                    </td></tr>
+                  </table>
+                  
+                  ${datos.codigo_seguimiento ? `
+                  <!-- CÓDIGO DE SEGUIMIENTO -->
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 30px; background: #faf7f2; border-radius: 8px; border: 1px solid #e8e0d4;">
+                    <tr><td style="padding: 20px; text-align: center;">
+                      <p style="margin: 0 0 8px 0; color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Código de Seguimiento</p>
+                      <p style="margin: 0; font-family: 'Courier New', monospace; font-size: 26px; font-weight: 700; color: #001a33; letter-spacing: 3px;">${datos.codigo_seguimiento}</p>
+                      <p style="margin: 15px 0 0 0;">
+                        <a href="https://ibericosrg.com/seguimiento?codigo=${datos.codigo_seguimiento}" style="display: inline-block; background: #a89968; color: #ffffff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px;">Rastrear Pedido</a>
+                      </p>
+                    </td></tr>
+                  </table>
+                  ` : ''}
+                  
+                  <!-- PRODUCTOS -->
+                  <h2 style="margin: 0 0 15px 0; color: #001a33; font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #a89968; padding-bottom: 8px;">Productos</h2>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 25px;">
+                    <thead>
+                      <tr style="background: #001a33;">
+                        <th style="padding: 12px 15px; text-align: left; color: #ffffff; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 6px 0 0 0;">Producto</th>
+                        <th style="padding: 12px 10px; text-align: center; color: #ffffff; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Cant.</th>
+                        <th style="padding: 12px 15px; text-align: right; color: #ffffff; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 0 6px 0 0;">Precio</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${itemsHtml}
+                    </tbody>
+                  </table>
+                  
+                  <!-- RESUMEN DE PRECIOS -->
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 30px;">
+                    <tr>
+                      <td style="padding: 6px 15px; text-align: right; color: #888; font-size: 13px;">Subtotal</td>
+                      <td style="padding: 6px 15px; text-align: right; color: #333; font-size: 13px; width: 100px;">${(datos.subtotal / 100).toFixed(2)} €</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    ${itemsHtml}
-                    <tr class="total-row">
-                      <td colspan="2" style="padding: 10px; text-align: right;">Subtotal</td>
-                      <td style="padding: 10px; text-align: right;">${(datos.subtotal / 100).toFixed(2)}€</td>
+                    <tr>
+                      <td style="padding: 6px 15px; text-align: right; color: #888; font-size: 13px;">Envío</td>
+                      <td style="padding: 6px 15px; text-align: right; color: #333; font-size: 13px;">${(datos.envio / 100).toFixed(2)} €</td>
                     </tr>
-                    <tr class="total-row">
-                      <td colspan="2" style="padding: 10px; text-align: right;">Envío</td>
-                      <td style="padding: 10px; text-align: right;">${(datos.envio / 100).toFixed(2)}€</td>
+                    <tr>
+                      <td colspan="2" style="padding: 5px 15px;"><hr style="border: none; border-top: 1px solid #e0d5c7; margin: 0;"></td>
                     </tr>
-                    <tr class="total-row">
-                      <td colspan="2" style="padding: 10px; text-align: right; font-size: 18px;">TOTAL</td>
-                      <td style="padding: 10px; text-align: right; font-size: 18px; color: #a89968;">${(datos.total / 100).toFixed(2)}€</td>
+                    <tr style="background: #001a33; border-radius: 6px;">
+                      <td style="padding: 14px 15px; text-align: right; color: #ffffff; font-size: 16px; font-weight: 700; border-radius: 6px 0 0 6px;">TOTAL</td>
+                      <td style="padding: 14px 15px; text-align: right; color: #a89968; font-size: 18px; font-weight: 700; border-radius: 0 6px 6px 0;">${(datos.total / 100).toFixed(2)} €</td>
                     </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <div class="info-box">
-                <h3 style="margin-top: 0; color: #a89968;">📎 Factura Adjunta</h3>
-                <p>Adjunto a este correo encontrarás tu factura en PDF. Guárdala para tus registros.</p>
-              </div>
-
-              <div class="section">
-                <h2>Próximos Pasos</h2>
-                <p>Tu pedido está siendo preparado. Recibirás un correo con el número de seguimiento cuando tu paquete esté en camino.</p>
-                <p><strong>Tiempo estimado de entrega:</strong> 3-5 días hábiles</p>
-              </div>
-
-              <div class="section">
-                <p style="color: #999; font-size: 14px;">Si tienes alguna pregunta, no dudes en contactarnos.</p>
-              </div>
-            </div>
-
-            <div class="footer">
-              <p>&copy; 2026 Ibéricos RG. Todos los derechos reservados.</p>
-            </div>
-          </div>
+                  </table>
+                  
+                  <!-- FACTURA ADJUNTA -->
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 25px; background: #faf7f2; border-left: 4px solid #a89968; border-radius: 0 8px 8px 0;">
+                    <tr><td style="padding: 18px 20px;">
+                      <p style="margin: 0 0 5px 0; font-weight: 700; color: #001a33; font-size: 14px;">Factura Adjunta</p>
+                      <p style="margin: 0; color: #666; font-size: 13px;">Encontrarás tu factura en PDF adjunta a este correo. Guárdala para tus registros.</p>
+                    </td></tr>
+                  </table>
+                  
+                  <!-- PRÓXIMOS PASOS -->
+                  <h2 style="margin: 0 0 12px 0; color: #001a33; font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #a89968; padding-bottom: 8px;">Próximos Pasos</h2>
+                  <p style="color: #555; font-size: 14px; line-height: 1.6; margin: 0 0 8px 0;">Tu pedido está siendo preparado con cuidado. Te avisaremos cuando esté en camino.</p>
+                  <p style="color: #555; font-size: 14px; margin: 0;"><strong style="color: #001a33;">Entrega estimada:</strong> 3-5 días hábiles</p>
+                  
+                </td></tr>
+                
+                <!-- FOOTER -->
+                <tr><td style="background: #001a33; padding: 25px 40px; text-align: center;">
+                  <p style="margin: 0 0 5px 0; color: #a89968; font-size: 14px; font-weight: 600;">Ibéricos Rodríguez González</p>
+                  <p style="margin: 0 0 12px 0; color: #667788; font-size: 12px;">Productos ibéricos de calidad desde nuestra dehesa a tu mesa</p>
+                  <p style="margin: 0; color: #4a5568; font-size: 11px;">&copy; 2026 Ibéricos RG. Todos los derechos reservados.</p>
+                </td></tr>
+                
+              </table>
+            </td></tr>
+          </table>
         </body>
       </html>
     `;
@@ -276,7 +337,7 @@ export async function enviarConfirmacionPedido(datos: EmailPedido) {
     console.log('✅ PDF generado, tamaño:', pdfBuffer.length, 'bytes');
 
     // Enviar correo al cliente con el PDF adjunto
-    await transporter.sendMail({
+    await getTransporter().sendMail({
       from: import.meta.env.GMAIL_USER,
       to: datos.email_cliente,
       subject: `Pedido confirmado - ${datos.numero_pedido}`,
@@ -293,7 +354,7 @@ export async function enviarConfirmacionPedido(datos: EmailPedido) {
     console.log('✅ Correo enviado al cliente:', datos.email_cliente);
 
     // Enviar correo al admin
-    await transporter.sendMail({
+    await getTransporter().sendMail({
       from: import.meta.env.GMAIL_USER,
       to: import.meta.env.ADMIN_EMAIL,
       subject: `Nuevo pedido - ${datos.numero_pedido}`,
@@ -384,80 +445,71 @@ export async function enviarEmailDevolucion(emailCliente: string, numeroPedido: 
       <html lang="es">
       <head>
         <meta charset="UTF-8">
-        <style>
-          body { font-family: 'Inter', Arial, sans-serif; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #a89968, #8b6f47); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
-          .content { background: white; padding: 20px; border: 1px solid #e0d5c7; }
-          .section { margin: 20px 0; }
-          .section h3 { color: #001a33; margin-top: 0; }
-          .address-box { background: #f8f7f4; padding: 15px; border-left: 4px solid #a89968; margin: 15px 0; }
-          .disclaimer { background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 4px; color: #856404; font-size: 0.9rem; margin: 20px 0; }
-          .footer { background: #f8f7f4; padding: 15px; text-align: center; font-size: 0.85rem; color: #666; }
-          .button { display: inline-block; background: #a89968; color: white; padding: 10px 20px; border-radius: 4px; text-decoration: none; margin: 10px 0; }
-        </style>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
       </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1 style="margin: 0; font-size: 1.8rem;">Solicitud de Devolución Recibida</h1>
-            <p style="margin: 5px 0 0 0;">Pedido: ${numeroPedido}</p>
-          </div>
-          
-          <div class="content">
-            <div class="section">
-              <p>Hola,</p>
-              <p>Hemos recibido tu solicitud de devolución. Por favor, sigue los pasos a continuación para procesar la devolución de tu pedido.</p>
-            </div>
-
-            <div class="section">
-              <h3>Instrucciones de Envío de Devolución</h3>
-              <p>Por favor, empaqueta el producto en su <strong>embalaje original</strong> (sin abrir si es posible) y envíalo a:</p>
-              <div class="address-box">
-                <strong>Ibéricos Rodríguez González</strong><br>
-                Calle de la Moda 123<br>
-                Polígono Industrial<br>
-                28001 Madrid, España<br><br>
-                <strong>Referencia:</strong> ${numeroPedido}
-              </div>
-            </div>
-
-            <div class="section">
-              ${generarEtiquetaDevolucion(numeroPedido)}
-            </div>
-
-            <div class="section">
-              <h3>Próximos Pasos</h3>
-              <ol>
-                <li>Empaca el producto en su embalaje original</li>
-                <li>Imprime la etiqueta anterior desde este correo</li>
-                <li>Pega la etiqueta (o el código QR) en el exterior del paquete</li>
-                <li>Lleva el paquete a tu oficina postal más cercana</li>
-                <li>Guarda el número de referencia para seguimiento</li>
-              </ol>
-            </div>
-
-            <div class="disclaimer">
-              <strong>Información Importante:</strong><br>
-              Una vez recibido y validado el paquete en nuestros almacenes, el reembolso se procesará en tu método de pago original en un plazo de <strong>5 a 7 días hábiles</strong>. Recibirás un correo de confirmación cuando procesemos tu reembolso.
-            </div>
-
-            <div class="section">
-              <h3>¿Preguntas?</h3>
-              <p>Si tienes alguna duda, no dudes en contactarnos a través de nuestro correo electrónico.</p>
-            </div>
-          </div>
-
-          <div class="footer">
-            <p>© 2026 Ibéricos Rodríguez González. Todos los derechos reservados.</p>
-            <p>Este es un correo automático. Por favor, no respondas directamente.</p>
-          </div>
-        </div>
+      <body style="margin: 0; padding: 0; background-color: #f2ede6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f2ede6; padding: 30px 0;">
+          <tr><td align="center">
+            <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+              
+              <tr><td style="background: linear-gradient(90deg, #a89968, #c4b07d, #a89968); height: 5px;"></td></tr>
+              
+              <tr><td style="background: linear-gradient(135deg, #a89968, #8b6f47); padding: 35px 40px; text-align: center;">
+                <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">Solicitud de Devolución Recibida</h1>
+                <p style="margin: 8px 0 0 0; color: #f0e6d3; font-size: 14px;">Pedido: ${numeroPedido}</p>
+              </td></tr>
+              
+              <tr><td style="padding: 35px 40px;">
+                
+                <p style="color: #555; font-size: 15px; line-height: 1.6;">Hola, hemos recibido tu solicitud de devolución. Sigue los pasos a continuación para completar el proceso.</p>
+                
+                <!-- INSTRUCCIONES -->
+                <h2 style="margin: 25px 0 15px 0; color: #001a33; font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #a89968; padding-bottom: 8px;">Instrucciones</h2>
+                <p style="color: #555; font-size: 14px; line-height: 1.6;">Empaqueta el producto en su <strong style="color: #001a33;">embalaje original</strong> (sin abrir si es posible) y envíalo a:</p>
+                
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: #faf7f2; border-left: 4px solid #a89968; border-radius: 0 8px 8px 0; margin: 15px 0;">
+                  <tr><td style="padding: 18px 20px;">
+                    <p style="margin: 0; font-weight: 700; color: #001a33; font-size: 14px;">Ibéricos Rodríguez González</p>
+                    <p style="margin: 5px 0 0 0; color: #666; font-size: 13px; line-height: 1.6;">Calle de la Moda 123<br>Polígono Industrial<br>28001 Madrid, España</p>
+                    <p style="margin: 10px 0 0 0; font-weight: 600; color: #a89968; font-size: 13px;">Referencia: ${numeroPedido}</p>
+                  </td></tr>
+                </table>
+                
+                <!-- ETIQUETA -->
+                ${generarEtiquetaDevolucion(numeroPedido)}
+                
+                <!-- PASOS -->
+                <h2 style="margin: 25px 0 15px 0; color: #001a33; font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #a89968; padding-bottom: 8px;">Próximos Pasos</h2>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  <tr><td style="padding: 8px 0;"><span style="display: inline-block; background: #a89968; color: #fff; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 700; margin-right: 10px;">1</span><span style="color: #333; font-size: 14px;">Empaca el producto en su embalaje original</span></td></tr>
+                  <tr><td style="padding: 8px 0;"><span style="display: inline-block; background: #a89968; color: #fff; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 700; margin-right: 10px;">2</span><span style="color: #333; font-size: 14px;">Imprime la etiqueta de devolución</span></td></tr>
+                  <tr><td style="padding: 8px 0;"><span style="display: inline-block; background: #a89968; color: #fff; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 700; margin-right: 10px;">3</span><span style="color: #333; font-size: 14px;">Pega la etiqueta o código QR en el paquete</span></td></tr>
+                  <tr><td style="padding: 8px 0;"><span style="display: inline-block; background: #a89968; color: #fff; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 700; margin-right: 10px;">4</span><span style="color: #333; font-size: 14px;">Lleva el paquete a tu oficina postal</span></td></tr>
+                </table>
+                
+                <!-- AVISO IMPORTANTE -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: #fff8e1; border-left: 4px solid #f5c518; border-radius: 0 8px 8px 0; margin: 25px 0;">
+                  <tr><td style="padding: 18px 20px;">
+                    <p style="margin: 0 0 5px 0; font-weight: 700; color: #8b6f00; font-size: 14px;">Información Importante</p>
+                    <p style="margin: 0; color: #7a6200; font-size: 13px; line-height: 1.6;">Tras recibir y validar el paquete, el reembolso se procesará en tu método de pago original en <strong>5 a 7 días hábiles</strong>.</p>
+                  </td></tr>
+                </table>
+                
+              </td></tr>
+              
+              <tr><td style="background: #001a33; padding: 25px 40px; text-align: center;">
+                <p style="margin: 0 0 5px 0; color: #a89968; font-size: 14px; font-weight: 600;">Ibéricos Rodríguez González</p>
+                <p style="margin: 0; color: #4a5568; font-size: 11px;">&copy; 2026 Ibéricos RG. Todos los derechos reservados.</p>
+              </td></tr>
+              
+            </table>
+          </td></tr>
+        </table>
       </body>
       </html>
     `;
 
-    await transporter.sendMail({
+    await getTransporter().sendMail({
       from: import.meta.env.GMAIL_USER,
       to: emailCliente,
       subject: `Instrucciones de Devolución - ${numeroPedido}`,
@@ -481,94 +533,116 @@ export async function notificarDevolucionAlAdmin(
   nombreCliente?: string
 ) {
   try {
-    console.log('📧 Preparando notificación de devolución para admin:', import.meta.env.ADMIN_EMAIL);
+    const adminEmail = import.meta.env.ADMIN_EMAIL;
+    console.log('📧 Preparando notificación de devolución para admin:', adminEmail);
+
+    if (!adminEmail) {
+      console.error('❌ ADMIN_EMAIL no configurado');
+      throw new Error('ADMIN_EMAIL no configurado');
+    }
 
     const htmlContent = `
       <!DOCTYPE html>
       <html lang="es">
       <head>
         <meta charset="UTF-8">
-        <style>
-          body { font-family: 'Inter', Arial, sans-serif; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #a89968, #8b6f47); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
-          .content { background: white; padding: 20px; border: 1px solid #e0d5c7; }
-          .alert { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 4px; margin: 15px 0; }
-          .info-box { background: #f8f7f4; padding: 15px; border-left: 4px solid #a89968; border-radius: 4px; margin: 15px 0; }
-          .button { display: inline-block; background: #a89968; color: white; padding: 10px 20px; border-radius: 4px; text-decoration: none; margin: 10px 0; }
-          .footer { background: #f8f7f4; padding: 15px; text-align: center; font-size: 0.85rem; color: #666; }
-        </style>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
       </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1 style="margin: 0; font-size: 1.8rem;">⚠️ NUEVA DEVOLUCIÓN SOLICITADA</h1>
-            <p style="margin: 5px 0 0 0;">Acción requerida</p>
-          </div>
-          
-          <div class="content">
-            <div class="alert">
-              <strong>📦 Un cliente ha solicitado una devolución</strong>
-            </div>
-
-            <div class="info-box">
-              <h3 style="color: #001a33; margin-top: 0;">Detalles de la Devolución</h3>
-              <p style="margin: 5px 0;"><strong>Número de Pedido:</strong> ${numeroPedido}</p>
-              <p style="margin: 5px 0;"><strong>Email del Cliente:</strong> ${emailCliente}</p>
-              ${nombreCliente ? `<p style="margin: 5px 0;"><strong>Cliente:</strong> ${nombreCliente}</p>` : ''}
-              <p style="margin: 5px 0;"><strong>Fecha de Solicitud:</strong> ${new Date().toLocaleDateString('es-ES', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              })}</p>
-            </div>
-
-            <div style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px; border-radius: 4px; margin: 15px 0;">
-              <h3 style="color: #1565c0; margin-top: 0;">Próximos Pasos:</h3>
-              <ol style="color: #1565c0; margin: 0;">
-                <li>Monitorear la llegada del paquete al almacén</li>
-                <li>Verificar que el producto llegue en buen estado</li>
-                <li>Validar el contenido del paquete</li>
-                <li>Procesar el reembolso (máximo 5-7 días hábiles)</li>
-                <li>Notificar al cliente cuando se apruebe la devolución</li>
-              </ol>
-            </div>
-
-            <div class="info-box">
-              <h3 style="color: #001a33; margin-top: 0;">Información del Almacén:</h3>
-              <p style="margin: 5px 0; color: #5c4a3d;">El cliente enviará el paquete a:</p>
-              <p style="margin: 5px 0; color: #5c4a3d;">
-                <strong>Ibéricos Rodríguez González</strong><br>
-                Calle de la Moda 123<br>
-                Polígono Industrial<br>
-                28001 Madrid, España<br><br>
-                <strong>Con referencia:</strong> ${numeroPedido}
-              </p>
-            </div>
-
-            <p style="color: #666; font-size: 0.9rem; margin: 20px 0 0 0;">
-              Este es un correo automático del sistema de gestión de devoluciones. Accede al panel de administración para más detalles.
-            </p>
-          </div>
-
-          <div class="footer">
-            <p>© 2026 Ibéricos Rodríguez González. Sistema de Gestión.</p>
-          </div>
-        </div>
+      <body style="margin: 0; padding: 0; background-color: #f2ede6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f2ede6; padding: 30px 0;">
+          <tr><td align="center">
+            <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+              
+              <tr><td style="background: linear-gradient(90deg, #ff9800, #ffb74d, #ff9800); height: 5px;"></td></tr>
+              
+              <tr><td style="background: linear-gradient(135deg, #a89968, #8b6f47); padding: 35px 40px; text-align: center;">
+                <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">&#9888;&#65039; Nueva Devoluci&oacute;n Solicitada</h1>
+                <p style="margin: 8px 0 0 0; color: #f2ede6; font-size: 14px;">Acci&oacute;n requerida - Pedido: ${numeroPedido}</p>
+              </td></tr>
+              
+              <tr><td style="padding: 35px 40px;">
+                
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 0 8px 8px 0; margin: 0 0 20px 0;">
+                  <tr><td style="padding: 15px 20px;">
+                    <p style="margin: 0; font-weight: 700; color: #856404; font-size: 15px;">&#128230; Un cliente ha solicitado una devoluci&oacute;n</p>
+                  </td></tr>
+                </table>
+                
+                <h2 style="margin: 25px 0 15px 0; color: #001a33; font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #a89968; padding-bottom: 8px;">Detalles</h2>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: #faf7f2; border-radius: 8px; border: 1px solid #e0d5c7; margin: 0 0 20px 0;">
+                  <tr><td style="padding: 20px;">
+                    <table role="presentation" width="100%" cellpadding="6" cellspacing="0">
+                      <tr>
+                        <td style="color: #888; font-size: 13px; width: 160px;">N.&ordm; de Pedido</td>
+                        <td style="font-weight: 700; color: #001a33; font-size: 13px;">${numeroPedido}</td>
+                      </tr>
+                      <tr>
+                        <td style="color: #888; font-size: 13px;">Email del Cliente</td>
+                        <td style="font-weight: 600; color: #001a33; font-size: 13px;">${emailCliente}</td>
+                      </tr>
+                      ${nombreCliente ? `<tr>
+                        <td style="color: #888; font-size: 13px;">Cliente</td>
+                        <td style="font-weight: 600; color: #001a33; font-size: 13px;">${nombreCliente}</td>
+                      </tr>` : ''}
+                      <tr>
+                        <td style="color: #888; font-size: 13px;">Fecha Solicitud</td>
+                        <td style="color: #333; font-size: 13px;">${new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+                      </tr>
+                    </table>
+                  </td></tr>
+                </table>
+                
+                <h2 style="margin: 25px 0 15px 0; color: #001a33; font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #2196f3; padding-bottom: 8px;">Pr&oacute;ximos Pasos</h2>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: #e3f2fd; border-radius: 8px; border: 1px solid #90caf9; margin: 0 0 20px 0;">
+                  <tr><td style="padding: 20px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                      <tr><td style="padding: 6px 0; color: #1565c0; font-size: 13px;"><strong>1.</strong> Monitorear la llegada del paquete al almac&eacute;n</td></tr>
+                      <tr><td style="padding: 6px 0; color: #1565c0; font-size: 13px;"><strong>2.</strong> Verificar que el producto llegue en buen estado</td></tr>
+                      <tr><td style="padding: 6px 0; color: #1565c0; font-size: 13px;"><strong>3.</strong> Validar el contenido del paquete</td></tr>
+                      <tr><td style="padding: 6px 0; color: #1565c0; font-size: 13px;"><strong>4.</strong> Procesar el reembolso (m&aacute;ximo 5-7 d&iacute;as h&aacute;biles)</td></tr>
+                      <tr><td style="padding: 6px 0; color: #1565c0; font-size: 13px;"><strong>5.</strong> Notificar al cliente cuando se apruebe la devoluci&oacute;n</td></tr>
+                    </table>
+                  </td></tr>
+                </table>
+                
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: #faf7f2; border-left: 4px solid #a89968; border-radius: 0 8px 8px 0; margin: 20px 0;">
+                  <tr><td style="padding: 18px 20px;">
+                    <p style="margin: 0 0 8px 0; font-weight: 700; color: #001a33; font-size: 14px;">Informaci&oacute;n del Almac&eacute;n</p>
+                    <p style="margin: 0; color: #5c4a3d; font-size: 13px; line-height: 1.6;">
+                      El cliente enviar&aacute; el paquete a:<br>
+                      <strong>Ib&eacute;ricos Rodr&iacute;guez Gonz&aacute;lez</strong><br>
+                      Calle de la Moda 123<br>
+                      Pol&iacute;gono Industrial<br>
+                      28001 Madrid, Espa&ntilde;a<br><br>
+                      <strong>Con referencia:</strong> ${numeroPedido}
+                    </p>
+                  </td></tr>
+                </table>
+                
+                <p style="color: #888; font-size: 12px; margin-top: 20px;">Este es un correo autom&aacute;tico del sistema de gesti&oacute;n. Accede al panel de administraci&oacute;n para m&aacute;s detalles.</p>
+                
+              </td></tr>
+              
+              <tr><td style="background: #001a33; padding: 25px 40px; text-align: center;">
+                <p style="margin: 0 0 5px 0; color: #a89968; font-size: 14px; font-weight: 600;">Ib&eacute;ricos Rodr&iacute;guez Gonz&aacute;lez</p>
+                <p style="margin: 0; color: #4a5568; font-size: 11px;">&copy; 2026 Ib&eacute;ricos RG. Todos los derechos reservados.</p>
+              </td></tr>
+              
+            </table>
+          </td></tr>
+        </table>
       </body>
       </html>
     `;
 
-    await transporter.sendMail({
+    await getTransporter().sendMail({
       from: import.meta.env.GMAIL_USER,
-      to: import.meta.env.ADMIN_EMAIL,
-      subject: `[DEVOLUCIÓN] Nuevo pedido en devolución - ${numeroPedido}`,
+      to: adminEmail,
+      subject: `[DEVOLUCIÓN] Nueva devolución solicitada - ${numeroPedido}`,
       html: htmlContent
     });
 
-    console.log('✅ Notificación de devolución enviada al admin');
+    console.log('✅ Notificación de devolución enviada al admin:', adminEmail);
     return true;
   } catch (error) {
     console.error('❌ Error enviando notificación de devolución al admin:', error);
@@ -593,75 +667,77 @@ export async function enviarEmailCancelacion(
       <html lang="es">
       <head>
         <meta charset="UTF-8">
-        <style>
-          body { font-family: 'Inter', Arial, sans-serif; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #a89968, #8b6f47); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
-          .content { background: white; padding: 20px; border: 1px solid #e0d5c7; }
-          .section { margin: 20px 0; }
-          .section h3 { color: #001a33; margin-top: 0; }
-          .info-box { background: #f8f7f4; padding: 15px; border-left: 4px solid #a89968; border-radius: 4px; margin: 15px 0; }
-          .success-box { background: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 4px; color: #155724; margin: 15px 0; }
-          .footer { background: #f8f7f4; padding: 15px; text-align: center; font-size: 0.85rem; color: #666; }
-        </style>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
       </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1 style="margin: 0; font-size: 1.8rem;">✅ Pedido Cancelado</h1>
-            <p style="margin: 5px 0 0 0;">Número de Pedido: ${numeroPedido}</p>
-          </div>
-          
-          <div class="content">
-            <div class="section">
-              <p>Hola${nombreCliente ? ' ' + nombreCliente : ''},</p>
-              <p>Tu pedido ha sido cancelado exitosamente.</p>
-            </div>
-
-            <div class="success-box">
-              <strong>✅ Estado: Cancelado</strong><br>
-              <strong>📦 Número de Pedido:</strong> ${numeroPedido}<br>
-              ${totalReembolso ? `<strong>💰 Reembolso:</strong> €${(totalReembolso / 100).toFixed(2)}<br>` : ''}
-              <strong>📅 Fecha de Cancelación:</strong> ${new Date().toLocaleDateString('es-ES', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
-            </div>
-
-            <div class="section">
-              <h3>Información del Reembolso</h3>
-              <p>El importe del pedido se reembolsará a tu método de pago original en un plazo de <strong>3 a 5 días hábiles</strong>. Ten en cuenta que algunos bancos pueden tardar más tiempo en procesar el reembolso.</p>
-              <p>Si no ves el reembolso dentro de este tiempo, ponte en contacto con nosotros para investigar.</p>
-            </div>
-
-            <div class="info-box">
-              <h3 style="margin-top: 0; color: #001a33;">Próximos Pasos</h3>
-              <ul style="margin: 10px 0;">
-                <li>El stock ha sido restaurado automáticamente</li>
-                <li>Tu cuenta refleja la cancelación</li>
-                <li>Monitorea tu cuenta bancaria para el reembolso</li>
-              </ul>
-            </div>
-
-            <div class="section">
-              <h3>¿Tenías algún problema?</h3>
-              <p>Si cancelaste por algún problema o si podemos ayudarte de otra manera, no dudes en contactarnos. Nos gustaría escuchar tu feedback.</p>
-            </div>
-          </div>
-
-          <div class="footer">
-            <p>© 2026 Ibéricos Rodríguez González. Todos los derechos reservados.</p>
-            <p>Este es un correo automático. Por favor, no respondas directamente.</p>
-          </div>
-        </div>
+      <body style="margin: 0; padding: 0; background-color: #f2ede6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f2ede6; padding: 30px 0;">
+          <tr><td align="center">
+            <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+              
+              <tr><td style="background: linear-gradient(90deg, #a89968, #c4b07d, #a89968); height: 5px;"></td></tr>
+              
+              <tr><td style="background: #001a33; padding: 35px 40px; text-align: center;">
+                <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">Pedido Cancelado</h1>
+                <p style="margin: 8px 0 0 0; color: #a89968; font-size: 14px;">N.º ${numeroPedido}</p>
+              </td></tr>
+              
+              <tr><td style="padding: 35px 40px;">
+                
+                <p style="color: #555; font-size: 15px; line-height: 1.6;">Hola${nombreCliente ? ' ' + nombreCliente : ''}, tu pedido ha sido cancelado correctamente.</p>
+                
+                <!-- RESUMEN -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: #f0faf0; border-radius: 8px; border: 1px solid #c3e6cb; margin: 20px 0;">
+                  <tr><td style="padding: 20px;">
+                    <table role="presentation" width="100%" cellpadding="6" cellspacing="0">
+                      <tr>
+                        <td style="color: #888; font-size: 13px; width: 150px;">Estado</td>
+                        <td style="font-weight: 700; color: #28a745; font-size: 13px;">Cancelado</td>
+                      </tr>
+                      <tr>
+                        <td style="color: #888; font-size: 13px;">N.º de Pedido</td>
+                        <td style="font-weight: 600; color: #001a33; font-size: 13px;">${numeroPedido}</td>
+                      </tr>
+                      ${totalReembolso ? `<tr>
+                        <td style="color: #888; font-size: 13px;">Reembolso</td>
+                        <td style="font-weight: 700; color: #a89968; font-size: 15px;">${(totalReembolso / 100).toFixed(2)} &euro;</td>
+                      </tr>` : ''}
+                      <tr>
+                        <td style="color: #888; font-size: 13px;">Fecha</td>
+                        <td style="color: #333; font-size: 13px;">${new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+                      </tr>
+                    </table>
+                  </td></tr>
+                </table>
+                
+                <!-- REEMBOLSO -->
+                <h2 style="margin: 25px 0 12px 0; color: #001a33; font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #a89968; padding-bottom: 8px;">Reembolso</h2>
+                <p style="color: #555; font-size: 14px; line-height: 1.7;">El importe se devolver&aacute; a tu m&eacute;todo de pago original en <strong style="color: #001a33;">3 a 5 d&iacute;as h&aacute;biles</strong>. Algunos bancos pueden tardar algo m&aacute;s.</p>
+                
+                <!-- QU&Eacute; PASA AHORA -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: #faf7f2; border-left: 4px solid #a89968; border-radius: 0 8px 8px 0; margin: 20px 0;">
+                  <tr><td style="padding: 18px 20px;">
+                    <p style="margin: 0 0 8px 0; font-weight: 700; color: #001a33; font-size: 14px;">Qu&eacute; ha pasado</p>
+                    <p style="margin: 0; color: #666; font-size: 13px; line-height: 1.7;">El stock se ha restaurado autom&aacute;ticamente y tu cuenta refleja la cancelaci&oacute;n. Monitorea tu cuenta bancaria para confirmar el reembolso.</p>
+                  </td></tr>
+                </table>
+                
+                <p style="color: #888; font-size: 13px; margin-top: 25px;">Si tienes alguna duda, cont&aacute;ctanos. Estaremos encantados de ayudarte.</p>
+                
+              </td></tr>
+              
+              <tr><td style="background: #001a33; padding: 25px 40px; text-align: center;">
+                <p style="margin: 0 0 5px 0; color: #a89968; font-size: 14px; font-weight: 600;">Ib&eacute;ricos Rodr&iacute;guez Gonz&aacute;lez</p>
+                <p style="margin: 0; color: #4a5568; font-size: 11px;">&copy; 2026 Ib&eacute;ricos RG. Todos los derechos reservados.</p>
+              </td></tr>
+              
+            </table>
+          </td></tr>
+        </table>
       </body>
       </html>
     `;
 
-    await transporter.sendMail({
+    await getTransporter().sendMail({
       from: import.meta.env.GMAIL_USER,
       to: emailCliente,
       subject: `Confirmación de Cancelación - ${numeroPedido}`,
@@ -758,7 +834,7 @@ export async function notificarCancelacionAlAdmin(
       </html>
     `;
 
-    await transporter.sendMail({
+    await getTransporter().sendMail({
       from: import.meta.env.GMAIL_USER,
       to: import.meta.env.ADMIN_EMAIL,
       subject: `[CANCELACIÓN] Pedido cancelado - ${numeroPedido}`,
@@ -790,101 +866,96 @@ export async function notificarDevolucionValidada(
       <html lang="es">
       <head>
         <meta charset="UTF-8">
-        <style>
-          body { font-family: 'Inter', Arial, sans-serif; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
-          .content { background: white; padding: 20px; border: 1px solid #e0d5c7; }
-          .section { margin: 20px 0; }
-          .section h3 { color: #001a33; margin-top: 0; }
-          .success-box { background: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 4px; color: #155724; margin: 15px 0; }
-          .info-box { background: #f8f7f4; padding: 15px; border-left: 4px solid #28a745; border-radius: 4px; margin: 15px 0; }
-          .timeline { margin: 15px 0; }
-          .timeline-item { display: flex; gap: 15px; margin: 10px 0; }
-          .timeline-dot { width: 24px; height: 24px; background: #28a745; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; margin-top: 2px; }
-          .timeline-content { flex: 1; }
-          .footer { background: #f8f7f4; padding: 15px; text-align: center; font-size: 0.85rem; color: #666; }
-        </style>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
       </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1 style="margin: 0; font-size: 1.8rem;">✅ Devolución Recibida y Validada</h1>
-            <p style="margin: 5px 0 0 0;">Pedido: ${numeroPedido}</p>
-          </div>
-          
-          <div class="content">
-            <div class="section">
-              <p>Hola${nombreCliente ? ' ' + nombreCliente : ''},</p>
-              <p>¡Buenas noticias! Hemos recibido tu devolución y la hemos validado correctamente.</p>
-            </div>
-
-            <div class="success-box">
-              <strong>✅ Estado: Devolución Validada</strong><br>
-              <strong>📦 Número de Pedido:</strong> ${numeroPedido}<br>
-              ${totalReembolso ? `<strong>💰 Reembolso Autorizado:</strong> €${(totalReembolso / 100).toFixed(2)}<br>` : ''}
-              <strong>📅 Fecha de Validación:</strong> ${new Date().toLocaleDateString('es-ES', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
-            </div>
-
-            <div class="section">
-              <h3>Cronograma de Reembolso</h3>
-              <div class="timeline">
-                <div class="timeline-item">
-                  <div class="timeline-dot">✓</div>
-                  <div class="timeline-content">
-                    <strong style="color: #001a33;">Devolución Recibida</strong><br>
-                    <span style="color: #5c4a3d; font-size: 0.9rem;">Hoy</span>
-                  </div>
-                </div>
-                <div class="timeline-item">
-                  <div class="timeline-dot">✓</div>
-                  <div class="timeline-content">
-                    <strong style="color: #001a33;">Devolución Validada</strong><br>
-                    <span style="color: #5c4a3d; font-size: 0.9rem;">Hoy</span>
-                  </div>
-                </div>
-                <div class="timeline-item">
-                  <div style="width: 24px; height: 24px; background: #ccc; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; margin-top: 2px;">→</div>
-                  <div class="timeline-content">
-                    <strong style="color: #5c4a3d;">Reembolso Procesado</strong><br>
-                    <span style="color: #5c4a3d; font-size: 0.9rem;">En 3 a 5 días hábiles</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="info-box">
-              <h3 style="margin-top: 0; color: #001a33;">Importante</h3>
-              <ul style="margin: 10px 0; color: #155724;">
-                <li>El reembolso se procesará a tu método de pago original</li>
-                <li>Puede tardar 3 a 5 días hábiles en aparecer en tu cuenta bancaria</li>
-                <li>Algunos bancos pueden tardar más en procesar la transacción</li>
-                <li>Se te enviará una confirmación cuando se procese el reembolso</li>
-              </ul>
-            </div>
-
-            <div class="section">
-              <h3>¿Preguntas?</h3>
-              <p>Si tienes alguna duda sobre tu reembolso, no dudes en contactarnos. Estamos aquí para ayudarte.</p>
-            </div>
-          </div>
-
-          <div class="footer">
-            <p>© 2026 Ibéricos Rodríguez González. Todos los derechos reservados.</p>
-            <p>Este es un correo automático. Por favor, no respondas directamente.</p>
-          </div>
-        </div>
+      <body style="margin: 0; padding: 0; background-color: #f2ede6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f2ede6; padding: 30px 0;">
+          <tr><td align="center">
+            <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+              
+              <tr><td style="background: linear-gradient(90deg, #28a745, #48c774, #28a745); height: 5px;"></td></tr>
+              
+              <tr><td style="background: linear-gradient(135deg, #28a745, #20c997); padding: 35px 40px; text-align: center;">
+                <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">Devoluci&oacute;n Validada</h1>
+                <p style="margin: 8px 0 0 0; color: #d4edda; font-size: 14px;">Pedido: ${numeroPedido}</p>
+              </td></tr>
+              
+              <tr><td style="padding: 35px 40px;">
+                
+                <p style="color: #555; font-size: 15px; line-height: 1.6;">Hola${nombreCliente ? ' ' + nombreCliente : ''}, buenas noticias. Hemos recibido tu devoluci&oacute;n y la hemos validado correctamente.</p>
+                
+                <!-- RESUMEN -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: #f0faf0; border-radius: 8px; border: 1px solid #c3e6cb; margin: 20px 0;">
+                  <tr><td style="padding: 20px;">
+                    <table role="presentation" width="100%" cellpadding="6" cellspacing="0">
+                      <tr>
+                        <td style="color: #888; font-size: 13px; width: 150px;">Estado</td>
+                        <td style="font-weight: 700; color: #28a745; font-size: 13px;">Validada</td>
+                      </tr>
+                      <tr>
+                        <td style="color: #888; font-size: 13px;">N.&ordm; de Pedido</td>
+                        <td style="font-weight: 600; color: #001a33; font-size: 13px;">${numeroPedido}</td>
+                      </tr>
+                      ${totalReembolso ? `<tr>
+                        <td style="color: #888; font-size: 13px;">Reembolso Autorizado</td>
+                        <td style="font-weight: 700; color: #a89968; font-size: 15px;">${(totalReembolso / 100).toFixed(2)} &euro;</td>
+                      </tr>` : ''}
+                      <tr>
+                        <td style="color: #888; font-size: 13px;">Fecha</td>
+                        <td style="color: #333; font-size: 13px;">${new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}</td>
+                      </tr>
+                    </table>
+                  </td></tr>
+                </table>
+                
+                <!-- CRONOGRAMA -->
+                <h2 style="margin: 25px 0 15px 0; color: #001a33; font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #28a745; padding-bottom: 8px;">Cronograma</h2>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  <tr><td style="padding: 10px 0;">
+                    <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                      <td style="vertical-align: top; padding-right: 12px;"><span style="display: inline-block; background: #28a745; color: #fff; width: 28px; height: 28px; border-radius: 50%; text-align: center; line-height: 28px; font-size: 14px;">&#10003;</span></td>
+                      <td><strong style="color: #001a33; font-size: 14px;">Devoluci&oacute;n Recibida</strong><br><span style="color: #888; font-size: 12px;">Hoy</span></td>
+                    </tr></table>
+                  </td></tr>
+                  <tr><td style="padding: 10px 0;">
+                    <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                      <td style="vertical-align: top; padding-right: 12px;"><span style="display: inline-block; background: #28a745; color: #fff; width: 28px; height: 28px; border-radius: 50%; text-align: center; line-height: 28px; font-size: 14px;">&#10003;</span></td>
+                      <td><strong style="color: #001a33; font-size: 14px;">Devoluci&oacute;n Validada</strong><br><span style="color: #888; font-size: 12px;">Hoy</span></td>
+                    </tr></table>
+                  </td></tr>
+                  <tr><td style="padding: 10px 0;">
+                    <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                      <td style="vertical-align: top; padding-right: 12px;"><span style="display: inline-block; background: #ccc; color: #fff; width: 28px; height: 28px; border-radius: 50%; text-align: center; line-height: 28px; font-size: 14px;">&#8594;</span></td>
+                      <td><strong style="color: #888; font-size: 14px;">Reembolso Procesado</strong><br><span style="color: #888; font-size: 12px;">En 3 a 5 d&iacute;as h&aacute;biles</span></td>
+                    </tr></table>
+                  </td></tr>
+                </table>
+                
+                <!-- INFO -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: #faf7f2; border-left: 4px solid #28a745; border-radius: 0 8px 8px 0; margin: 25px 0;">
+                  <tr><td style="padding: 18px 20px;">
+                    <p style="margin: 0 0 5px 0; font-weight: 700; color: #001a33; font-size: 14px;">Sobre tu reembolso</p>
+                    <p style="margin: 0; color: #666; font-size: 13px; line-height: 1.7;">Se procesar&aacute; a tu m&eacute;todo de pago original. Puede tardar 3 a 5 d&iacute;as h&aacute;biles en aparecer. Te confirmaremos cuando se procese.</p>
+                  </td></tr>
+                </table>
+                
+                <p style="color: #888; font-size: 13px;">Si tienes alguna duda, estamos aqu&iacute; para ayudarte.</p>
+                
+              </td></tr>
+              
+              <tr><td style="background: #001a33; padding: 25px 40px; text-align: center;">
+                <p style="margin: 0 0 5px 0; color: #a89968; font-size: 14px; font-weight: 600;">Ib&eacute;ricos Rodr&iacute;guez Gonz&aacute;lez</p>
+                <p style="margin: 0; color: #4a5568; font-size: 11px;">&copy; 2026 Ib&eacute;ricos RG. Todos los derechos reservados.</p>
+              </td></tr>
+              
+            </table>
+          </td></tr>
+        </table>
       </body>
       </html>
     `;
 
-    await transporter.sendMail({
+    await getTransporter().sendMail({
       from: import.meta.env.GMAIL_USER,
       to: emailCliente,
       subject: `Devolución Validada - Reembolso Autorizado - ${numeroPedido}`,
@@ -913,90 +984,81 @@ export async function notificarDevolucionDenegada(
       <html lang="es">
       <head>
         <meta charset="UTF-8">
-        <style>
-          body { font-family: 'Inter', Arial, sans-serif; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #dc3545, #c82333); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
-          .content { background: white; padding: 20px; border: 1px solid #e0d5c7; }
-          .section { margin: 20px 0; }
-          .section h3 { color: #001a33; margin-top: 0; }
-          .warning-box { background: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 4px; color: #721c24; margin: 15px 0; }
-          .reason-box { background: #f8f7f4; border-left: 4px solid #dc3545; padding: 15px; border-radius: 4px; margin: 15px 0; }
-          .info-box { background: #f8f7f4; padding: 15px; border-left: 4px solid #ff6b6b; border-radius: 4px; margin: 15px 0; }
-          .footer { background: #f8f7f4; padding: 15px; text-align: center; font-size: 0.85rem; color: #666; }
-          .contact-info { margin: 15px 0; padding: 10px; background: #fff5f5; border-radius: 4px; }
-          .contact-info strong { color: #001a33; }
-        </style>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
       </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1 style="margin: 0; font-size: 1.8rem;">❌ Devolución Denegada</h1>
-            <p style="margin: 5px 0 0 0;">Pedido: ${numeroPedido}</p>
-          </div>
-          
-          <div class="content">
-            <div class="section">
-              <p>Hola${nombreCliente ? ' ' + nombreCliente : ''},</p>
-              <p>Tras revisar tu solicitud de devolución, nos vemos en la necesidad de comunicarte que ha sido denegada.</p>
-            </div>
-
-            <div class="warning-box">
-              <strong>❌ Estado: Devolución Denegada</strong><br>
-              <strong>📦 Número de Pedido:</strong> ${numeroPedido}<br>
-              <strong>📅 Fecha de Decisión:</strong> ${new Date().toLocaleDateString('es-ES', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
-            </div>
-
-            ${motivo ? `
-            <div class="reason-box">
-              <h3 style="margin-top: 0; color: #721c24;">Motivo de la Denegación</h3>
-              <p style="margin: 0; color: #721c24;">${motivo}</p>
-            </div>
-            ` : ''}
-
-            <div class="section">
-              <h3>¿Qué significa esto?</h3>
-              <ul>
-                <li>Tu solicitud de devolución ha sido revisada por nuestro equipo</li>
-                <li>El producto no cumple con los requisitos para devolución</li>
-                <li>No se procesará reembolso en esta ocasión</li>
-                <li>El artículo permanecerá en tu poder</li>
-              </ul>
-            </div>
-
-            <div class="info-box">
-              <h3 style="margin-top: 0; color: #001a33;">¿Tienes dudas?</h3>
-              <p>Si crees que esta decisión es incorrecta o tienes más información que aportar, nos gustaría escucharte. Puedes contactarnos para revisar tu caso.</p>
-              <div class="contact-info">
-                <strong>📧 Email de Soporte:</strong> ${import.meta.env.GMAIL_USER || 'soporte@ibericosrodriguez.es'}<br>
-                <strong>📞 Teléfono:</strong> +34 XXX XXX XXX<br>
-                <strong>⏰ Horario:</strong> Lunes a Viernes, 9:00 - 18:00
-              </div>
-            </div>
-
-            <div class="section">
-              <h3>Información del Pedido</h3>
-              <p>Número de Pedido: <strong>${numeroPedido}</strong></p>
-              <p>Si necesitas información adicional sobre tu pedido, por favor, consulta tu panel de cliente.</p>
-            </div>
-          </div>
-
-          <div class="footer">
-            <p>© 2026 Ibéricos Rodríguez González. Todos los derechos reservados.</p>
-            <p>Este es un correo automático. Por favor, no respondas directamente a este email.</p>
-          </div>
-        </div>
+      <body style="margin: 0; padding: 0; background-color: #f2ede6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f2ede6; padding: 30px 0;">
+          <tr><td align="center">
+            <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+              
+              <tr><td style="background: linear-gradient(90deg, #dc3545, #e06070, #dc3545); height: 5px;"></td></tr>
+              
+              <tr><td style="background: #001a33; padding: 35px 40px; text-align: center;">
+                <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">Devoluci&oacute;n Denegada</h1>
+                <p style="margin: 8px 0 0 0; color: #a89968; font-size: 14px;">Pedido: ${numeroPedido}</p>
+              </td></tr>
+              
+              <tr><td style="padding: 35px 40px;">
+                
+                <p style="color: #555; font-size: 15px; line-height: 1.6;">Hola${nombreCliente ? ' ' + nombreCliente : ''}, tras revisar tu solicitud de devoluci&oacute;n, lamentamos informarte de que ha sido denegada.</p>
+                
+                <!-- RESUMEN -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: #fef5f5; border-radius: 8px; border: 1px solid #f5c6cb; margin: 20px 0;">
+                  <tr><td style="padding: 20px;">
+                    <table role="presentation" width="100%" cellpadding="6" cellspacing="0">
+                      <tr>
+                        <td style="color: #888; font-size: 13px; width: 150px;">Estado</td>
+                        <td style="font-weight: 700; color: #dc3545; font-size: 13px;">Denegada</td>
+                      </tr>
+                      <tr>
+                        <td style="color: #888; font-size: 13px;">N.&ordm; de Pedido</td>
+                        <td style="font-weight: 600; color: #001a33; font-size: 13px;">${numeroPedido}</td>
+                      </tr>
+                      <tr>
+                        <td style="color: #888; font-size: 13px;">Fecha</td>
+                        <td style="color: #333; font-size: 13px;">${new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}</td>
+                      </tr>
+                    </table>
+                  </td></tr>
+                </table>
+                
+                ${motivo ? `
+                <!-- MOTIVO -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: #fff5f5; border-left: 4px solid #dc3545; border-radius: 0 8px 8px 0; margin: 20px 0;">
+                  <tr><td style="padding: 18px 20px;">
+                    <p style="margin: 0 0 5px 0; font-weight: 700; color: #721c24; font-size: 14px;">Motivo</p>
+                    <p style="margin: 0; color: #721c24; font-size: 13px; line-height: 1.6;">${motivo}</p>
+                  </td></tr>
+                </table>
+                ` : ''}
+                
+                <!-- QU&Eacute; SIGNIFICA -->
+                <h2 style="margin: 25px 0 12px 0; color: #001a33; font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #a89968; padding-bottom: 8px;">Qu&eacute; significa</h2>
+                <p style="color: #555; font-size: 14px; line-height: 1.7;">El producto no cumple con los requisitos para devoluci&oacute;n, por lo que no se procesar&aacute; reembolso en esta ocasi&oacute;n. El art&iacute;culo permanecer&aacute; en tu poder.</p>
+                
+                <!-- CONTACTO -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: #faf7f2; border-left: 4px solid #a89968; border-radius: 0 8px 8px 0; margin: 25px 0;">
+                  <tr><td style="padding: 18px 20px;">
+                    <p style="margin: 0 0 8px 0; font-weight: 700; color: #001a33; font-size: 14px;">&iquest;No est&aacute;s de acuerdo?</p>
+                    <p style="margin: 0; color: #666; font-size: 13px; line-height: 1.7;">Si crees que la decisi&oacute;n es incorrecta o tienes m&aacute;s informaci&oacute;n, cont&aacute;ctanos para revisar tu caso.</p>
+                  </td></tr>
+                </table>
+                
+              </td></tr>
+              
+              <tr><td style="background: #001a33; padding: 25px 40px; text-align: center;">
+                <p style="margin: 0 0 5px 0; color: #a89968; font-size: 14px; font-weight: 600;">Ib&eacute;ricos Rodr&iacute;guez Gonz&aacute;lez</p>
+                <p style="margin: 0; color: #4a5568; font-size: 11px;">&copy; 2026 Ib&eacute;ricos RG. Todos los derechos reservados.</p>
+              </td></tr>
+              
+            </table>
+          </td></tr>
+        </table>
       </body>
       </html>
     `;
 
-    await transporter.sendMail({
+    await getTransporter().sendMail({
       from: import.meta.env.GMAIL_USER,
       to: emailCliente,
       subject: `Solicitud de Devolución Denegada - ${numeroPedido}`,

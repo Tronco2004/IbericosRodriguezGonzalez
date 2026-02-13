@@ -22,6 +22,7 @@ export const GET: APIRoute = async ({ request, cookies }) => {
         envio,
         impuestos,
         total,
+        nombre_cliente,
         email_cliente,
         telefono_cliente,
         direccion_envio,
