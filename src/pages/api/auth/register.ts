@@ -117,28 +117,32 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       httpOnly: true,
       secure: false,
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
     });
 
     cookies.set('user_id', userId, {
       httpOnly: false,
       secure: false,
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
     });
 
     cookies.set('user_role', 'cliente', {
       httpOnly: false,
       secure: false,
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
     });
 
     cookies.set('user_name', nombre, {
       httpOnly: false,
       secure: false,
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
     });
 
     console.log('🍪 Cookies establecidas para nuevo usuario');
