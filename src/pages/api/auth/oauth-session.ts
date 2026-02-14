@@ -143,6 +143,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       secure: false,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
+      path: '/',
     });
 
     cookies.set('user_id', usuarioData.id, {
@@ -150,6 +151,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       secure: false,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
+      path: '/',
     });
 
     cookies.set('user_role', usuarioData.rol, {
@@ -157,6 +159,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       secure: false,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
+      path: '/',
     });
 
     cookies.set('user_name', usuarioData.nombre, {
@@ -164,6 +167,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       secure: false,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
+      path: '/',
     });
 
     console.log('🍪 Cookies OAuth establecidas:', {
