@@ -150,39 +150,42 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Enviar correos de cancelación (sin bloquear la respuesta)
     try {
-      // Obtener datos completos del pedido y usuario para los correos
+      // Obtener datos completos del pedido (email_cliente y nombre_cliente ya están en la tabla pedidos)
       const { data: pedidoCompleto } = await supabaseClient
         .from('pedidos')
-        .select('numero_pedido, total, fecha_pago')
+        .select('numero_pedido, total, fecha_pago, email_cliente, nombre_cliente')
         .eq('id', pedido.id)
         .single();
 
-      const { data: usuario } = await supabaseClient
-        .from('usuarios')
-        .select('email, nombre')
-        .eq('id', userId)
-        .single();
-
-      if (pedidoCompleto && usuario) {
-        console.log('📧 Enviando correos de cancelación...');
+      if (pedidoCompleto && pedidoCompleto.email_cliente) {
+        console.log('📧 Enviando correos de cancelación a cliente:', pedidoCompleto.email_cliente, 'y admin:', import.meta.env.ADMIN_EMAIL);
         
-        // Enviar correo al cliente
-        await enviarEmailCancelacion(
-          usuario.email,
-          pedidoCompleto.numero_pedido,
-          usuario.nombre,
-          pedidoCompleto.total
-        );
-
-        // Enviar notificación al admin
-        await notificarCancelacionAlAdmin(
-          pedidoCompleto.numero_pedido,
-          usuario.email,
-          usuario.nombre,
-          pedidoCompleto.total
-        );
+        // Enviar ambos correos en paralelo para que el fallo de uno no bloquee al otro
+        const resultados = await Promise.allSettled([
+          enviarEmailCancelacion(
+            pedidoCompleto.email_cliente,
+            pedidoCompleto.numero_pedido,
+            pedidoCompleto.nombre_cliente,
+            pedidoCompleto.total
+          ),
+          notificarCancelacionAlAdmin(
+            pedidoCompleto.numero_pedido,
+            pedidoCompleto.email_cliente,
+            pedidoCompleto.nombre_cliente,
+            pedidoCompleto.total
+          )
+        ]);
         
-        console.log('✅ Correos de cancelación enviados exitosamente');
+        resultados.forEach((r, i) => {
+          const dest = i === 0 ? 'cliente' : 'admin';
+          if (r.status === 'fulfilled') {
+            console.log(`✅ Correo de cancelación enviado al ${dest}`);
+          } else {
+            console.error(`⚠️ Error enviando correo al ${dest}:`, r.reason);
+          }
+        });
+      } else {
+        console.warn('⚠️ No se pudo obtener email_cliente del pedido:', pedido.id);
       }
     } catch (emailError) {
       console.error('⚠️ Error enviando correos, pero pedido fue cancelado:', emailError);
