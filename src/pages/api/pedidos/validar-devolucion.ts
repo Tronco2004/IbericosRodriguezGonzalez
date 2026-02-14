@@ -26,7 +26,7 @@ export const POST: APIRoute = async ({ request }) => {
     // Obtener datos del pedido
     const { data: pedido, error: errorPedido } = await supabaseClient
       .from('pedidos')
-      .select('id, numero_pedido, estado, total, usuario_id, email_cliente')
+      .select('id, numero_pedido, estado, total, usuario_id, email_cliente, nombre_cliente')
       .eq('id', parseInt(pedido_id))
       .single();
 
@@ -38,8 +38,8 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Validar que el estado sea devolucion_solicitada
-    if (pedido.estado !== 'devolucion_solicitada') {
+    // Validar que el estado sea devolucion_solicitada o devolucion_recibida
+    if (pedido.estado !== 'devolucion_solicitada' && pedido.estado !== 'devolucion_recibida') {
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -133,17 +133,10 @@ export const POST: APIRoute = async ({ request }) => {
 
     console.log('✅ Pedido marcado como devolucion_recibida');
 
-    // Obtener datos del usuario para el correo
-    const { data: usuario } = await supabaseClient
-      .from('usuarios')
-      .select('email, nombre')
-      .eq('id', pedido.usuario_id)
-      .single();
-
     // Enviar correo de validación de devolución (sin bloquear la respuesta)
     try {
-      const emailCliente = usuario?.email || pedido.email_cliente;
-      const nombreCliente = usuario?.nombre;
+      const emailCliente = pedido.email_cliente;
+      const nombreCliente = pedido.nombre_cliente;
       
       if (emailCliente) {
         console.log('📧 Enviando correo de validación de devolución a:', emailCliente);
