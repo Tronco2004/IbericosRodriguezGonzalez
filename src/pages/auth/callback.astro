@@ -1,0 +1,149 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout>
+  <div class="callback-page">
+    <div class="callback-container">
+      <div id="loading">
+        <div class="spinner"></div>
+        <h2>Iniciando sesión...</h2>
+        <p>Por favor espera un momento.</p>
+      </div>
+      <div id="error" style="display: none;">
+        <h2>Error al iniciar sesión</h2>
+        <p id="errorText"></p>
+        <a href="/login" class="back-link">Volver al login</a>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .callback-page {
+      min-height: 80vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .callback-container {
+      text-align: center;
+      max-width: 400px;
+    }
+    .callback-container h2 {
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+    .callback-container p {
+      color: var(--text-muted);
+    }
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid var(--border-color);
+      border-top: 4px solid var(--color-accent, #c0392b);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1.5rem;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .back-link {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 0.75rem 2rem;
+      background: var(--gradient-cta);
+      color: white;
+      border-radius: 4px;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    #error { color: var(--text-primary); }
+    #errorText { color: #c33; }
+  </style>
+
+  <script>
+    import { createClient } from '@supabase/supabase-js';
+
+    const supabase = createClient(
+      import.meta.env.PUBLIC_SUPABASE_URL,
+      import.meta.env.PUBLIC_SUPABASE_ANON_KEY
+    );
+
+    async function handleCallback() {
+      const loadingEl = document.getElementById('loading');
+      const errorEl = document.getElementById('error');
+      const errorText = document.getElementById('errorText');
+
+      try {
+        // Intentar obtener el code de la URL (flujo PKCE)
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+
+        if (code) {
+          // Intercambiar el código por una sesión (PKCE)
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) throw error;
+        }
+
+        // Intentar hash fragments (flujo implicit)
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const hashAccessToken = hashParams.get('access_token');
+        if (hashAccessToken) {
+          const refreshToken = hashParams.get('refresh_token') || '';
+          const { error } = await supabase.auth.setSession({
+            access_token: hashAccessToken,
+            refresh_token: refreshToken,
+          });
+          if (error) throw error;
+        }
+
+        // Obtener la sesión actual
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError) throw sessionError;
+        if (!session) throw new Error('No se pudo obtener la sesión. Inténtalo de nuevo.');
+
+        // Enviar al servidor para crear usuario y guardar cookies
+        const response = await fetch('/api/auth/oauth-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
+          }),
+          credentials: 'include',
+        });
+
+        const result = await response.json();
+
+        if (result.success && result.usuario) {
+          // Guardar en localStorage (igual que el login normal)
+          localStorage.setItem('auth_token', result.usuario.id);
+          localStorage.setItem('user_role', result.usuario.rol);
+          localStorage.setItem('user_id', result.usuario.id);
+          localStorage.setItem('user_name', result.usuario.nombre);
+          localStorage.setItem('user_email', result.usuario.email);
+
+          // Si el perfil está incompleto, marcar para mostrar popup
+          if (result.perfilIncompleto) {
+            localStorage.setItem('mostrar_popup_perfil', 'true');
+          }
+
+          // Redirigir
+          window.location.href = result.redirect_url || '/productos';
+        } else {
+          throw new Error(result.error || 'Error al completar el inicio de sesión');
+        }
+      } catch (err) {
+        console.error('Error en callback OAuth:', err);
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'block';
+        errorText.textContent = err instanceof Error ? err.message : 'Error desconocido';
+      }
+    }
+
+    handleCallback();
+  </script>
+</Layout>
