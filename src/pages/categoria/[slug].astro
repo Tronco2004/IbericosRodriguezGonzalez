@@ -137,16 +137,12 @@ const info = categoryInfo[slug as string] || {
         </button>
       </div>
       <div class="cantidad-input-wrapper">
-        <button type="button" class="cantidad-btn cantidad-minus">−</button>
-        <input type="number" id="cantidadInput" min="1" value="1" class="cantidad-input" />
+        <button type="button" class="cantidad-btn cantidad-minus" disabled>−</button>
+        <input type="number" id="cantidadInput" min="1" value="1" class="cantidad-input" readonly />
         <button type="button" class="cantidad-btn cantidad-plus">+</button>
       </div>
       <div class="modal-actions">
         <button id="cantidadConfirm" class="btn-modal-primary">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-            <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>
-          </svg>
           Agregar al carrito
         </button>
         <button id="cantidadCancel" class="btn-modal-secondary">Cancelar</button>
@@ -1759,9 +1755,25 @@ const info = categoryInfo[slug as string] || {
 
       const modal = document.getElementById('cantidadModal');
       const input = document.getElementById('cantidadInput');
+      const btnMenos = document.querySelector('.cantidad-minus');
+      const btnMas = document.querySelector('.cantidad-plus');
+      
       input.value = '1';
       input.max = productoEnModal.stock;
+      if (btnMenos) btnMenos.disabled = true;
+      if (btnMas) btnMas.disabled = productoEnModal.stock <= 1;
+      
       modal.style.display = 'flex';
+    }
+
+    function actualizarBotonesModalCat() {
+      const input = document.getElementById('cantidadInput');
+      const valor = parseInt(input.value) || 1;
+      const max = productoEnModal?.stock || 1;
+      const btnMenos = document.querySelector('.cantidad-minus');
+      const btnMas = document.querySelector('.cantidad-plus');
+      if (btnMenos) btnMenos.disabled = valor <= 1;
+      if (btnMas) btnMas.disabled = valor >= max;
     }
 
     function abrirModalVariantes(productoId, variantesReservadasParam = {}) {
@@ -2159,17 +2171,26 @@ const info = categoryInfo[slug as string] || {
       const input = document.getElementById('cantidadInput');
       const val = parseInt(input.value) || 1;
       if (val > 1) input.value = val - 1;
+      actualizarBotonesModalCat();
     });
 
     document.querySelector('.cantidad-plus').addEventListener('click', () => {
       const input = document.getElementById('cantidadInput');
       const val = parseInt(input.value) || 1;
-      const max = productoEnModal?.stock || 99;
+      const max = productoEnModal?.stock || 1;
       if (val < max) input.value = val + 1;
+      actualizarBotonesModalCat();
     });
 
     document.getElementById('cantidadConfirm').addEventListener('click', () => {
       const cantidad = parseInt(document.getElementById('cantidadInput').value) || 1;
+      const stockMax = productoEnModal?.stock || 0;
+      if (cantidad > stockMax) {
+        alert(`Solo hay ${stockMax} unidades disponibles`);
+        document.getElementById('cantidadInput').value = stockMax;
+        actualizarBotonesModalCat();
+        return;
+      }
       agregarProductoAlCarrito(cantidad);
     });
 
@@ -2264,8 +2285,47 @@ const info = categoryInfo[slug as string] || {
                 ${svg ? svg.outerHTML : ''}
                 ${stockDisplay}
               `;
+              if (productoAgotado) {
+                elem.classList.add('stock-agotado');
+              } else {
+                elem.classList.remove('stock-agotado');
+              }
               console.log('✅ Stock actualizado para producto ' + productoId + ': ' + stockDisplay);
               break;
+            }
+          }
+
+          // Actualizar stock-label (DISPONIBLE / Agotándose / ¡ÚLTIMA UNIDAD!)
+          const stockLabel = article.querySelector('.stock-label');
+          if (productoAgotado) {
+            // Si agotado, eliminar el badge
+            if (stockLabel) stockLabel.remove();
+          } else {
+            // Determinar la etiqueta correcta
+            let newLabelText = '';
+            let newLabelClass = 'stock-label ';
+            if (cantidadDisponible === 1) {
+              newLabelText = '¡ÚLTIMA UNIDAD!';
+              newLabelClass += 'stock-label-ultima';
+            } else if (cantidadDisponible <= 5) {
+              newLabelText = 'Agotándose';
+              newLabelClass += 'stock-label-agotandose';
+            } else {
+              newLabelText = 'Disponible';
+              newLabelClass += 'stock-label-disponible';
+            }
+            if (stockLabel) {
+              stockLabel.textContent = newLabelText;
+              stockLabel.className = newLabelClass;
+            } else {
+              // Crear el badge si no existe
+              const stockInfoElem = article.querySelector('.stock-info');
+              if (stockInfoElem && stockInfoElem.parentElement) {
+                const newSpan = document.createElement('span');
+                newSpan.className = newLabelClass;
+                newSpan.textContent = newLabelText;
+                stockInfoElem.parentElement.appendChild(newSpan);
+              }
             }
           }
 

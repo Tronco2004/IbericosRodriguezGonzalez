@@ -20,8 +20,20 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     if (authError) {
       console.log('Error registrando usuario:', authError.message);
+      
+      // Traducir mensajes de error de Supabase al español
+      let mensajeError = authError.message;
+      if (authError.message.toLowerCase().includes('already registered') || 
+          authError.message.toLowerCase().includes('already been registered')) {
+        mensajeError = 'El usuario ya está registrado';
+      } else if (authError.message.toLowerCase().includes('invalid email')) {
+        mensajeError = 'El email no es válido';
+      } else if (authError.message.toLowerCase().includes('password')) {
+        mensajeError = 'La contraseña debe tener al menos 6 caracteres';
+      }
+      
       return new Response(
-        JSON.stringify({ success: false, message: authError.message }),
+        JSON.stringify({ success: false, message: mensajeError }),
         { status: 400 }
       );
     }

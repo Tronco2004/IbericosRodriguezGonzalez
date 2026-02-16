@@ -262,7 +262,7 @@ export async function enviarConfirmacionPedido(datos: EmailPedido) {
                       <p style="margin: 0 0 8px 0; color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Código de Seguimiento</p>
                       <p style="margin: 0; font-family: 'Courier New', monospace; font-size: 26px; font-weight: 700; color: #001a33; letter-spacing: 3px;">${datos.codigo_seguimiento}</p>
                       <p style="margin: 15px 0 0 0;">
-                        <a href="https://ibericosrg.com/seguimiento?codigo=${datos.codigo_seguimiento}" style="display: inline-block; background: #a89968; color: #ffffff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px;">Rastrear Pedido</a>
+                        <a href="https://ibericosrodriguezgonzalez.victoriafp.online/seguimiento?codigo=${datos.codigo_seguimiento}" style="display: inline-block; background: #a89968; color: #ffffff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px;">Rastrear Pedido</a>
                       </p>
                     </td></tr>
                   </table>
