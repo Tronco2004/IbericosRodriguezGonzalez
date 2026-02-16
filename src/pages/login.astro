@@ -286,6 +286,13 @@ const redirect = Astro.url.searchParams.get('redirect') || '/';
   </div>
 
   <script>
+    import { createClient } from '@supabase/supabase-js';
+
+    const supabase = createClient(
+      import.meta.env.PUBLIC_SUPABASE_URL,
+      import.meta.env.PUBLIC_SUPABASE_ANON_KEY
+    );
+
     const googleBtn = document.getElementById('googleBtn');
     const appleBtn = document.getElementById('appleBtn');
     const facebookBtn = document.getElementById('facebookBtn');
@@ -297,23 +304,19 @@ const redirect = Astro.url.searchParams.get('redirect') || '/';
         loadingMessage.style.display = 'block';
         errorMessage.style.display = 'none';
 
-        // Llamar al endpoint de login social
-        const response = await fetch('/api/auth/social-login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            provider,
-            redirectTo: new URLSearchParams(window.location.search).get('redirect') || '/'
-          })
+        // Usar Supabase client-side directamente (maneja PKCE correctamente)
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: provider,
+          options: {
+            redirectTo: window.location.origin + '/auth/callback',
+          }
         });
 
-        const data = await response.json();
-        
-        if (data.success && data.url) {
-          // Redirigir a Supabase Auth
+        if (error) throw error;
+
+        // Si el SDK no redirige automáticamente, hacerlo manualmente
+        if (data?.url) {
           window.location.href = data.url;
-        } else {
-          throw new Error(data.error || 'Error al iniciar sesión');
         }
       } catch (error) {
         loadingMessage.style.display = 'none';
@@ -332,7 +335,6 @@ const redirect = Astro.url.searchParams.get('redirect') || '/';
       if (expMsg) expMsg.style.display = 'block';
     }
   </script>
-</Layout>
     </div>
   </div>
 

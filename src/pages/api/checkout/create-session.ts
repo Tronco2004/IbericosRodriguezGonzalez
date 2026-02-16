@@ -1,5 +1,7 @@
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
+import { supabaseAdmin } from '../../../lib/supabase';
+import { obtenerUsuarioDelToken } from '../../../lib/auth';
 
 const STRIPE_SECRET_KEY = import.meta.env.STRIPE_SECRET_KEY;
 if (!STRIPE_SECRET_KEY) {
@@ -27,6 +29,32 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     console.log('Carrito items:', cartItems);
     console.log('Descuento aplicado:', descuentoAplicado);
     console.log('Es invitado:', !!datosInvitado);
+
+    // ── Obtener datos del usuario desde la BD si está logueado ──
+    let userId = request.headers.get('x-user-id');
+    if (!userId) {
+      userId = cookies.get('user_id')?.value || null;
+    }
+    if (!userId) {
+      const token = cookies.get('auth_token')?.value;
+      if (token) {
+        const usr = obtenerUsuarioDelToken(token);
+        if (usr?.id) userId = usr.id;
+      }
+    }
+
+    let dbUser: { nombre: string; email: string; telefono: string | null; direccion: string | null } | null = null;
+    if (userId) {
+      const { data } = await supabaseAdmin
+        .from('usuarios')
+        .select('nombre, email, telefono, direccion')
+        .eq('id', userId)
+        .single();
+      if (data) {
+        dbUser = data;
+        console.log('👤 Datos del usuario desde BD:', { email: dbUser.email, nombre: dbUser.nombre, direccion: dbUser.direccion });
+      }
+    }
 
     if (!cartItems || cartItems.length === 0) {
       console.error('❌ Carrito vacío');
@@ -113,17 +141,21 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
     }
 
-    // Determinar email del cliente
+    // Determinar email del cliente (prioridad: BD > frontend > invitado)
     let customerEmail: string | undefined;
     
-    if (datosInvitado?.email) {
+    if (dbUser?.email) {
+      // Usuario logueado: obtener email de la BD (fuente fiable)
+      customerEmail = dbUser.email;
+      console.log('👤 Email desde BD:', customerEmail);
+    } else if (datosInvitado?.email) {
       // Es invitado
       customerEmail = datosInvitado.email;
       console.log('👻 Invitado - Email:', customerEmail);
     } else if (userEmail) {
-      // Es usuario logueado
+      // Fallback: email enviado desde el frontend
       customerEmail = userEmail;
-      console.log('👤 Usuario logueado - Email:', customerEmail);
+      console.log('📧 Email desde frontend:', customerEmail);
     }
 
     if (!customerEmail) {
@@ -142,24 +174,54 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       successUrl += '&guest=true';
     }
 
-    const session = await stripe.checkout.sessions.create({
+    // ── Determinar si el usuario ya tiene dirección guardada ──
+    const tieneNombre = !!(dbUser?.nombre || datosInvitado?.nombre);
+    const tieneDireccion = !!(dbUser?.direccion || datosInvitado?.direccion);
+    const nombreCliente = dbUser?.nombre || datosInvitado?.nombre || '';
+    const telefonoCliente = dbUser?.telefono || datosInvitado?.telefono || '';
+    const direccionCliente = dbUser?.direccion || datosInvitado?.direccion || '';
+
+    console.log('📍 Dirección guardada:', direccionCliente, '| Tiene dirección:', tieneDireccion);
+
+    // Configurar la sesión de Stripe
+    const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       line_items: lineItems,
       mode: 'payment',
       success_url: successUrl,
       cancel_url: `${new URL(request.url).origin}/carrito`,
       customer_email: customerEmail,
       ...(discounts.length > 0 && { discounts }),
-      // Recoger dirección de envío
-      shipping_address_collection: {
-        allowed_countries: ['ES', 'PT', 'FR', 'DE', 'IT', 'GB', 'AD'],
-      },
-      // Guardar metadata para identificar invitados
+      // Guardar metadata para identificar invitados y datos del cliente
       metadata: {
         es_invitado: datosInvitado ? 'true' : 'false',
-        nombre_cliente: datosInvitado?.nombre || '',
-        telefono_cliente: datosInvitado?.telefono || ''
+        nombre_cliente: nombreCliente,
+        telefono_cliente: telefonoCliente,
+        direccion_cliente: direccionCliente
       }
-    });
+    };
+
+    // Si el usuario YA tiene dirección guardada, no pedirla de nuevo en Stripe
+    if (tieneDireccion && tieneNombre) {
+      console.log('✅ Usuario con dirección completa, no se pedirá en Stripe');
+      sessionConfig.payment_intent_data = {
+        shipping: {
+          name: nombreCliente,
+          phone: telefonoCliente || undefined,
+          address: {
+            line1: direccionCliente,
+            country: 'ES', // Por defecto España
+          }
+        }
+      };
+    } else {
+      // Si NO tiene dirección, pedirla en Stripe
+      console.log('📝 Usuario sin dirección completa, se pedirá en Stripe');
+      sessionConfig.shipping_address_collection = {
+        allowed_countries: ['ES', 'PT', 'FR', 'DE', 'IT', 'GB', 'AD'],
+      };
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionConfig);
 
     console.log('✅ Sesión creada exitosamente:', session.id);
     console.log('🔗 URL de Stripe:', session.url);

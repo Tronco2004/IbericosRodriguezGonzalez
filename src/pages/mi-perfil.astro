@@ -28,67 +28,67 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
   <div style="max-width: 1000px; margin: 0 auto; padding: 2rem 1rem;">
     <!-- Header -->
     <div class="perfil-header" style="margin-bottom: 3rem;">
-      <h1 style="font-size: 3rem; margin: 0 0 0.5rem 0; color: #001a33; font-weight: 800; letter-spacing: -1px;">Mi Perfil</h1>
-      <div style="width: 80px; height: 3px; background: linear-gradient(90deg, #a89968, #d4a574); border-radius: 10px; margin-bottom: 1.5rem;"></div>
-      <p style="color: #666; font-size: 1.05rem; margin: 0;">Gestiona tu información personal y seguridad</p>
+      <h1 style="font-size: 3rem; margin: 0 0 0.5rem 0; color: var(--color-primary); font-weight: 800; letter-spacing: -1px;">Mi Perfil</h1>
+      <div style="width: 80px; height: 3px; background: linear-gradient(90deg, var(--color-accent), var(--color-accent-light)); border-radius: 10px; margin-bottom: 1.5rem;"></div>
+      <p style="color: var(--text-muted); font-size: 1.05rem; margin: 0;">Gestiona tu información personal y seguridad</p>
     </div>
 
     <div class="perfil-grid">
       <!-- Columna izquierda: Información Personal -->
       <div>
         <!-- Tarjeta de Información Personal -->
-        <div class="perfil-card" style="background: linear-gradient(135deg, #f5f3f0 0%, #faf8f6 100%); border-radius: 12px; padding: 2rem; border: 1px solid #e8e4e0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <div class="perfil-card" style="background: var(--bg-card); border-radius: 12px; padding: 2rem; border: 1px solid var(--border-color); box-shadow: 0 4px 12px var(--shadow-color, rgba(0,0,0,0.05));">
           <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
-            <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #a89968, #d4a574); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+            <div style="width: 32px; height: 32px; background: linear-gradient(135deg, var(--color-accent), var(--color-accent-light)); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
               <span style="color: white; font-weight: 700; font-size: 1.2rem; font-style: italic;">i</span>
             </div>
-            <h2 style="margin: 0; font-size: 1.2rem; color: #001a33; font-weight: 700;">Información Personal</h2>
+            <h2 style="margin: 0; font-size: 1.2rem; color: var(--text-primary); font-weight: 700;">Información Personal</h2>
           </div>
           
           <form id="formularioPerfil" style="display: grid; gap: 1.25rem;">
             <!-- Nombre -->
-            <div style="background: white; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0;">
-              <label for="nombreInput" style="display: block; font-size: 0.8rem; font-weight: 700; color: #a89968; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Nombre</label>
+            <div style="background: var(--bg-input); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+              <label for="nombreInput" style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Nombre</label>
               <input 
                 id="nombreInput"
                 type="text"
-                style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box; transition: all 0.3s; background: white;"
+                style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem; box-sizing: border-box; transition: all 0.3s; background: var(--bg-input); color: var(--text-primary);"
               />
             </div>
             
             <!-- Email (solo lectura) -->
-            <div style="background: white; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0;">
-              <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #a89968; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Email</label>
-              <p id="emailDisplay" style="margin: 0; font-size: 1.1rem; color: #001a33; font-weight: 600;">Cargando...</p>
+            <div style="background: var(--bg-input); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+              <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Email</label>
+              <p id="emailDisplay" style="margin: 0; font-size: 1.1rem; color: var(--text-primary); font-weight: 600;">Cargando...</p>
             </div>
             
             <!-- Teléfono -->
-            <div style="background: white; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0;">
-              <label for="telefonoInput" style="display: block; font-size: 0.8rem; font-weight: 700; color: #a89968; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Teléfono</label>
+            <div style="background: var(--bg-input); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+              <label for="telefonoInput" style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Teléfono</label>
               <input 
                 id="telefonoInput"
                 type="tel"
                 placeholder="Tu número de teléfono"
-                style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box; transition: all 0.3s; background: white;"
+                style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem; box-sizing: border-box; transition: all 0.3s; background: var(--bg-input); color: var(--text-primary);"
               />
             </div>
             
             <!-- Dirección -->
-            <div style="background: white; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0;">
-              <label for="direccionInput" style="display: block; font-size: 0.8rem; font-weight: 700; color: #a89968; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Dirección</label>
+            <div style="background: var(--bg-input); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+              <label for="direccionInput" style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Dirección</label>
               <input 
                 id="direccionInput"
                 type="text"
                 placeholder="Tu dirección de envío"
-                style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box; transition: all 0.3s; background: white;"
+                style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem; box-sizing: border-box; transition: all 0.3s; background: var(--bg-input); color: var(--text-primary);"
               />
             </div>
 
-            <div id="mensajePerfilEstado" style="display: none; padding: 1rem; border-radius: 8px; font-size: 0.95rem; margin-top: 0.5rem; border-left: 4px solid #a89968;"></div>
+            <div id="mensajePerfilEstado" style="display: none; padding: 1rem; border-radius: 8px; font-size: 0.95rem; margin-top: 0.5rem; border-left: 4px solid var(--color-accent);"></div>
             
             <button 
               type="submit"
-              style="width: 100%; padding: 0.85rem; background: linear-gradient(135deg, #a89968, #9a8560); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 1rem; transition: all 0.3s; text-transform: uppercase; letter-spacing: 1px; margin-top: 1rem; box-shadow: 0 4px 12px rgba(168, 153, 104, 0.2);"
+              style="width: 100%; padding: 0.85rem; background: linear-gradient(135deg, var(--color-accent), var(--color-accent-dark)); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 1rem; transition: all 0.3s; text-transform: uppercase; letter-spacing: 1px; margin-top: 1rem; box-shadow: 0 4px 12px rgba(168, 153, 104, 0.2);"
             >
               Guardar Cambios
             </button>
@@ -96,60 +96,69 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
         </div>
       </div>
 
-      <!-- Columna derecha: Cambiar Contraseña -->
+      <!-- Columna derecha: Contraseña -->
       <div>
-        <!-- Tarjeta de Cambiar Contraseña -->
-        <div class="perfil-card" style="background: linear-gradient(135deg, #f5f3f0 0%, #faf8f6 100%); border-radius: 12px; padding: 2rem; border: 1px solid #e8e4e0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <!-- Tarjeta de Seguridad -->
+        <div class="perfil-card" style="background: var(--bg-card); border-radius: 12px; padding: 2rem; border: 1px solid var(--border-color); box-shadow: 0 4px 12px var(--shadow-color, rgba(0,0,0,0.05));">
           <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
-            <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #a89968, #d4a574); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+            <div style="width: 32px; height: 32px; background: linear-gradient(135deg, var(--color-accent), var(--color-accent-light)); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
               <span style="color: white; font-weight: 700; font-size: 1.2rem;">S</span>
             </div>
-            <h2 style="margin: 0; font-size: 1.2rem; color: #001a33; font-weight: 700;">Seguridad</h2>
+            <h2 style="margin: 0; font-size: 1.2rem; color: var(--text-primary); font-weight: 700;">Seguridad</h2>
           </div>
-          
+
+          <!-- Info provider (visible para usuarios OAuth) -->
+          <div id="providerInfo" style="display: none; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+            <p style="margin: 0; font-size: 0.9rem; color: var(--text-secondary);">
+              <strong>🔗 Cuenta vinculada con <span id="providerName">Google</span></strong><br>
+              <span style="font-size: 0.85rem; color: var(--text-muted);">Puedes establecer una contraseña para también iniciar sesión con email y contraseña.</span>
+            </p>
+          </div>
+
+          <!-- Formulario CAMBIAR contraseña (para usuarios con password) -->
           <form id="cambiarContrasenaForm" style="display: grid; gap: 1rem;">
             <!-- Contraseña Actual -->
-            <div style="background: white; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0;">
-              <label for="contrasenaActual" style="display: block; font-size: 0.8rem; font-weight: 700; color: #a89968; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Contraseña Actual</label>
+            <div id="campoContrasenaActual" style="background: var(--bg-input); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+              <label for="contrasenaActual" style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Contraseña Actual</label>
               <input 
                 id="contrasenaActual"
                 type="password" 
-                required
                 placeholder="Ingresa tu contraseña actual"
-                style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box; transition: all 0.3s; background: white;"
+                style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem; box-sizing: border-box; transition: all 0.3s; background: var(--bg-input); color: var(--text-primary);"
               />
             </div>
             
             <!-- Contraseña Nueva -->
-            <div style="background: white; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0;">
-              <label for="contrasenaNueva" style="display: block; font-size: 0.8rem; font-weight: 700; color: #a89968; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Contraseña Nueva</label>
+            <div style="background: var(--bg-input); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+              <label for="contrasenaNueva" style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Contraseña Nueva</label>
               <input 
                 id="contrasenaNueva"
                 type="password" 
                 required
                 placeholder="Mínimo 6 caracteres"
-                style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box; transition: all 0.3s; background: white;"
+                style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem; box-sizing: border-box; transition: all 0.3s; background: var(--bg-input); color: var(--text-primary);"
               />
-              <p style="margin: 0.5rem 0 0 0; font-size: 0.8rem; color: #a89968;">Mínimo 6 caracteres</p>
+              <p style="margin: 0.5rem 0 0 0; font-size: 0.8rem; color: var(--text-muted);">Mínimo 6 caracteres</p>
             </div>
             
             <!-- Confirmar Contraseña -->
-            <div style="background: white; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0;">
-              <label for="contrasenaConfirm" style="display: block; font-size: 0.8rem; font-weight: 700; color: #a89968; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Confirmar Contraseña</label>
+            <div style="background: var(--bg-input); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+              <label for="contrasenaConfirm" style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Confirmar Contraseña</label>
               <input 
                 id="contrasenaConfirm"
                 type="password" 
                 required
                 placeholder="Confirma tu nueva contraseña"
-                style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box; transition: all 0.3s; background: white;"
+                style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem; box-sizing: border-box; transition: all 0.3s; background: var(--bg-input); color: var(--text-primary);"
               />
             </div>
 
-            <div id="mensajeEstado" style="display: none; padding: 1rem; border-radius: 8px; font-size: 0.95rem; margin-top: 0.5rem; border-left: 4px solid #a89968;"></div>
+            <div id="mensajeEstado" style="display: none; padding: 1rem; border-radius: 8px; font-size: 0.95rem; margin-top: 0.5rem; border-left: 4px solid var(--color-accent);"></div>
             
             <button 
+              id="btnContrasena"
               type="submit"
-              style="width: 100%; padding: 0.85rem; background: linear-gradient(135deg, #a89968, #9a8560); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 1rem; transition: all 0.3s; text-transform: uppercase; letter-spacing: 1px; margin-top: 1rem; box-shadow: 0 4px 12px rgba(168, 153, 104, 0.2);"
+              style="width: 100%; padding: 0.85rem; background: linear-gradient(135deg, var(--color-accent), var(--color-accent-dark)); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 1rem; transition: all 0.3s; text-transform: uppercase; letter-spacing: 1px; margin-top: 1rem; box-shadow: 0 4px 12px rgba(168, 153, 104, 0.2);"
             >
               Cambiar Contraseña
             </button>
@@ -162,12 +171,12 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
   <style>
     input:focus {
       outline: none;
-      border-color: #a89968 !important;
+      border-color: var(--color-accent) !important;
       box-shadow: 0 0 0 3px rgba(168, 153, 104, 0.1) !important;
     }
 
     button:hover:not(:disabled) {
-      background: linear-gradient(135deg, #9a8560, #8a7550) !important;
+      background: linear-gradient(135deg, var(--color-accent-dark), var(--color-accent-dark)) !important;
       transform: translateY(-2px);
       box-shadow: 0 6px 16px rgba(168, 153, 104, 0.3) !important;
     }
@@ -224,6 +233,27 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
           document.getElementById('emailDisplay').textContent = data.usuario.email || '-';
           document.getElementById('telefonoInput').value = data.usuario.telefono || '';
           document.getElementById('direccionInput').value = data.usuario.direccion || '';
+          
+          // Detectar si el usuario viene de OAuth (sin contraseña)
+          if (!data.usuario.tienePassword) {
+            // Mostrar info del provider
+            const providerInfo = document.getElementById('providerInfo');
+            const providerName = document.getElementById('providerName');
+            providerInfo.style.display = 'block';
+            
+            const providerLabels = { google: 'Google', apple: 'Apple', facebook: 'Facebook' };
+            providerName.textContent = providerLabels[data.usuario.provider] || data.usuario.provider;
+            
+            // Ocultar campo de contraseña actual (no tiene)
+            document.getElementById('campoContrasenaActual').style.display = 'none';
+            
+            // Cambiar texto del botón
+            document.getElementById('btnContrasena').textContent = 'Establecer Contraseña';
+            
+            // Marcar formulario como "establecer" en vez de "cambiar"
+            document.getElementById('cambiarContrasenaForm').dataset.modo = 'establecer';
+          }
+          
           console.log('✅ Datos cargados correctamente');
         } else {
           console.error('❌ Error en respuesta:', data.error);
@@ -292,17 +322,19 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
     async function cambiarContrasena(e) {
       e.preventDefault();
       
+      const form = document.getElementById('cambiarContrasenaForm');
+      const modo = form.dataset.modo || 'cambiar'; // 'cambiar' o 'establecer'
       const contrasenaActual = document.getElementById('contrasenaActual').value;
       const contrasenaNueva = document.getElementById('contrasenaNueva').value;
       const contrasenaConfirm = document.getElementById('contrasenaConfirm').value;
       const mensajeEstado = document.getElementById('mensajeEstado');
-      const boton = e.target.querySelector('button[type="submit"]');
+      const boton = document.getElementById('btnContrasena');
 
       // Limpiar mensaje anterior
       mensajeEstado.style.display = 'none';
 
       // Validaciones del lado del cliente
-      if (contrasenaActual.length === 0) {
+      if (modo === 'cambiar' && contrasenaActual.length === 0) {
         mostrarMensaje('Por favor ingresa tu contraseña actual', 'error', mensajeEstado);
         return;
       }
@@ -313,43 +345,66 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
       }
 
       if (contrasenaNueva !== contrasenaConfirm) {
-        mostrarMensaje('Las contraseñas nuevas no coinciden', 'error', mensajeEstado);
+        mostrarMensaje('Las contraseñas no coinciden', 'error', mensajeEstado);
         return;
       }
 
       try {
         boton.disabled = true;
-        boton.textContent = 'Cambiando contraseña...';
+        boton.textContent = modo === 'establecer' ? 'Estableciendo...' : 'Cambiando contraseña...';
 
-        const response = await fetch('/api/auth/cambiar-contrasena', {
+        // Elegir endpoint según el modo
+        const endpoint = modo === 'establecer' 
+          ? '/api/auth/establecer-contrasena' 
+          : '/api/auth/cambiar-contrasena';
+        
+        const bodyData = modo === 'establecer'
+          ? { contrasenaNueva, contrasenaConfirm }
+          : { contrasenaActual, contrasenaNueva, contrasenaConfirm };
+
+        const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'x-user-id': localStorage.getItem('user_id') || ''
           },
-          body: JSON.stringify({
-            contrasenaActual,
-            contrasenaNueva,
-            contrasenaConfirm
-          })
+          body: JSON.stringify(bodyData)
         });
 
         const data = await response.json();
 
         if (response.ok && data.success) {
-          mostrarMensaje('✅ Contraseña cambiada exitosamente', 'exito', mensajeEstado);
-          document.getElementById('cambiarContrasenaForm').reset();
+          mostrarMensaje('✅ ' + data.message, 'exito', mensajeEstado);
+          form.reset();
+          
+          // Si estableció contraseña, mostrar ahora el campo de contraseña actual
+          if (modo === 'establecer') {
+            document.getElementById('campoContrasenaActual').style.display = 'block';
+            boton.textContent = 'Cambiar Contraseña';
+            form.dataset.modo = 'cambiar';
+            // Actualizar el info
+            document.getElementById('providerInfo').innerHTML = `
+              <p style="margin: 0; font-size: 0.9rem; color: #065f46;">
+                <strong>✅ ¡Contraseña establecida!</strong><br>
+                <span style="font-size: 0.85rem;">Ahora puedes iniciar sesión con email y contraseña o con tu cuenta social.</span>
+              </p>
+            `;
+            document.getElementById('providerInfo').style.background = '#d1fae5';
+            document.getElementById('providerInfo').style.borderColor = '#6ee7b7';
+          }
+          
           setTimeout(() => {
             mensajeEstado.style.display = 'none';
           }, 5000);
         } else {
-          mostrarMensaje('❌ ' + (data.message || 'Error al cambiar la contraseña'), 'error', mensajeEstado);
+          mostrarMensaje('❌ ' + (data.message || 'Error'), 'error', mensajeEstado);
         }
       } catch (error) {
         console.error('Error:', error);
         mostrarMensaje('❌ Error de conexión', 'error', mensajeEstado);
       } finally {
         boton.disabled = false;
+        if (form.dataset.modo !== 'cambiar' || modo === 'establecer') return;
         boton.textContent = 'Cambiar Contraseña';
       }
     }
