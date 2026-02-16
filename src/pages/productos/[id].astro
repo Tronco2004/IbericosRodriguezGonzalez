@@ -1121,20 +1121,63 @@ export const prerender = false;
       font-size: 0.95rem;
     }
 
-    .js-quantity-input {
-      width: 80px;
-      padding: 0.75rem;
+    .js-quantity-selector {
+      display: flex;
+      align-items: center;
       border: 1px solid var(--border-color);
-      border-radius: 6px;
-      font-size: 1rem;
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--bg-input);
+    }
+
+    .js-quantity-btn {
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-tertiary);
+      border: none;
+      color: var(--text-primary);
+      font-size: 1.3rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      user-select: none;
+    }
+
+    .js-quantity-btn:hover:not(:disabled) {
+      background: var(--color-accent);
+      color: white;
+    }
+
+    .js-quantity-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .js-quantity-input {
+      width: 60px;
+      padding: 0.6rem 0;
+      border: none;
+      border-left: 1px solid var(--border-color);
+      border-right: 1px solid var(--border-color);
+      font-size: 1.05rem;
       text-align: center;
       background: var(--bg-input);
       color: var(--text-primary);
+      font-weight: 600;
+      -moz-appearance: textfield;
+    }
+
+    .js-quantity-input::-webkit-outer-spin-button,
+    .js-quantity-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
     }
 
     .js-quantity-input:focus {
       outline: none;
-      border-color: var(--color-accent);
     }
 
     .js-add-to-cart {
@@ -1424,18 +1467,23 @@ export const prerender = false;
           </div>
         `;
       } else if (!producto.es_variable && stockDisponible > 0) {
-        // Producto simple con stock - selector de cantidad
+        // Producto simple con stock - selector de cantidad con botones +/-
         opcionesHTML = `
           <div class="js-quantity-row">
             <label class="js-quantity-label">Cantidad:</label>
-            <input 
-              type="number" 
-              id="cantidad" 
-              value="1" 
-              min="1" 
-              max="${stockDisponible}" 
-              class="js-quantity-input"
-            />
+            <div class="js-quantity-selector">
+              <button type="button" id="btnMenos" class="js-quantity-btn" disabled>−</button>
+              <input 
+                type="number" 
+                id="cantidad" 
+                value="1" 
+                min="1" 
+                max="${stockDisponible}" 
+                class="js-quantity-input"
+                readonly
+              />
+              <button type="button" id="btnMas" class="js-quantity-btn" ${stockDisponible <= 1 ? 'disabled' : ''}>+</button>
+            </div>
             <span class="js-stock-info" style="font-size: 0.85rem; color: var(--text-muted);">
               (Máx. ${stockDisponible})
             </span>
@@ -1525,7 +1573,7 @@ export const prerender = false;
                   id="btnAgregarCarrito"
                   data-producto-id="${producto.id}"
                 >
-                  🛒 Añadir al carrito
+                  Añadir al carrito
                 </button>
               </div>
             ` : `
@@ -1596,20 +1644,37 @@ export const prerender = false;
           };
         }
       } else {
-        // Producto simple - validar cantidad máxima
+        // Producto simple - botones +/- y validación
         const inputCantidad = document.getElementById('cantidad');
-        if (inputCantidad) {
-          inputCantidad.addEventListener('change', function() {
-            const max = parseInt(this.getAttribute('max'));
-            let valor = parseInt(this.value);
-            
-            if (valor < 1) valor = 1;
-            if (valor > max) {
-              valor = max;
-              mostrarNotificacion(`Solo hay ${max} unidades disponibles`, true);
+        const btnMenos = document.getElementById('btnMenos');
+        const btnMas = document.getElementById('btnMas');
+        
+        if (inputCantidad && btnMenos && btnMas) {
+          function actualizarBotones() {
+            const valor = parseInt(inputCantidad.value) || 1;
+            const max = parseInt(inputCantidad.getAttribute('max')) || 1;
+            btnMenos.disabled = valor <= 1;
+            btnMas.disabled = valor >= max;
+          }
+
+          btnMenos.addEventListener('click', () => {
+            let valor = parseInt(inputCantidad.value) || 1;
+            if (valor > 1) {
+              inputCantidad.value = valor - 1;
+              actualizarBotones();
             }
-            this.value = valor;
           });
+
+          btnMas.addEventListener('click', () => {
+            let valor = parseInt(inputCantidad.value) || 1;
+            const max = parseInt(inputCantidad.getAttribute('max')) || 1;
+            if (valor < max) {
+              inputCantidad.value = valor + 1;
+              actualizarBotones();
+            }
+          });
+
+          actualizarBotones();
         }
       }
 
@@ -1736,6 +1801,14 @@ export const prerender = false;
         } else {
           // Producto simple
           const cantidad = parseInt(document.getElementById('cantidad')?.value) || 1;
+          const stockActual = productoActual.stock || 0;
+          
+          // Validar stock antes de enviar
+          if (cantidad > stockActual) {
+            mostrarNotificacion(`Solo hay ${stockActual} unidades disponibles`, true);
+            return;
+          }
+          
           bodyData.cantidad = cantidad;
           bodyData.producto_variante_id = null;
           bodyData.peso_kg = null;
@@ -1744,6 +1817,10 @@ export const prerender = false;
         console.log('Enviando al carrito:', bodyData);
 
         // ACTUALIZACIÓN OPTIMISTA: Actualizar stock inmediatamente
+        // Guardar stock original para revertir en caso de error
+        const stockOriginal = productoActual.stock;
+        const variantesOriginales = [...variantesDisponibles];
+        
         if (!productoActual.es_variable) {
           const cantidadAgregada = parseInt(document.getElementById('cantidad')?.value) || 1;
           productoActual.stock = Math.max(0, (productoActual.stock || 0) - cantidadAgregada);
@@ -1782,13 +1859,12 @@ export const prerender = false;
           
           window.dispatchEvent(new CustomEvent('carritoActualizado'));
         } else {
-          // Si hay error, revertir el cambio local
+          // Si hay error, revertir al stock original
           if (!productoActual.es_variable) {
-            const cantidadAgregada = parseInt(document.getElementById('cantidad')?.value) || 1;
-            productoActual.stock = Math.min(999, (productoActual.stock || 0) + cantidadAgregada);
+            productoActual.stock = stockOriginal;
             actualizarStockProductoSimple();
           } else if (varianteSeleccionada) {
-            variantesDisponibles.push(varianteSeleccionada);
+            variantesDisponibles = variantesOriginales;
             actualizarVariantesUI();
           }
           mostrarNotificacion('❌ Error: ' + (data.message || data.error), true);
@@ -1818,17 +1894,24 @@ export const prerender = false;
       if (inputCantidad) {
         inputCantidad.max = stockDisponible;
         if (parseInt(inputCantidad.value) > stockDisponible) {
-          inputCantidad.value = stockDisponible;
+          inputCantidad.value = Math.max(stockDisponible, 1);
         }
         
+        // Actualizar botones +/-
+        const btnMenos = document.getElementById('btnMenos');
+        const btnMas = document.getElementById('btnMas');
+        const valor = parseInt(inputCantidad.value) || 1;
+        if (btnMenos) btnMenos.disabled = valor <= 1;
+        if (btnMas) btnMas.disabled = valor >= stockDisponible;
+        
         // Actualizar texto de máximo
-        const stockInfo = inputCantidad.parentElement?.querySelector('.js-stock-info');
+        const stockInfo = inputCantidad.closest('.js-quantity-row')?.querySelector('.js-stock-info');
         if (stockInfo) {
           stockInfo.textContent = stockDisponible > 0 ? `(Máx. ${stockDisponible})` : '(Agotado)';
         }
       }
       
-      // Si se agotó, deshabilitar botón
+      // Si se agotó, deshabilitar todo
       if (stockDisponible === 0) {
         const btnAgregar = document.getElementById('btnAgregarCarrito');
         if (btnAgregar) {
@@ -1839,6 +1922,10 @@ export const prerender = false;
         if (inputCantidad) {
           inputCantidad.disabled = true;
         }
+        const btnMenos = document.getElementById('btnMenos');
+        const btnMas = document.getElementById('btnMas');
+        if (btnMenos) btnMenos.disabled = true;
+        if (btnMas) btnMas.disabled = true;
       }
     }
 
