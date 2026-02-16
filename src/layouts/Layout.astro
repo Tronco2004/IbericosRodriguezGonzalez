@@ -2373,6 +2373,8 @@ const { data: categorias } = await supabaseClient
               localStorage.setItem('user_id', token);
               localStorage.setItem('user_email', data.usuario.email);
               renderAuthUI();
+              // Mostrar promo tras confirmar sesión
+              mostrarPromocionSiEsNuevo();
             } else {
               renderAuthUI();
             }
@@ -2380,6 +2382,8 @@ const { data: categorias } = await supabaseClient
           .catch(() => renderAuthUI());
       } else {
         renderAuthUI();
+        // Si ya hay token en localStorage, comprobar promo
+        mostrarPromocionSiEsNuevo();
       }
 
       function renderAuthUI() {
@@ -2756,12 +2760,14 @@ const { data: categorias } = await supabaseClient
         inicializarBuscador();
       }
 
-      // Mostrar modal de promoción solo para nuevos usuarios
+      // Mostrar modal de promoción solo para usuarios registrados que no lo hayan visto
       function mostrarPromocionSiEsNuevo() {
         const promoMostrado = localStorage.getItem('promo_mostrado');
+        const token = localStorage.getItem('auth_token');
         
-        if (!promoMostrado) {
-          console.log('Usuario nuevo detectado, mostrando promoción');
+        // Solo mostrar si el usuario está logueado y no se le ha mostrado antes
+        if (!promoMostrado && token) {
+          console.log('Usuario registrado detectado, mostrando promoción');
           const modal = document.getElementById('promoModal');
           if (modal) {
             modal.style.display = 'flex';
@@ -2786,12 +2792,7 @@ const { data: categorias } = await supabaseClient
         });
       }
 
-      // Mostrar la promoción cuando carga la página
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', mostrarPromocionSiEsNuevo);
-      } else {
-        mostrarPromocionSiEsNuevo();
-      }
+      // La promoción se muestra desde renderAuthUI/fetch callback, no aquí
 
       // Cerrar modal si hace clic fuera
       document.getElementById('promoModal')?.addEventListener('click', (e) => {
