@@ -1073,3 +1073,125 @@ export async function notificarDevolucionDenegada(
   }
 }
 
+/**
+ * Enviar email de bienvenida con código de descuento al registrarse
+ */
+export async function enviarEmailBienvenida(emailCliente: string, nombreCliente: string, codigoDescuento: string = 'BIENVENIDA') {
+  try {
+    console.log('📧 Enviando email de bienvenida a:', emailCliente);
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #f2ede6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f2ede6; padding: 30px 0;">
+            <tr><td align="center">
+              <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+                
+                <!-- BARRA DORADA SUPERIOR -->
+                <tr><td style="background: linear-gradient(90deg, #a89968, #c4b07d, #a89968); height: 5px;"></td></tr>
+                
+                <!-- HEADER -->
+                <tr><td style="background: #001a33; padding: 35px 40px; text-align: center;">
+                  <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700; letter-spacing: 0.5px;">¡Bienvenido/a, ${nombreCliente}!</h1>
+                  <p style="margin: 10px 0 0 0; color: #a89968; font-size: 15px; font-weight: 500;">Gracias por unirte a Ibéricos Rodríguez González</p>
+                </td></tr>
+                
+                <!-- CONTENIDO PRINCIPAL -->
+                <tr><td style="padding: 35px 40px;">
+                  
+                  <!-- MENSAJE DE BIENVENIDA -->
+                  <p style="color: #333; font-size: 15px; line-height: 1.7; margin: 0 0 25px 0;">
+                    Nos alegra mucho que formes parte de nuestra familia. Desde nuestra dehesa hasta tu mesa, 
+                    seleccionamos los mejores productos ibéricos para que disfrutes de la auténtica calidad.
+                  </p>
+                  
+                  <!-- CÓDIGO DE DESCUENTO -->
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 30px; background: linear-gradient(135deg, #001a33, #1a2d42); border-radius: 12px; overflow: hidden;">
+                    <tr><td style="padding: 30px; text-align: center;">
+                      <p style="margin: 0 0 8px 0; color: #a89968; font-size: 13px; text-transform: uppercase; letter-spacing: 2px; font-weight: 600;">🎁 Tu regalo de bienvenida</p>
+                      <p style="margin: 0 0 15px 0; color: #ffffff; font-size: 16px;">Usa este código en tu primera compra:</p>
+                      <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+                        <tr><td style="background: rgba(168, 153, 104, 0.2); border: 2px dashed #a89968; padding: 18px 40px; border-radius: 8px;">
+                          <p style="margin: 0; font-family: 'Courier New', monospace; font-size: 32px; font-weight: 700; color: #ffffff; letter-spacing: 4px;">${codigoDescuento}</p>
+                        </td></tr>
+                      </table>
+                      <p style="margin: 15px 0 0 0; color: #c4b07d; font-size: 20px; font-weight: 700;">10% de descuento</p>
+                      <p style="margin: 5px 0 0 0; color: #8899aa; font-size: 12px;">Válido en tu primera compra</p>
+                    </td></tr>
+                  </table>
+                  
+                  <!-- CÓMO USAR -->
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 30px; background: #faf7f2; border-left: 4px solid #a89968; border-radius: 0 8px 8px 0;">
+                    <tr><td style="padding: 18px 20px;">
+                      <p style="margin: 0 0 5px 0; font-weight: 700; color: #001a33; font-size: 14px;">¿Cómo usar tu código?</p>
+                      <p style="margin: 0; color: #666; font-size: 13px; line-height: 1.6;">
+                        1. Añade productos a tu carrito<br>
+                        2. En el resumen del carrito, introduce el código <strong>${codigoDescuento}</strong><br>
+                        3. ¡Disfruta de tu descuento!
+                      </p>
+                    </td></tr>
+                  </table>
+                  
+                  <!-- BOTÓN CTA -->
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 30px;">
+                    <tr><td align="center">
+                      <a href="https://ibericosrodriguezgonzalez.victoriafp.online/productos" style="display: inline-block; background: linear-gradient(135deg, #a89968, #c4b07d); color: #ffffff; padding: 14px 35px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 15px; box-shadow: 0 4px 15px rgba(168, 153, 104, 0.3);">
+                        Explorar Productos
+                      </a>
+                    </td></tr>
+                  </table>
+                  
+                  <!-- BENEFICIOS -->
+                  <h2 style="margin: 0 0 15px 0; color: #001a33; font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #a89968; padding-bottom: 8px;">¿Por qué elegirnos?</h2>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+                    <tr>
+                      <td style="padding: 8px 0; color: #555; font-size: 14px;">🐷 Productos ibéricos de bellota de primera calidad</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0; color: #555; font-size: 14px;">🚚 Envío cuidado y rápido en 3-5 días hábiles</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0; color: #555; font-size: 14px;">✂️ Corte personalizado a tu gusto</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0; color: #555; font-size: 14px;">💯 Garantía de satisfacción total</td>
+                    </tr>
+                  </table>
+                  
+                </td></tr>
+                
+                <!-- FOOTER -->
+                <tr><td style="background: #001a33; padding: 25px 40px; text-align: center;">
+                  <p style="margin: 0 0 5px 0; color: #a89968; font-size: 14px; font-weight: 600;">Ibéricos Rodríguez González</p>
+                  <p style="margin: 0 0 12px 0; color: #667788; font-size: 12px;">Productos ibéricos de calidad desde nuestra dehesa a tu mesa</p>
+                  <p style="margin: 0; color: #4a5568; font-size: 11px;">&copy; 2026 Ibéricos RG. Todos los derechos reservados.</p>
+                </td></tr>
+                
+              </table>
+            </td></tr>
+          </table>
+        </body>
+      </html>
+    `;
+
+    await getTransporter().sendMail({
+      from: `"Ibéricos Rodríguez González" <${import.meta.env.GMAIL_USER}>`,
+      to: emailCliente,
+      subject: '¡Bienvenido/a a Ibéricos Rodríguez González! 🎁 Tu código de descuento',
+      html: htmlContent
+    });
+
+    console.log('✅ Email de bienvenida enviado a:', emailCliente);
+    return true;
+  } catch (error) {
+    console.error('❌ Error enviando email de bienvenida:', error);
+    // No lanzar error para no bloquear el registro
+    return false;
+  }
+}
+

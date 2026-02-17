@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { supabaseClient } from '../../../lib/supabase';
+import { enviarEmailBienvenida } from '../../../lib/email';
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   const { email, password, nombre, telefono, direccion } = await request.json();
@@ -158,6 +159,14 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     });
 
     console.log('🍪 Cookies establecidas para nuevo usuario');
+
+    // Enviar email de bienvenida con código de descuento
+    try {
+      await enviarEmailBienvenida(email, nombre, 'BIENVENIDA');
+      console.log('✉️ Email de bienvenida enviado a:', email);
+    } catch (emailError) {
+      console.error('⚠️ Error enviando email de bienvenida (no bloquea registro):', emailError);
+    }
 
     return new Response(
       JSON.stringify({

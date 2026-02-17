@@ -134,3 +134,45 @@ export const DELETE: APIRoute = async ({ request }) => {
     );
   }
 };
+
+export const PATCH: APIRoute = async ({ request }) => {
+  try {
+    const url = new URL(request.url);
+    const codigoId = url.searchParams.get('id');
+
+    if (!codigoId) {
+      return new Response(
+        JSON.stringify({ success: false, message: 'ID de código requerido' }),
+        { status: 400 }
+      );
+    }
+
+    const body = await request.json();
+
+    const { data, error } = await supabaseClient
+      .from('codigos_promocionales')
+      .update({ activo: body.activo })
+      .eq('id', parseInt(codigoId))
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error actualizando código:', error);
+      return new Response(
+        JSON.stringify({ success: false, message: 'Error al actualizar: ' + error.message }),
+        { status: 500 }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, codigo: data, message: `Código ${data.activo ? 'activado' : 'desactivado'} correctamente` }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('Error en PATCH código:', error);
+    return new Response(
+      JSON.stringify({ success: false, message: 'Error interno: ' + error.toString() }),
+      { status: 500 }
+    );
+  }
+};
