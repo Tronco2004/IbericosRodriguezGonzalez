@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient } from '../../../lib/supabase';
+import { supabaseAdmin } from '../../../lib/supabase';
 
 export const GET: APIRoute = async ({ request }) => {
   try {
@@ -14,7 +14,7 @@ export const GET: APIRoute = async ({ request }) => {
     }
 
     // Obtener datos del código
-    const { data: codigo, error: errorCodigo } = await supabaseClient
+    const { data: codigo, error: errorCodigo } = await supabaseAdmin
       .from('codigos_promocionales')
       .select('*')
       .eq('id', parseInt(codigoId))
@@ -28,7 +28,7 @@ export const GET: APIRoute = async ({ request }) => {
     }
 
     // Obtener todos los usos
-    const { data: usos, error: errorUsos } = await supabaseClient
+    const { data: usos, error: errorUsos } = await supabaseAdmin
       .from('uso_codigos')
       .select('*')
       .eq('codigo_id', parseInt(codigoId))
@@ -48,7 +48,7 @@ export const GET: APIRoute = async ({ request }) => {
         let nombreUsuario = uso.email_usuario || 'Anónimo';
         
         if (uso.usuario_id) {
-          const { data: usuarioData } = await supabaseClient
+          const { data: usuarioData } = await supabaseAdmin
             .from('usuarios')
             .select('nombre, email')
             .eq('id', uso.usuario_id)
@@ -103,13 +103,13 @@ export const DELETE: APIRoute = async ({ request }) => {
     }
 
     // Eliminar los usos del código primero
-    await supabaseClient
+    await supabaseAdmin
       .from('uso_codigos')
       .delete()
       .eq('codigo_id', parseInt(codigoId));
 
     // Eliminar el código
-    const { error: errorCodigo } = await supabaseClient
+    const { error: errorCodigo } = await supabaseAdmin
       .from('codigos_promocionales')
       .delete()
       .eq('id', parseInt(codigoId));
@@ -149,9 +149,29 @@ export const PATCH: APIRoute = async ({ request }) => {
 
     const body = await request.json();
 
-    const { data, error } = await supabaseClient
+    // Construir objeto de actualización con los campos proporcionados
+    const updateData: Record<string, any> = {};
+    if (body.activo !== undefined) updateData.activo = body.activo;
+    if (body.codigo !== undefined) updateData.codigo = body.codigo;
+    if (body.descripcion !== undefined) updateData.descripcion = body.descripcion;
+    if (body.tipo_descuento !== undefined) updateData.tipo_descuento = body.tipo_descuento;
+    if (body.valor_descuento !== undefined) updateData.valor_descuento = body.valor_descuento;
+    if (body.fecha_inicio !== undefined) updateData.fecha_inicio = body.fecha_inicio;
+    if (body.fecha_fin !== undefined) updateData.fecha_fin = body.fecha_fin;
+    if (body.uso_maximo !== undefined) updateData.uso_maximo = body.uso_maximo;
+    if (body.restriccion_monto_minimo !== undefined) updateData.restriccion_monto_minimo = body.restriccion_monto_minimo;
+    if (body.usos_totales !== undefined) updateData.usos_totales = body.usos_totales;
+
+    if (Object.keys(updateData).length === 0) {
+      return new Response(
+        JSON.stringify({ success: false, message: 'No hay campos para actualizar' }),
+        { status: 400 }
+      );
+    }
+
+    const { data, error } = await supabaseAdmin
       .from('codigos_promocionales')
-      .update({ activo: body.activo })
+      .update(updateData)
       .eq('id', parseInt(codigoId))
       .select()
       .single();
@@ -165,7 +185,7 @@ export const PATCH: APIRoute = async ({ request }) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, codigo: data, message: `Código ${data.activo ? 'activado' : 'desactivado'} correctamente` }),
+      JSON.stringify({ success: true, codigo: data, message: 'Código actualizado correctamente' }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {

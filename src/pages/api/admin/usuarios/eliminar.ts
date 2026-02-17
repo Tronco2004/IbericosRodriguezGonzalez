@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient } from '../../../../lib/supabase';
+import { supabaseAdmin } from '../../../../lib/supabase';
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
@@ -22,7 +22,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     // Eliminar el usuario (esto también elimina auth.users gracias a ON DELETE CASCADE)
-    const { error } = await supabaseClient
+    const { error } = await supabaseAdmin
       .from('usuarios')
       .delete()
       .eq('id', usuarioId);

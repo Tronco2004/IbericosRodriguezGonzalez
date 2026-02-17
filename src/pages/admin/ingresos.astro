@@ -1,0 +1,589 @@
+---
+import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
+---
+
+<ProtectedLayout requireAdmin={true}>
+  <div class="admin-page">
+    <!-- Header -->
+    <div class="admin-header" style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+      <a href="/admin/dashboard" class="admin-back-btn">←</a>
+      <div style="flex: 1;">
+        <h1 class="admin-title">Ingresos por Usuario</h1>
+        <p class="admin-subtitle">Desglose de ingresos generados por cada cliente</p>
+      </div>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <button class="filtro-btn active" data-periodo="mes">Este mes</button>
+        <button class="filtro-btn" data-periodo="trimestre">Trimestre</button>
+        <button class="filtro-btn" data-periodo="anio">Este año</button>
+        <button class="filtro-btn" data-periodo="todo">Todo</button>
+      </div>
+    </div>
+
+    <!-- Resumen -->
+    <div class="ingresos-resumen">
+      <div class="resumen-card">
+        <div class="resumen-icon">€</div>
+        <div>
+          <p class="resumen-label">Ingresos Totales</p>
+          <p class="resumen-valor" id="totalGeneral">0.00 €</p>
+        </div>
+      </div>
+      <div class="resumen-card">
+        <div class="resumen-icon">#</div>
+        <div>
+          <p class="resumen-label">Pedidos Totales</p>
+          <p class="resumen-valor" id="totalPedidos">0</p>
+        </div>
+      </div>
+      <div class="resumen-card">
+        <div class="resumen-icon">U</div>
+        <div>
+          <p class="resumen-label">Clientes</p>
+          <p class="resumen-valor" id="totalClientes">0</p>
+        </div>
+      </div>
+      <div class="resumen-card">
+        <div class="resumen-icon">~</div>
+        <div>
+          <p class="resumen-label">Ticket Promedio</p>
+          <p class="resumen-valor" id="ticketPromedio">0.00 €</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Buscador -->
+    <div class="ingresos-buscar">
+      <input type="text" id="buscarCliente" placeholder="Buscar por nombre o email..." class="buscar-input" />
+    </div>
+
+    <!-- Tabla de ingresos -->
+    <div class="admin-table-container">
+      <table id="ingresosTable" class="admin-table">
+        <thead>
+          <tr>
+            <th style="cursor: pointer;" onclick="ordenarPor('nombre')">Cliente ↕</th>
+            <th>Email</th>
+            <th style="cursor: pointer;" onclick="ordenarPor('pedidos')">Pedidos ↕</th>
+            <th style="cursor: pointer;" onclick="ordenarPor('ingresos')">Ingresos ↕</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="ingresosTableBody">
+          <tr>
+            <td colspan="5" class="admin-loading">
+              Cargando ingresos...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal detalle pedidos -->
+  <div id="modalDetallePedidos" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitulo">Pedidos de Cliente</h2>
+        <button class="modal-close" onclick="cerrarModal()">✕</button>
+      </div>
+      <div class="modal-body" id="modalBody">
+        <!-- Se rellena dinámicamente -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toastIngresos" class="toast-ingresos">
+    <span id="toastIcon" class="toast-icon"></span>
+    <div style="flex: 1;">
+      <div id="toastTitulo" class="toast-titulo"></div>
+      <div id="toastMsg" class="toast-msg"></div>
+    </div>
+  </div>
+
+  <style is:global>
+    /* Filtros */
+    .filtro-btn {
+      padding: 0.5rem 1.2rem;
+      background: var(--bg-tertiary);
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.85rem;
+      transition: all 0.2s ease;
+    }
+    .filtro-btn:hover {
+      border-color: #a89968;
+      color: #a89968;
+    }
+    .filtro-btn.active {
+      background: linear-gradient(135deg, #a89968 0%, #8b6f47 100%);
+      color: white;
+      border-color: #a89968;
+      box-shadow: 0 4px 12px rgba(168, 153, 104, 0.3);
+    }
+
+    /* Resumen */
+    .ingresos-resumen {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .resumen-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      transition: all 0.3s ease;
+    }
+    .resumen-card:hover {
+      border-color: #a89968;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    }
+    .resumen-icon {
+      font-size: 1.4rem;
+      font-weight: 800;
+      width: 52px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, rgba(168,153,104,0.15) 0%, rgba(139,111,71,0.15) 100%);
+      color: #a89968;
+      border-radius: 12px;
+      flex-shrink: 0;
+    }
+    .resumen-label {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .resumen-valor {
+      margin: 0.25rem 0 0;
+      color: var(--text-primary);
+      font-size: 1.6rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    /* Buscador */
+    .ingresos-buscar {
+      margin-bottom: 1.5rem;
+    }
+    .buscar-input {
+      width: 100%;
+      padding: 0.85rem 1.2rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-size: 0.95rem;
+      transition: all 0.2s ease;
+      box-sizing: border-box;
+    }
+    .buscar-input:focus {
+      outline: none;
+      border-color: #a89968;
+      box-shadow: 0 0 0 3px rgba(168, 153, 104, 0.15);
+    }
+    .buscar-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    /* Badges tipo */
+    .tipo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.3rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .tipo-registrado {
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+    }
+    .tipo-invitado {
+      background: rgba(245, 158, 11, 0.15);
+      color: #f59e0b;
+    }
+
+    /* Ingresos valor */
+    .ingresos-valor {
+      font-weight: 800;
+      font-size: 1rem;
+      color: #10b981;
+    }
+
+    /* Botón ver detalle */
+    .btn-ver-detalle {
+      padding: 0.55rem 1.3rem;
+      background: linear-gradient(135deg, #a89968 0%, #8b6f47 100%);
+      color: white !important;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 700;
+      transition: all 0.25s ease;
+      box-shadow: 0 2px 8px rgba(168, 153, 104, 0.25);
+      letter-spacing: 0.3px;
+      text-decoration: none;
+      display: inline-block;
+      white-space: nowrap;
+    }
+    .btn-ver-detalle:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(168, 153, 104, 0.4);
+      background: linear-gradient(135deg, #b8a978 0%, #9b7f57 100%);
+      color: white !important;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    .modal-overlay.visible {
+      display: flex;
+    }
+    .modal-content {
+      background: var(--bg-card);
+      border-radius: 16px;
+      width: 90%;
+      max-width: 700px;
+      max-height: 80vh;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      animation: modalIn 0.3s ease;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .modal-header h2 {
+      margin: 0;
+      color: var(--text-primary);
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+    .modal-close {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .modal-close:hover {
+      color: #ef4444;
+      border-color: #ef4444;
+    }
+    .modal-body {
+      padding: 1.5rem 2rem;
+      overflow-y: auto;
+    }
+
+    /* Tabla pedidos modal */
+    .pedidos-detalle-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .pedidos-detalle-table th {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid var(--border-color);
+    }
+    .pedidos-detalle-table td {
+      padding: 0.75rem 1rem;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .pedidos-detalle-table tr:last-child td {
+      border-bottom: none;
+    }
+    .pedidos-detalle-table .total-row td {
+      font-weight: 800;
+      border-top: 2px solid var(--border-color);
+      padding-top: 1rem;
+      color: #10b981;
+    }
+
+    /* Toast */
+    .toast-ingresos {
+      display: none;
+      position: fixed;
+      top: 2rem; right: 2rem;
+      z-index: 9999;
+      min-width: 300px;
+      padding: 1rem 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+      align-items: center;
+      gap: 0.75rem;
+      animation: toastIn 0.4s ease;
+    }
+    .toast-icon { font-size: 1.4rem; }
+    .toast-titulo { font-weight: 700; font-size: 0.95rem; margin-bottom: 0.1rem; }
+    .toast-msg { font-size: 0.85rem; opacity: 0.85; }
+
+    @keyframes modalIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(100px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(100px); } }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .ingresos-resumen {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .resumen-valor {
+        font-size: 1.3rem;
+      }
+      .modal-content {
+        width: 95%;
+        max-height: 90vh;
+      }
+      .modal-body { padding: 1rem; }
+      .modal-header { padding: 1rem; }
+    }
+  </style>
+
+  <script>
+    let datosIngresos = [];
+    let periodoActual = 'mes';
+    let ordenActual = { campo: 'ingresos', direccion: 'desc' };
+
+    async function cargarIngresos(periodo) {
+      periodoActual = periodo || periodoActual;
+      
+      try {
+        const response = await fetch(`/api/admin/ingresos-usuarios?periodo=${periodoActual}`);
+        const data = await response.json();
+
+        if (data.success) {
+          datosIngresos = data.ingresosUsuarios;
+          
+          // Actualizar resumen
+          document.getElementById('totalGeneral').textContent = data.totalGeneral + ' €';
+          document.getElementById('totalPedidos').textContent = String(data.totalPedidos);
+          document.getElementById('totalClientes').textContent = String(datosIngresos.length);
+          
+          const ticket = data.totalPedidos > 0 
+            ? (parseFloat(data.totalGeneral) / data.totalPedidos).toFixed(2) 
+            : '0.00';
+          document.getElementById('ticketPromedio').textContent = ticket + ' €';
+
+          renderTabla(datosIngresos);
+        } else {
+          document.getElementById('ingresosTableBody').innerHTML = 
+            '<tr><td colspan="5" class="admin-empty-state">Error al cargar los datos</td></tr>';
+        }
+      } catch (error) {
+        console.error('Error cargando ingresos:', error);
+        document.getElementById('ingresosTableBody').innerHTML = 
+            '<tr><td colspan="5" class="admin-empty-state">Error de conexión</td></tr>';
+      }
+    }
+
+    function renderTabla(datos) {
+      const tbody = document.getElementById('ingresosTableBody');
+      
+      if (!datos || datos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="admin-empty-state">No hay datos de ingresos para este periodo</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = datos.map((usuario, index) => `
+        <tr>
+          <td>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(168,153,104,0.15); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; color: #a89968; flex-shrink: 0;">
+                ${usuario.nombre.charAt(0).toUpperCase()}
+              </div>
+              <strong>${usuario.nombre}</strong>
+            </div>
+          </td>
+          <td style="color: var(--text-muted); font-size: 0.9rem;">${usuario.email || '-'}</td>
+          <td style="text-align: center; font-weight: 600;">${usuario.totalPedidos}</td>
+          <td>
+            <span class="ingresos-valor">${usuario.totalIngresos.toFixed(2)} €</span>
+          </td>
+          <td>
+            <button class="btn-ver-detalle" onclick="verDetalle(${index})">
+              Ver pedidos
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function verDetalle(index) {
+      const usuario = datosIngresos[index];
+      if (!usuario) return;
+
+      document.getElementById('modalTitulo').textContent = `Pedidos de ${usuario.nombre}`;
+      
+      let html = `
+        <div style="margin-bottom: 1rem; display: flex; gap: 1.5rem; flex-wrap: wrap;">
+          <div>
+            <span style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: 600;">Email</span>
+            <p style="margin: 0.2rem 0 0; color: var(--text-primary); font-weight: 600;">${usuario.email || '-'}</p>
+          </div>
+          <div>
+            <span style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: 600;">Total pedidos</span>
+            <p style="margin: 0.2rem 0 0; color: var(--text-primary); font-weight: 600;">${usuario.totalPedidos}</p>
+          </div>
+          <div>
+            <span style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: 600;">Total ingresos</span>
+            <p style="margin: 0.2rem 0 0; color: #10b981; font-weight: 800;">${usuario.totalIngresos.toFixed(2)} €</p>
+          </div>
+        </div>
+        <table class="pedidos-detalle-table">
+          <thead>
+            <tr>
+              <th>Nº Pedido</th>
+              <th>Fecha</th>
+              <th style="text-align: right;">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      usuario.pedidos.forEach(pedido => {
+        const fecha = new Date(pedido.fecha).toLocaleDateString('es-ES', {
+          day: '2-digit', month: '2-digit', year: 'numeric'
+        });
+        html += `
+          <tr>
+            <td style="font-weight: 600;">#${pedido.numeroPedido}</td>
+            <td>${fecha}</td>
+            <td style="text-align: right; font-weight: 600;">${pedido.subtotal.toFixed(2)} €</td>
+          </tr>
+        `;
+      });
+
+      html += `
+            <tr class="total-row">
+              <td colspan="2">Total</td>
+              <td style="text-align: right;">${usuario.totalIngresos.toFixed(2)} €</td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+
+      document.getElementById('modalBody').innerHTML = html;
+      document.getElementById('modalDetallePedidos').classList.add('visible');
+    }
+
+    function cerrarModal() {
+      document.getElementById('modalDetallePedidos').classList.remove('visible');
+    }
+
+    function ordenarPor(campo) {
+      if (ordenActual.campo === campo) {
+        ordenActual.direccion = ordenActual.direccion === 'asc' ? 'desc' : 'asc';
+      } else {
+        ordenActual.campo = campo;
+        ordenActual.direccion = 'desc';
+      }
+
+      const sorted = [...datosIngresos].sort((a, b) => {
+        let valA, valB;
+        switch (campo) {
+          case 'nombre':
+            valA = a.nombre.toLowerCase();
+            valB = b.nombre.toLowerCase();
+            return ordenActual.direccion === 'asc' 
+              ? valA.localeCompare(valB) 
+              : valB.localeCompare(valA);
+          case 'pedidos':
+            valA = a.totalPedidos;
+            valB = b.totalPedidos;
+            break;
+          case 'ingresos':
+            valA = a.totalIngresos;
+            valB = b.totalIngresos;
+            break;
+          default:
+            return 0;
+        }
+        return ordenActual.direccion === 'asc' ? valA - valB : valB - valA;
+      });
+
+      renderTabla(sorted);
+    }
+
+    // Buscador
+    document.getElementById('buscarCliente').addEventListener('input', (e) => {
+      const term = e.target.value.toLowerCase().trim();
+      if (!term) {
+        renderTabla(datosIngresos);
+        return;
+      }
+      const filtrados = datosIngresos.filter(u => 
+        u.nombre.toLowerCase().includes(term) || 
+        (u.email && u.email.toLowerCase().includes(term))
+      );
+      renderTabla(filtrados);
+    });
+
+    // Filtros periodo
+    document.querySelectorAll('.filtro-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        cargarIngresos(btn.dataset.periodo);
+      });
+    });
+
+    // Cerrar modal con fondo
+    document.getElementById('modalDetallePedidos').addEventListener('click', (e) => {
+      if (e.target.id === 'modalDetallePedidos') cerrarModal();
+    });
+
+    // Exponer funciones globales
+    window.verDetalle = verDetalle;
+    window.cerrarModal = cerrarModal;
+    window.ordenarPor = ordenarPor;
+
+    // Cargar al iniciar
+    cargarIngresos('mes');
+  </script>
+</ProtectedLayout>

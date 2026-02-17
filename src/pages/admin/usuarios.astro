@@ -34,7 +34,59 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     </div>
   </div>
 
+  <!-- Modal confirmar eliminación -->
+  <div id="modalEliminarUsuario" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: var(--bg-card); border-radius: 12px; padding: 2rem; max-width: 420px; width: 90%; border: 1px solid var(--border-color); box-shadow: 0 10px 40px rgba(0,0,0,0.3); animation: modalIn 0.3s ease;">
+      <div style="text-align: center; margin-bottom: 1.5rem;">
+        <div style="width: 56px; height: 56px; border-radius: 50%; background: #fef2f2; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.8rem;">⚠️</div>
+        <h2 style="color: var(--text-primary); margin: 0 0 0.5rem; font-size: 1.25rem;">Eliminar Usuario</h2>
+        <p id="modalEliminarMsg" style="color: var(--text-muted); margin: 0; line-height: 1.5; font-size: 0.95rem;">¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer.</p>
+      </div>
+      <div style="display: flex; gap: 0.75rem; justify-content: center;">
+        <button id="btnCancelarEliminar" style="padding: 0.65rem 1.5rem; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s;">Cancelar</button>
+        <button id="btnConfirmarEliminar" style="padding: 0.65rem 1.5rem; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; box-shadow: 0 2px 8px rgba(239,68,68,0.3);">Eliminar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notificación -->
+  <div id="toastUsuarios" style="display: none; position: fixed; top: 2rem; right: 2rem; z-index: 9999; min-width: 300px; padding: 1rem 1.5rem; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.25); align-items: center; gap: 0.75rem; animation: toastIn 0.4s ease;">
+    <span id="toastUsuariosIcon" style="font-size: 1.4rem;"></span>
+    <div style="flex: 1;">
+      <div id="toastUsuariosTitulo" style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.1rem;"></div>
+      <div id="toastUsuariosMsg" style="font-size: 0.85rem; opacity: 0.85;"></div>
+    </div>
+  </div>
+
+  <style>
+    @keyframes modalIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(100px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(100px); } }
+  </style>
+
   <script>
+    let eliminandoUsuarioId = null;
+
+    function mostrarToast(tipo, titulo, mensaje) {
+      const toast = document.getElementById('toastUsuarios');
+      const icon = document.getElementById('toastUsuariosIcon');
+      const titleEl = document.getElementById('toastUsuariosTitulo');
+      const msgEl = document.getElementById('toastUsuariosMsg');
+      const estilos = {
+        success: { icon: '✓', bg: '#ecfdf5', color: '#065f46', border: '#10b981' },
+        error: { icon: '✕', bg: '#fef2f2', color: '#991b1b', border: '#ef4444' }
+      };
+      const s = estilos[tipo] || estilos.success;
+      icon.textContent = s.icon; icon.style.color = s.color;
+      titleEl.textContent = titulo; titleEl.style.color = s.color;
+      msgEl.textContent = mensaje; msgEl.style.color = s.color;
+      toast.style.display = 'flex'; toast.style.background = s.bg; toast.style.borderLeft = '4px solid ' + s.border;
+      setTimeout(() => {
+        toast.style.animation = 'toastOut 0.4s ease';
+        setTimeout(() => { toast.style.display = 'none'; toast.style.animation = 'toastIn 0.4s ease'; }, 400);
+      }, 3000);
+    }
+
     async function cargarUsuarios() {
       try {
         const response = await fetch('/api/admin/usuarios');
@@ -77,52 +129,72 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       try {
         const activo = nuevoEstado === 'true';
         
-        const response = await fetch('/api/admin/usuarios', {
-          method: 'PUT',
-          body: JSON.stringify({ id: usuarioId, activo }),
-          headers: {
-            'Content-Type': 'application/json'
-          }
+        const response = await fetch('/api/admin/usuarios/actualizar-estado', {
+          method: 'POST',
+          body: JSON.stringify({ usuarioId, activo }),
+          headers: { 'Content-Type': 'application/json' }
         });
 
         const data = await response.json();
         
         if (data.success) {
-          console.log('✅ Estado actualizado');
+          mostrarToast('success', '✓ Estado actualizado', `Usuario ${activo ? 'activado' : 'desactivado'} correctamente`);
         } else {
-          alert('Error al actualizar el estado');
+          mostrarToast('error', 'Error', 'No se pudo actualizar el estado');
           cargarUsuarios();
         }
       } catch (error) {
         console.error('Error:', error);
-        alert('Error al actualizar el estado');
+        mostrarToast('error', 'Error', 'Error al actualizar el estado');
         cargarUsuarios();
       }
     }
 
-    async function eliminarUsuario(usuarioId) {
-      if (!confirm('¿Está seguro de que desea eliminar este usuario?')) {
-        return;
-      }
+    function eliminarUsuario(usuarioId) {
+      eliminandoUsuarioId = usuarioId;
+      document.getElementById('modalEliminarUsuario').style.display = 'flex';
+    }
 
+    async function confirmarEliminacion() {
+      if (!eliminandoUsuarioId) return;
       try {
-        const response = await fetch(`/api/admin/usuarios/eliminar?id=${usuarioId}`, {
-          method: 'DELETE'
+        const response = await fetch('/api/admin/usuarios/eliminar', {
+          method: 'POST',
+          body: JSON.stringify({ usuarioId: eliminandoUsuarioId }),
+          headers: { 'Content-Type': 'application/json' }
         });
-
         const data = await response.json();
-        
+        document.getElementById('modalEliminarUsuario').style.display = 'none';
         if (data.success) {
-          console.log('✅ Usuario eliminado');
+          mostrarToast('success', '✓ Usuario eliminado', 'El usuario ha sido eliminado correctamente');
           cargarUsuarios();
         } else {
-          alert('Error al eliminar el usuario');
+          mostrarToast('error', 'Error', 'No se pudo eliminar el usuario');
         }
       } catch (error) {
         console.error('Error:', error);
-        alert('Error al eliminar el usuario');
+        document.getElementById('modalEliminarUsuario').style.display = 'none';
+        mostrarToast('error', 'Error', 'Error al eliminar el usuario');
       }
+      eliminandoUsuarioId = null;
     }
+
+    // Eventos modal
+    document.getElementById('btnConfirmarEliminar').addEventListener('click', confirmarEliminacion);
+    document.getElementById('btnCancelarEliminar').addEventListener('click', () => {
+      document.getElementById('modalEliminarUsuario').style.display = 'none';
+      eliminandoUsuarioId = null;
+    });
+    document.getElementById('modalEliminarUsuario').addEventListener('click', (e) => {
+      if (e.target.id === 'modalEliminarUsuario') {
+        document.getElementById('modalEliminarUsuario').style.display = 'none';
+        eliminandoUsuarioId = null;
+      }
+    });
+
+    // Exponer funciones globalmente para onclick dinámico
+    window.eliminarUsuario = eliminarUsuario;
+    window.cambiarEstado = cambiarEstado;
 
     // Cargar usuarios al iniciar
     cargarUsuarios();

@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient } from '../../../lib/supabase';
+import { supabaseAdmin } from '../../../lib/supabase';
 
 export const GET: APIRoute = async ({ request }) => {
   try {
@@ -13,7 +13,7 @@ export const GET: APIRoute = async ({ request }) => {
     }
 
     // Verificar que sea admin
-    const { data: usuario, error: errorUsuario } = await supabaseClient
+    const { data: usuario, error: errorUsuario } = await supabaseAdmin
       .from('usuarios')
       .select('rol')
       .eq('id', userId)
@@ -27,7 +27,7 @@ export const GET: APIRoute = async ({ request }) => {
     }
 
     // Obtener todos los códigos
-    const { data: codigos, error: errorCodigos } = await supabaseClient
+    const { data: codigos, error: errorCodigos } = await supabaseAdmin
       .from('codigos_promocionales')
       .select('*')
       .order('fecha_creacion', { ascending: false });
@@ -43,7 +43,7 @@ export const GET: APIRoute = async ({ request }) => {
     // Obtener estadísticas de uso para cada código
     const codigosConEstadisticas = await Promise.all(
       codigos.map(async (codigo) => {
-        const { data: usos, error: errorUsos } = await supabaseClient
+        const { data: usos, error: errorUsos } = await supabaseAdmin
           .from('uso_codigos')
           .select('*')
           .eq('codigo_id', codigo.id);
