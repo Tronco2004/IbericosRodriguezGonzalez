@@ -1,0 +1,140 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout>
+  <style>
+    .legal-page {
+      max-width: 900px;
+      margin: 4rem auto;
+      padding: 0 2rem;
+    }
+    .legal-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    .legal-title {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, var(--text-primary), var(--color-accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .legal-subtitle {
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+    .legal-content {
+      background: var(--bg-tertiary);
+      padding: 2.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px var(--shadow-color);
+    }
+    .legal-content h2 {
+      font-size: 1.4rem;
+      color: var(--color-accent);
+      margin-top: 2rem;
+      margin-bottom: 0.75rem;
+    }
+    .legal-content h2:first-child {
+      margin-top: 0;
+    }
+    .legal-content p, .legal-content li {
+      color: var(--text-secondary);
+      line-height: 1.8;
+      margin-bottom: 0.75rem;
+    }
+    .legal-content ul {
+      padding-left: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .legal-content li {
+      margin-bottom: 0.4rem;
+    }
+
+    @media (max-width: 600px) {
+      .legal-title {
+        font-size: 1.8rem;
+      }
+      .legal-content {
+        padding: 1.5rem;
+      }
+    }
+  </style>
+
+  <div class="legal-page">
+    <div class="legal-header">
+      <h1 class="legal-title">Política de Privacidad</h1>
+      <p class="legal-subtitle">Última actualización: febrero 2026</p>
+    </div>
+
+    <div class="legal-content">
+      <h2>1. Responsable del Tratamiento</h2>
+      <p>
+        El responsable del tratamiento de sus datos personales es Ibéricos Rodríguez González. 
+        Puede contactarnos a través de nuestra <a href="/contacto" style="color: var(--color-accent);">página de contacto</a>.
+      </p>
+
+      <h2>2. Datos que Recopilamos</h2>
+      <p>Recopilamos los siguientes datos personales cuando utiliza nuestra tienda:</p>
+      <ul>
+        <li><strong>Datos de registro:</strong> nombre, apellidos, correo electrónico y contraseña (cifrada).</li>
+        <li><strong>Datos de envío:</strong> dirección postal, teléfono de contacto.</li>
+        <li><strong>Datos de pedidos:</strong> historial de compras, productos adquiridos.</li>
+        <li><strong>Datos de navegación:</strong> cookies técnicas necesarias para el funcionamiento del sitio.</li>
+      </ul>
+
+      <h2>3. Finalidad del Tratamiento</h2>
+      <p>Sus datos personales se utilizan para:</p>
+      <ul>
+        <li>Gestionar su cuenta de usuario y autenticación.</li>
+        <li>Procesar y enviar sus pedidos.</li>
+        <li>Enviar confirmaciones y actualizaciones de estado de pedidos por correo electrónico.</li>
+        <li>Atender sus consultas y solicitudes a través del formulario de contacto.</li>
+        <li>Mejorar nuestros servicios y experiencia de usuario.</li>
+      </ul>
+
+      <h2>4. Base Legal</h2>
+      <p>
+        El tratamiento de sus datos se basa en la ejecución del contrato de compraventa, 
+        el consentimiento proporcionado al registrarse y nuestro interés legítimo en mejorar nuestros servicios.
+      </p>
+
+      <h2>5. Conservación de Datos</h2>
+      <p>
+        Sus datos personales se conservarán mientras mantenga su cuenta activa y durante el período 
+        legalmente establecido para el cumplimiento de obligaciones fiscales y mercantiles.
+      </p>
+
+      <h2>6. Derechos del Usuario</h2>
+      <p>Usted tiene derecho a:</p>
+      <ul>
+        <li><strong>Acceso:</strong> solicitar una copia de sus datos personales.</li>
+        <li><strong>Rectificación:</strong> corregir datos inexactos o incompletos.</li>
+        <li><strong>Supresión:</strong> solicitar la eliminación de sus datos ("derecho al olvido").</li>
+        <li><strong>Portabilidad:</strong> recibir sus datos en un formato estructurado.</li>
+        <li><strong>Oposición:</strong> oponerse al tratamiento de sus datos en determinadas circunstancias.</li>
+      </ul>
+      <p>
+        Para ejercer estos derechos, contacte con nosotros a través de la <a href="/contacto" style="color: var(--color-accent);">página de contacto</a>.
+      </p>
+
+      <h2>7. Seguridad</h2>
+      <p>
+        Implementamos medidas técnicas y organizativas adecuadas para proteger sus datos personales, 
+        incluyendo cifrado de contraseñas, conexiones seguras (HTTPS) y procesamiento de pagos 
+        a través de la pasarela segura de Stripe (no almacenamos datos de tarjetas de crédito).
+      </p>
+
+      <h2>8. Terceros</h2>
+      <p>
+        Sus datos pueden ser compartidos con terceros únicamente cuando sea necesario para la prestación del servicio:
+      </p>
+      <ul>
+        <li><strong>Stripe:</strong> para el procesamiento seguro de pagos.</li>
+        <li><strong>Empresas de transporte:</strong> para la entrega de pedidos.</li>
+        <li><strong>Supabase:</strong> como proveedor de infraestructura de base de datos.</li>
+      </ul>
+    </div>
+  </div>
+</Layout>

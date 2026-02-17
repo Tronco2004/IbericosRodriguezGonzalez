@@ -1,0 +1,177 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout>
+  <style>
+    .legal-page {
+      max-width: 900px;
+      margin: 4rem auto;
+      padding: 0 2rem;
+    }
+    .legal-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    .legal-title {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, var(--text-primary), var(--color-accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .legal-subtitle {
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+    .legal-content {
+      background: var(--bg-tertiary);
+      padding: 2.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px var(--shadow-color);
+    }
+    .legal-content h2 {
+      font-size: 1.4rem;
+      color: var(--color-accent);
+      margin-top: 2rem;
+      margin-bottom: 0.75rem;
+    }
+    .legal-content h2:first-child {
+      margin-top: 0;
+    }
+    .legal-content p, .legal-content li {
+      color: var(--text-secondary);
+      line-height: 1.8;
+      margin-bottom: 0.75rem;
+    }
+    .legal-content ul {
+      padding-left: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .legal-content li {
+      margin-bottom: 0.4rem;
+    }
+    .cookie-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+    }
+    .cookie-table th, .cookie-table td {
+      padding: 0.75rem;
+      border: 1px solid var(--border-color);
+      text-align: left;
+    }
+    .cookie-table th {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    .cookie-table td {
+      color: var(--text-secondary);
+    }
+
+    @media (max-width: 600px) {
+      .legal-title {
+        font-size: 1.8rem;
+      }
+      .legal-content {
+        padding: 1.5rem;
+      }
+      .cookie-table {
+        font-size: 0.8rem;
+      }
+      .cookie-table th, .cookie-table td {
+        padding: 0.5rem;
+      }
+    }
+  </style>
+
+  <div class="legal-page">
+    <div class="legal-header">
+      <h1 class="legal-title">Política de Cookies</h1>
+      <p class="legal-subtitle">Última actualización: febrero 2026</p>
+    </div>
+
+    <div class="legal-content">
+      <h2>1. ¿Qué son las Cookies?</h2>
+      <p>
+        Las cookies son pequeños archivos de texto que se almacenan en su dispositivo cuando visita un sitio web. 
+        Se utilizan para recordar sus preferencias, mantener su sesión iniciada y mejorar su experiencia de navegación.
+      </p>
+
+      <h2>2. Cookies que Utilizamos</h2>
+      <p>En nuestra tienda utilizamos los siguientes tipos de cookies:</p>
+
+      <table class="cookie-table">
+        <thead>
+          <tr>
+            <th>Cookie</th>
+            <th>Tipo</th>
+            <th>Finalidad</th>
+            <th>Duración</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>sb-access-token</td>
+            <td>Técnica / Sesión</td>
+            <td>Autenticación de usuario (Supabase Auth)</td>
+            <td>Sesión</td>
+          </tr>
+          <tr>
+            <td>sb-refresh-token</td>
+            <td>Técnica / Sesión</td>
+            <td>Renovación de la sesión de usuario</td>
+            <td>30 días</td>
+          </tr>
+          <tr>
+            <td>theme</td>
+            <td>Preferencias</td>
+            <td>Recordar el tema visual (claro/oscuro)</td>
+            <td>1 año</td>
+          </tr>
+          <tr>
+            <td>__stripe_mid</td>
+            <td>Terceros (Stripe)</td>
+            <td>Prevención de fraude en pagos</td>
+            <td>1 año</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>3. Cookies Técnicas (Necesarias)</h2>
+      <p>
+        Estas cookies son esenciales para el funcionamiento del sitio web. Sin ellas, no podríamos gestionar 
+        su inicio de sesión, el carrito de compras ni procesar pedidos. No requieren consentimiento 
+        ya que son estrictamente necesarias.
+      </p>
+
+      <h2>4. Cookies de Terceros</h2>
+      <p>
+        Utilizamos Stripe como pasarela de pago, que puede establecer sus propias cookies para 
+        prevención de fraude y procesamiento seguro de transacciones. 
+        Puede consultar la <a href="https://stripe.com/es/privacy" target="_blank" rel="noopener" style="color: var(--color-accent);">política de privacidad de Stripe</a>.
+      </p>
+
+      <h2>5. Gestión de Cookies</h2>
+      <p>
+        Puede configurar su navegador para rechazar cookies o para que le avise cuando se envíen. 
+        Tenga en cuenta que si desactiva las cookies técnicas, algunas funciones del sitio 
+        (como el inicio de sesión o el carrito) no funcionarán correctamente.
+      </p>
+      <ul>
+        <li><strong>Chrome:</strong> Configuración → Privacidad y seguridad → Cookies</li>
+        <li><strong>Firefox:</strong> Opciones → Privacidad y seguridad → Cookies</li>
+        <li><strong>Safari:</strong> Preferencias → Privacidad → Cookies</li>
+        <li><strong>Edge:</strong> Configuración → Privacidad → Cookies</li>
+      </ul>
+
+      <h2>6. Más Información</h2>
+      <p>
+        Para cualquier duda sobre nuestra política de cookies, puede contactarnos a través de 
+        nuestra <a href="/contacto" style="color: var(--color-accent);">página de contacto</a>.
+      </p>
+    </div>
+  </div>
+</Layout>

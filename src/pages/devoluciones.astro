@@ -1,0 +1,158 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout>
+  <style>
+    .legal-page {
+      max-width: 900px;
+      margin: 4rem auto;
+      padding: 0 2rem;
+    }
+    .legal-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    .legal-title {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, var(--text-primary), var(--color-accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .legal-subtitle {
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+    .legal-content {
+      background: var(--bg-tertiary);
+      padding: 2.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px var(--shadow-color);
+    }
+    .legal-content h2 {
+      font-size: 1.4rem;
+      color: var(--color-accent);
+      margin-top: 2rem;
+      margin-bottom: 0.75rem;
+    }
+    .legal-content h2:first-child {
+      margin-top: 0;
+    }
+    .legal-content p, .legal-content li {
+      color: var(--text-secondary);
+      line-height: 1.8;
+      margin-bottom: 0.75rem;
+    }
+    .legal-content ul, .legal-content ol {
+      padding-left: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .legal-content li {
+      margin-bottom: 0.4rem;
+    }
+    .info-box {
+      background: var(--bg-secondary);
+      border-left: 4px solid var(--color-accent);
+      padding: 1.25rem;
+      border-radius: 0 8px 8px 0;
+      margin: 1.5rem 0;
+    }
+    .info-box p {
+      margin-bottom: 0;
+    }
+
+    @media (max-width: 600px) {
+      .legal-title {
+        font-size: 1.8rem;
+      }
+      .legal-content {
+        padding: 1.5rem;
+      }
+    }
+  </style>
+
+  <div class="legal-page">
+    <div class="legal-header">
+      <h1 class="legal-title">Política de Devoluciones</h1>
+      <p class="legal-subtitle">Última actualización: febrero 2026</p>
+    </div>
+
+    <div class="legal-content">
+      <h2>1. Derecho de Desistimiento</h2>
+      <p>
+        De acuerdo con la normativa vigente, dispone de un plazo de <strong>14 días naturales</strong> 
+        desde la recepción del pedido para ejercer su derecho de desistimiento, sin necesidad de justificación.
+      </p>
+      <div class="info-box">
+        <p>
+          <strong>Importante:</strong> Dado que comercializamos productos alimenticios perecederos, 
+          el derecho de desistimiento no será aplicable a productos que puedan deteriorarse o caducar con rapidez, 
+          conforme al artículo 103 del Real Decreto Legislativo 1/2007.
+        </p>
+      </div>
+
+      <h2>2. Productos no Perecederos</h2>
+      <p>
+        Para productos no perecederos (accesorios, lotes cerrados sin abrir, etc.), podrá solicitar la devolución 
+        siempre que:
+      </p>
+      <ul>
+        <li>El producto se encuentre en su embalaje original, sin abrir y en perfecto estado.</li>
+        <li>Se solicite dentro de los 14 días naturales desde la recepción.</li>
+        <li>Se incluya el comprobante de compra o número de pedido.</li>
+      </ul>
+
+      <h2>3. Productos Defectuosos o Errores en el Envío</h2>
+      <p>
+        Si recibe un producto en mal estado, defectuoso o diferente al pedido, 
+        tiene derecho a la devolución o sustitución sin coste alguno. Para ello:
+      </p>
+      <ol>
+        <li>Contacte con nosotros en un plazo máximo de <strong>48 horas</strong> desde la recepción.</li>
+        <li>Adjunte fotografías del producto y del embalaje.</li>
+        <li>Le indicaremos los pasos a seguir para la recogida o sustitución.</li>
+      </ol>
+
+      <h2>4. Cómo Solicitar una Devolución</h2>
+      <p>Puede solicitar una devolución de dos formas:</p>
+      <ul>
+        <li>
+          <strong>Desde su cuenta:</strong> acceda a 
+          <a href="/mis-pedidos" style="color: var(--color-accent);">Mis Pedidos</a>, 
+          seleccione el pedido y pulse "Solicitar devolución".
+        </li>
+        <li>
+          <strong>Por contacto:</strong> envíenos un mensaje desde la 
+          <a href="/contacto" style="color: var(--color-accent);">página de contacto</a> 
+          indicando su número de pedido y el motivo de la devolución.
+        </li>
+      </ul>
+
+      <h2>5. Proceso de Reembolso</h2>
+      <p>
+        Una vez recibido y verificado el producto devuelto, tramitaremos el reembolso 
+        en un plazo máximo de <strong>14 días</strong>. El importe se abonará 
+        por el mismo método de pago utilizado en la compra.
+      </p>
+      <ul>
+        <li>Reembolso completo del producto si se cumplen las condiciones.</li>
+        <li>Los gastos de envío de la devolución corren a cargo del cliente, salvo que el motivo sea un error nuestro o producto defectuoso.</li>
+      </ul>
+
+      <h2>6. Cancelaciones</h2>
+      <p>
+        Si desea cancelar un pedido que aún no ha sido preparado o enviado, puede hacerlo 
+        directamente desde la sección <a href="/mis-pedidos" style="color: var(--color-accent);">Mis Pedidos</a> 
+        de su cuenta. Una vez que el pedido esté en preparación o enviado, deberá seguir el proceso de devolución.
+      </p>
+
+      <h2>7. Contacto</h2>
+      <p>
+        Para cualquier consulta relacionada con devoluciones, no dude en contactarnos a través de 
+        nuestra <a href="/contacto" style="color: var(--color-accent);">página de contacto</a>. 
+        Estaremos encantados de ayudarle.
+      </p>
+    </div>
+  </div>
+</Layout>

@@ -1,0 +1,135 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout>
+  <style>
+    .legal-page {
+      max-width: 900px;
+      margin: 4rem auto;
+      padding: 0 2rem;
+    }
+    .legal-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    .legal-title {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, var(--text-primary), var(--color-accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .legal-subtitle {
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+    .legal-content {
+      background: var(--bg-tertiary);
+      padding: 2.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px var(--shadow-color);
+    }
+    .legal-content h2 {
+      font-size: 1.4rem;
+      color: var(--color-accent);
+      margin-top: 2rem;
+      margin-bottom: 0.75rem;
+    }
+    .legal-content h2:first-child {
+      margin-top: 0;
+    }
+    .legal-content p, .legal-content li {
+      color: var(--text-secondary);
+      line-height: 1.8;
+      margin-bottom: 0.75rem;
+    }
+    .legal-content ul {
+      padding-left: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .legal-content li {
+      margin-bottom: 0.4rem;
+    }
+
+    @media (max-width: 600px) {
+      .legal-title {
+        font-size: 1.8rem;
+      }
+      .legal-content {
+        padding: 1.5rem;
+      }
+    }
+  </style>
+
+  <div class="legal-page">
+    <div class="legal-header">
+      <h1 class="legal-title">Términos y Condiciones</h1>
+      <p class="legal-subtitle">Última actualización: febrero 2026</p>
+    </div>
+
+    <div class="legal-content">
+      <h2>1. Información General</h2>
+      <p>
+        El presente documento establece las condiciones generales de uso y compra en la tienda online de Ibéricos Rodríguez González. 
+        Al acceder y utilizar este sitio web, el usuario acepta quedar vinculado por estos términos y condiciones.
+      </p>
+
+      <h2>2. Productos y Precios</h2>
+      <p>
+        Los precios de los productos incluyen IVA y se muestran en euros (€). 
+        Nos reservamos el derecho de modificar los precios en cualquier momento, sin perjuicio de los pedidos ya confirmados.
+      </p>
+      <p>
+        Las imágenes de los productos son orientativas. Dada la naturaleza artesanal de nuestros productos ibéricos, 
+        pueden existir pequeñas variaciones en apariencia, peso y presentación.
+      </p>
+
+      <h2>3. Proceso de Compra</h2>
+      <ul>
+        <li>Seleccione los productos deseados y añádalos al carrito.</li>
+        <li>Revise su pedido y proceda al pago.</li>
+        <li>Recibirá una confirmación por correo electrónico con los detalles del pedido.</li>
+        <li>El pedido será preparado y enviado en los plazos indicados.</li>
+      </ul>
+
+      <h2>4. Envíos</h2>
+      <p>
+        Realizamos envíos a toda la península. Los plazos de entrega habituales son de 2 a 5 días laborables 
+        desde la confirmación del pedido. Para productos perecederos, se utilizan servicios de envío refrigerado 
+        para garantizar la calidad del producto.
+      </p>
+
+      <h2>5. Formas de Pago</h2>
+      <p>
+        Aceptamos pago mediante tarjeta de crédito/débito a través de la pasarela segura de Stripe. 
+        Todos los pagos se procesan de forma segura y encriptada.
+      </p>
+
+      <h2>6. Cancelaciones</h2>
+      <p>
+        Puede cancelar su pedido siempre que este no haya sido procesado o enviado. 
+        Para solicitar una cancelación, contacte con nosotros lo antes posible a través de la página de contacto 
+        o desde la sección "Mis Pedidos".
+      </p>
+
+      <h2>7. Propiedad Intelectual</h2>
+      <p>
+        Todos los contenidos del sitio web (textos, imágenes, logotipos, diseño) son propiedad de Ibéricos Rodríguez González 
+        y están protegidos por las leyes de propiedad intelectual. Queda prohibida su reproducción sin autorización expresa.
+      </p>
+
+      <h2>8. Limitación de Responsabilidad</h2>
+      <p>
+        Ibéricos Rodríguez González no se responsabiliza de los daños derivados del uso inadecuado de los productos adquiridos 
+        ni de las interrupciones del servicio web por causas ajenas a nuestra voluntad.
+      </p>
+
+      <h2>9. Legislación Aplicable</h2>
+      <p>
+        Estas condiciones se rigen por la legislación española. Para cualquier controversia, 
+        las partes se someten a los juzgados y tribunales correspondientes.
+      </p>
+    </div>
+  </div>
+</Layout>
