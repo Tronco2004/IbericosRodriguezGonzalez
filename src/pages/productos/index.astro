@@ -123,9 +123,9 @@ import Layout from '../../layouts/Layout.astro';
         <div class="precio-header">
           <label class="precio-label">Rango de Precio</label>
           <div class="precio-values">
-            <span class="precio-value" id="precioMinDisplay">€0</span>
+            <span class="precio-value" id="precioMinDisplay">0 €</span>
             <span class="precio-separator">—</span>
-            <span class="precio-value" id="precioMaxDisplay">€1000</span>
+            <span class="precio-value" id="precioMaxDisplay">1000 €</span>
           </div>
         </div>
         
@@ -1279,7 +1279,7 @@ import Layout from '../../layouts/Layout.astro';
 
       document.querySelectorAll('.product-title').forEach(title => {
         title.addEventListener('mouseover', () => title.style.color = '#a89968');
-        title.addEventListener('mouseout', () => title.style.color = '#1a1a1a');
+        title.addEventListener('mouseout', () => title.style.color = '');
       });
 
       document.querySelectorAll('.product-btn').forEach(btn => {
@@ -1431,8 +1431,8 @@ import Layout from '../../layouts/Layout.astro';
         sliderPrecioMax.value = precioMaxReal;
         sliderPrecioMin.max = precioMaxReal;
         sliderPrecioMax.max = precioMaxReal;
-        precioMinDisplay.textContent = `€0`;
-        precioMaxDisplay.textContent = `€${precioMaxReal}`;
+        precioMinDisplay.textContent = `0 €`;
+        precioMaxDisplay.textContent = `${precioMaxReal} €`;
         
         // Renderizar los productos
         renderizarProductos(productos, variantesReservadas);
@@ -2544,8 +2544,8 @@ import Layout from '../../layouts/Layout.astro';
       const minVal = Math.round(sliderPrecioMin.value) || 0;
       const maxVal = Math.round(sliderPrecioMax.value) || 1000;
       
-      precioMinDisplay.textContent = `€${minVal}`;
-      precioMaxDisplay.textContent = `€${maxVal}`;
+      precioMinDisplay.textContent = `${minVal} €`;
+      precioMaxDisplay.textContent = `${maxVal} €`;
       
       aplicarFiltros();
     }
@@ -2567,8 +2567,8 @@ import Layout from '../../layouts/Layout.astro';
       filterCategoria.value = '';
       sliderPrecioMin.value = 0;
       sliderPrecioMax.value = precioMaxReal;
-      precioMinDisplay.textContent = `€0`;
-      precioMaxDisplay.textContent = `€${precioMaxReal}`;
+      precioMinDisplay.textContent = `0 €`;
+      precioMaxDisplay.textContent = `${precioMaxReal} €`;
       filterOrden.value = 'nombre';
       aplicarFiltros();
     });

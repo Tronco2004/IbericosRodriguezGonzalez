@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { supabaseClient } from '../../../lib/supabase';
 import { enviarEmailCancelacion, notificarCancelacionAlAdmin } from '../../../lib/email';
+import { procesarReembolsoStripe } from '../../../lib/stripe';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -16,12 +17,20 @@ export const POST: APIRoute = async ({ request }) => {
 
     console.log('🔵 Cancelando pedido:', { pedido_id, userId });
 
-    // Verificar que el pedido pertenece al usuario
+    // Obtener email del usuario para poder verificar propiedad por email también
+    let userEmail: string | null = null;
+    const { data: usuario } = await supabaseClient
+      .from('usuarios')
+      .select('email')
+      .eq('id', userId)
+      .single();
+    if (usuario?.email) userEmail = usuario.email;
+
+    // Buscar pedido por ID (sin filtrar por usuario_id, ya que puede ser null en pedidos de invitado)
     const { data: pedido, error: errorPedido } = await supabaseClient
       .from('pedidos')
-      .select('id, estado, usuario_id')
+      .select('id, estado, usuario_id, stripe_session_id, email_cliente')
       .eq('id', parseInt(pedido_id))
-      .eq('usuario_id', userId)
       .single();
 
     if (errorPedido || !pedido) {
@@ -29,6 +38,18 @@ export const POST: APIRoute = async ({ request }) => {
       return new Response(
         JSON.stringify({ success: false, error: 'Pedido no encontrado' }),
         { status: 404 }
+      );
+    }
+
+    // Verificar que el pedido pertenece al usuario (por usuario_id o por email)
+    const esPropietario = pedido.usuario_id === userId || 
+      (userEmail && pedido.email_cliente === userEmail);
+
+    if (!esPropietario) {
+      console.error('❌ El pedido no pertenece al usuario:', { pedidoUserId: pedido.usuario_id, pedidoEmail: pedido.email_cliente, userId, userEmail });
+      return new Response(
+        JSON.stringify({ success: false, error: 'No tienes permiso para cancelar este pedido' }),
+        { status: 403 }
       );
     }
 
@@ -127,6 +148,36 @@ export const POST: APIRoute = async ({ request }) => {
       console.warn('⚠️ No hay items en el pedido o error:', errorItems);
     }
 
+    // ✅ PROCESAR REEMBOLSO REAL EN STRIPE
+    let reembolsoInfo = { procesado: false, refundId: '', error: '' };
+
+    if (pedido.stripe_session_id) {
+      console.log('💳 Procesando reembolso en Stripe para sesión:', pedido.stripe_session_id);
+
+      const resultado = await procesarReembolsoStripe(
+        pedido.stripe_session_id,
+        `Cancelación de pedido por el cliente`
+      );
+
+      if (resultado.success) {
+        reembolsoInfo.procesado = true;
+        reembolsoInfo.refundId = resultado.refundId || '';
+
+        if (resultado.alreadyRefunded) {
+          console.log('⚠️ El pago ya estaba reembolsado en Stripe');
+        } else {
+          console.log('✅ Reembolso procesado en Stripe:', resultado.refundId, '| Monto:', resultado.amount, resultado.currency);
+        }
+      } else {
+        console.error('❌ Error al procesar reembolso en Stripe:', resultado.error);
+        reembolsoInfo.error = resultado.error || 'Error desconocido';
+        // No bloqueamos la cancelación, pero logueamos el error
+      }
+    } else {
+      console.warn('⚠️ El pedido no tiene stripe_session_id, no se puede procesar reembolso automático');
+      reembolsoInfo.error = 'Sin stripe_session_id';
+    }
+
     console.log('🔵 Actualizando estado del pedido a cancelado...');
 
     // Cambiar estado a cancelado
@@ -195,8 +246,15 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Pedido cancelado exitosamente. Stock restaurado.',
-        pedido_id: pedido_id
+        message: reembolsoInfo.procesado
+          ? 'Pedido cancelado y reembolso procesado en Stripe. Stock restaurado.'
+          : `Pedido cancelado. Stock restaurado. ${reembolsoInfo.error ? 'Reembolso Stripe pendiente: ' + reembolsoInfo.error : ''}`,
+        pedido_id: pedido_id,
+        reembolso: {
+          procesado: reembolsoInfo.procesado,
+          refund_id: reembolsoInfo.refundId || null,
+          error: reembolsoInfo.error || null
+        }
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
