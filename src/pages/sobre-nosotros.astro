@@ -1,0 +1,142 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout>
+  <style>
+    .about-page {
+      max-width: 900px;
+      margin: 4rem auto;
+      padding: 0 2rem;
+    }
+    .about-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    .about-title {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, var(--text-primary), var(--color-accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .about-subtitle {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+    .about-section {
+      background: var(--bg-tertiary);
+      padding: 2.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px var(--shadow-color);
+      margin-bottom: 2rem;
+    }
+    .about-section h2 {
+      font-size: 1.5rem;
+      color: var(--color-accent);
+      margin-bottom: 1rem;
+    }
+    .about-section p {
+      color: var(--text-secondary);
+      line-height: 1.8;
+      margin-bottom: 1rem;
+    }
+    .about-section p:last-child {
+      margin-bottom: 0;
+    }
+    .values-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    .value-card {
+      background: var(--bg-secondary);
+      padding: 1.5rem;
+      border-radius: 10px;
+      text-align: center;
+      border: 1px solid var(--border-color);
+    }
+    .value-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .value-card h3 {
+      font-size: 1.1rem;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+    .value-card p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 600px) {
+      .about-title {
+        font-size: 1.8rem;
+      }
+      .about-section {
+        padding: 1.5rem;
+      }
+    }
+  </style>
+
+  <div class="about-page">
+    <div class="about-header">
+      <h1 class="about-title">Sobre Nosotros</h1>
+      <p class="about-subtitle">Tradición, calidad y pasión por los productos ibéricos desde nuestros orígenes.</p>
+    </div>
+
+    <div class="about-section">
+      <h2>Nuestra Historia</h2>
+      <p>
+        En Ibéricos Rodríguez González llevamos años dedicados a la selección y distribución de los mejores productos ibéricos. 
+        Nacimos con la ilusión de acercar el sabor auténtico de la dehesa a todos los hogares, 
+        ofreciendo jamones, embutidos, quesos y otros productos de la más alta calidad.
+      </p>
+      <p>
+        Trabajamos directamente con productores de confianza en las principales regiones ibéricas de España, 
+        garantizando la trazabilidad y frescura de cada producto que llega a tu mesa.
+      </p>
+    </div>
+
+    <div class="about-section">
+      <h2>Nuestros Valores</h2>
+      <div class="values-grid">
+        <div class="value-card">
+          <div class="value-icon">🐖</div>
+          <h3>Calidad Premium</h3>
+          <p>Seleccionamos únicamente productos de la más alta calidad, con denominación de origen y curación artesanal.</p>
+        </div>
+        <div class="value-card">
+          <div class="value-icon">🌿</div>
+          <h3>Tradición</h3>
+          <p>Respetamos los métodos tradicionales de elaboración que dan a nuestros productos su sabor único.</p>
+        </div>
+        <div class="value-card">
+          <div class="value-icon">🚚</div>
+          <h3>Envío Cuidado</h3>
+          <p>Cada pedido se empaqueta con mimo para que llegue en perfectas condiciones a tu hogar.</p>
+        </div>
+        <div class="value-card">
+          <div class="value-icon">💬</div>
+          <h3>Atención Cercana</h3>
+          <p>Te asesoramos y acompañamos en cada compra para que encuentres exactamente lo que buscas.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="about-section">
+      <h2>¿Por qué elegirnos?</h2>
+      <p>
+        Porque no somos una tienda más. Somos amantes de los ibéricos que seleccionan cada producto como si fuera para su propia mesa. 
+        Nuestro compromiso es ofrecerte lo mejor al precio más justo, con un servicio de atención personalizado 
+        y envíos rápidos para que disfrutes de la experiencia completa.
+      </p>
+    </div>
+  </div>
+</Layout>
