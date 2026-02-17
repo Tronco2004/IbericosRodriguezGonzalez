@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient } from '../../../lib/supabase';
+import { supabaseAdmin } from '../../../lib/supabase';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -13,7 +13,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Verificar que sea admin
-    const { data: usuario, error: errorUsuario } = await supabaseClient
+    const { data: usuario, error: errorUsuario } = await supabaseAdmin
       .from('usuarios')
       .select('rol')
       .eq('id', userId)
@@ -53,7 +53,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Crear código
-    const { data: nuevoCodigoData, error: errorCrear } = await supabaseClient
+    const { data: nuevoCodigoData, error: errorCrear } = await supabaseAdmin
       .from('codigos_promocionales')
       .insert({
         codigo: codigo.toUpperCase(),

@@ -1,9 +1,9 @@
-import { supabaseClient } from '../../../lib/supabase';
+import { supabaseAdmin } from '../../../lib/supabase';
 
 export async function GET(context: any) {
   try {
     // Obtener todos los usuarios
-    const { data: usuarios, error } = await supabaseClient
+    const { data: usuarios, error } = await supabaseAdmin
       .from('usuarios')
       .select('id, nombre, email, rol, activo, fecha_registro')
       .order('nombre', { ascending: true });
@@ -37,7 +37,7 @@ export async function PUT(context: any) {
     const body = await context.request.json();
     const { id, rol, activo } = body;
 
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabaseAdmin
       .from('usuarios')
       .update({ rol, activo })
       .eq('id', id)
@@ -76,7 +76,7 @@ export async function DELETE(context: any) {
       );
     }
 
-    const { error } = await supabaseClient
+    const { error } = await supabaseAdmin
       .from('usuarios')
       .delete()
       .eq('id', id);

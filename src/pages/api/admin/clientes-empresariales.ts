@@ -1,4 +1,4 @@
-import { supabaseClient } from '../../../lib/supabase';
+import { supabaseAdmin } from '../../../lib/supabase';
 
 export async function POST(context: any) {
   try {
@@ -17,7 +17,7 @@ export async function POST(context: any) {
 
     console.log('Insertando cliente empresarial:', { nombre_empresa, numero_identificacion, tipo_cliente });
 
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabaseAdmin
       .from('clientes_empresariales')
       .insert([
         {
@@ -61,7 +61,7 @@ export async function POST(context: any) {
 
 export async function GET() {
   try {
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabaseAdmin
       .from('clientes_empresariales')
       .select('*')
       .order('fecha_registro', { ascending: false });
@@ -104,7 +104,7 @@ export async function PUT(context: any) {
       notas
     } = body;
 
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabaseAdmin
       .from('clientes_empresariales')
       .update({ 
         nombre_empresa, 
@@ -148,7 +148,7 @@ export async function DELETE(context: any) {
     const url = new URL(context.request.url);
     const id = url.searchParams.get('id');
 
-    const { error } = await supabaseClient
+    const { error } = await supabaseAdmin
       .from('clientes_empresariales')
       .delete()
       .eq('id', id);

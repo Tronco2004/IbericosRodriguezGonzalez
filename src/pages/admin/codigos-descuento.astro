@@ -24,6 +24,25 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           <p class="admin-empty-state">Cargando códigos...</p>
         </div>
       </div>
+
+      <!-- Toast Notification -->
+      <div id="toastNotificacion" style="display: none; position: fixed; top: 2rem; right: 2rem; z-index: 9999; min-width: 320px; padding: 1rem 1.5rem; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.25); animation: toastSlideIn 0.4s ease; align-items: center; gap: 0.75rem;">
+        <span id="toastIcon" style="font-size: 1.5rem;"></span>
+        <div style="flex: 1;">
+          <div id="toastTitulo" style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.15rem;"></div>
+          <div id="toastMensaje" style="font-size: 0.85rem; opacity: 0.85;"></div>
+        </div>
+      </div>
+      <style>
+        @keyframes toastSlideIn {
+          from { opacity: 0; transform: translateX(100px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes toastSlideOut {
+          from { opacity: 1; transform: translateX(0); }
+          to { opacity: 0; transform: translateX(100px); }
+        }
+      </style>
     </div>
   </div>
 
@@ -493,7 +512,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         return 'danger';
       };
 
-      let html = '<table class="admin-table"><thead><tr><th>Código</th><th>Descuento</th><th>Usos</th><th>Descuento Total</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>';
+      let html = '<table class="admin-table"><thead><tr><th>Código</th><th>Descuento</th><th>Descuento Total</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>';
 
       codigos.forEach(codigo => {
         const ahora = new Date();
@@ -513,7 +532,6 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           <tr>
             <td class="codigo-cell">${codigo.codigo}</td>
             <td>${descuentoDisplay}</td>
-            <td>${codigo.usos_totales || 0}${codigo.uso_maximo ? `/${codigo.uso_maximo}` : ''}</td>
             <td>${codigo.descuento_total?.toFixed(2) || '0.00'}€</td>
             <td><span class="admin-badge ${estadoClase(estado)}">${estado}</span></td>
             <td>
@@ -551,91 +569,132 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 
     function mostrarDetalles(data) {
       const codigo = data.codigo;
-      const usos = data.usos || [];
-      const stats = data.estadisticas;
 
       const badgeColor = codigo.activo ? '#d1fae5' : '#fee2e2';
       const badgeTextColor = codigo.activo ? '#065f46' : '#991b1b';
       const badgeText = codigo.activo ? 'Activo' : 'Inactivo';
 
+      // Formatear fechas para datetime-local input
+      const fechaInicio = codigo.fecha_inicio ? new Date(codigo.fecha_inicio).toISOString().slice(0, 16) : '';
+      const fechaFin = codigo.fecha_fin ? new Date(codigo.fecha_fin).toISOString().slice(0, 16) : '';
+
       let html = `
         <div class="detalles-container" style="padding: 2rem 0;">
           <div class="detalles-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; padding: 1.5rem; background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary)); border-left: 4px solid var(--color-accent); border-radius: 8px; box-shadow: 0 2px 8px var(--shadow-color);">
             <div style="flex: 1;">
-              <h2 class="detalles-title" style="margin: 0 0 0.5rem 0; color: var(--text-primary); font-size: 2.5rem; font-weight: 700; letter-spacing: -0.5px;">${codigo.codigo}</h2>
-              <p style="margin: 0; color: var(--text-muted); font-size: 0.95rem;">${codigo.descripcion || 'Sin descripción'}</p>
+              <h2 class="detalles-title" style="margin: 0 0 0.5rem 0; color: var(--text-primary); font-size: 2rem; font-weight: 700; letter-spacing: -0.5px;">Editar Código</h2>
+              <p style="margin: 0; color: var(--text-muted); font-size: 0.95rem;">Modifica los campos y pulsa "Guardar Cambios"</p>
             </div>
-            <button onclick="cargarCodigos()" class="admin-btn-secondary" style="margin-left: 1rem; white-space: nowrap;">← Volver</button>
-            <button onclick="window.toggleEstadoCodigo(${codigo.id}, ${!codigo.activo})" class="admin-btn-primary" style="margin-left: 0.5rem; white-space: nowrap; background: ${codigo.activo ? '#ef4444' : '#22c55e'};">
-              ${codigo.activo ? '✘ Desactivar' : '✔ Activar'}
-            </button>
+            <button onclick="window.cargarCodigos()" class="admin-btn-secondary" style="margin-left: 1rem; white-space: nowrap;">← Volver</button>
           </div>
           
-          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 2rem; padding: 1.5rem; background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--border-light);">
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border-light);">
-              <span style="font-weight: 600; color: var(--text-muted); font-size: 0.9rem;">Tipo de Descuento:</span>
-              <span style="color: var(--text-primary); font-weight: 500;">${codigo.tipo_descuento === 'porcentaje' ? 'Porcentaje' : 'Monto Fijo'}</span>
+          <form id="formEditarCodigo" style="background: var(--bg-tertiary); border-radius: 12px; padding: 2rem; border: 1px solid var(--border-light); box-shadow: 0 2px 8px var(--shadow-color);">
+            <input type="hidden" id="editCodigoId" value="${codigo.id}" />
+
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
+              <div class="admin-form-group">
+                <label class="admin-label" for="editCodigo">Código</label>
+                <input id="editCodigo" type="text" required value="${codigo.codigo}" class="admin-input" />
+              </div>
+              <div class="admin-form-group">
+                <label class="admin-label" for="editDescripcion">Descripción</label>
+                <input id="editDescripcion" type="text" value="${codigo.descripcion || ''}" placeholder="Descripción de la promoción" class="admin-input" />
+              </div>
+              <div class="admin-form-group">
+                <label class="admin-label" for="editTipoDescuento">Tipo de Descuento</label>
+                <select id="editTipoDescuento" required class="admin-input">
+                  <option value="porcentaje" ${codigo.tipo_descuento === 'porcentaje' ? 'selected' : ''}>Porcentaje (%)</option>
+                  <option value="fijo" ${codigo.tipo_descuento === 'fijo' ? 'selected' : ''}>Monto Fijo (€)</option>
+                </select>
+              </div>
+              <div class="admin-form-group">
+                <label class="admin-label" for="editValorDescuento">Valor del Descuento</label>
+                <input id="editValorDescuento" type="number" required step="0.01" min="0" value="${codigo.valor_descuento}" class="admin-input" />
+              </div>
+              <div class="admin-form-group">
+                <label class="admin-label" for="editFechaInicio">Fecha Inicio</label>
+                <input id="editFechaInicio" type="datetime-local" required value="${fechaInicio}" class="admin-input" />
+              </div>
+              <div class="admin-form-group">
+                <label class="admin-label" for="editFechaFin">Fecha Fin</label>
+                <input id="editFechaFin" type="datetime-local" required value="${fechaFin}" class="admin-input" />
+              </div>
+              <div class="admin-form-group">
+                <label class="admin-label" for="editUsoMaximo">Usos Máximos</label>
+                <input id="editUsoMaximo" type="number" min="0" value="${codigo.uso_maximo || ''}" placeholder="Vacío = ilimitado" class="admin-input" />
+              </div>
+              <div class="admin-form-group">
+                <label class="admin-label" for="editMontoMinimo">Monto Mínimo (€)</label>
+                <input id="editMontoMinimo" type="number" step="0.01" min="0" value="${codigo.restriccion_monto_minimo || ''}" placeholder="Vacío = sin límite" class="admin-input" />
+              </div>
+              <div class="admin-form-group" style="grid-column: 1 / -1;">
+                <label class="admin-label">Estado</label>
+                <div style="display: flex; align-items: center; gap: 1rem; padding: 0.85rem 1.25rem; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-light);">
+                  <span style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.4rem 1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; background: ${badgeColor}; color: ${badgeTextColor};">
+                    <span style="width: 8px; height: 8px; border-radius: 50%; background: ${badgeTextColor}; display: inline-block;"></span>
+                    ${badgeText}
+                  </span>
+                  <button type="button" onclick="window.toggleEstadoCodigo(${codigo.id}, ${!codigo.activo})" style="padding: 0.5rem 1.25rem; font-size: 0.85rem; font-weight: 600; border: none; border-radius: 6px; cursor: pointer; color: white; background: ${codigo.activo ? '#ef4444' : '#22c55e'}; transition: all 0.2s ease; box-shadow: 0 2px 6px ${codigo.activo ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)'};">
+                    ${codigo.activo ? '✕ Desactivar' : '✓ Activar'}
+                  </button>
+                </div>
+              </div>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border-light);">
-              <span style="font-weight: 600; color: var(--text-muted); font-size: 0.9rem;">Valor:</span>
-              <span style="color: var(--color-accent); font-weight: 700; font-size: 1.1rem;">${codigo.tipo_descuento === 'porcentaje' ? codigo.valor_descuento + '%' : codigo.valor_descuento.toFixed(2) + ' €'}</span>
+
+            <div id="mensajeEditar" class="admin-hint" style="display: none; margin-top: 1rem;"></div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border-light);">
+              <button type="button" onclick="window.cargarCodigos()" class="admin-btn-secondary">Cancelar</button>
+              <button type="submit" class="admin-btn-primary">Guardar Cambios</button>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border-light);">
-              <span style="font-weight: 600; color: var(--text-muted); font-size: 0.9rem;">Estado:</span>
-              <span style="display: inline-block; padding: 0.35rem 0.75rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; background: ${badgeColor}; color: ${badgeTextColor};">${badgeText}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border-light);">
-              <span style="font-weight: 600; color: var(--text-muted); font-size: 0.9rem;">Período:</span>
-              <span style="color: var(--text-primary); font-weight: 500;">${new Date(codigo.fecha_inicio).toLocaleDateString('es-ES')} - ${new Date(codigo.fecha_fin).toLocaleDateString('es-ES')}</span>
-            </div>
-          </div>
-          
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
-            <div style="background: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-light); box-shadow: 0 2px 8px var(--shadow-color); transition: all 0.3s ease; cursor: pointer;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px var(--shadow-medium)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px var(--shadow-color)'">
-              <p style="margin: 0 0 0.75rem 0; font-size: 0.85rem; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Total Usos</p>
-              <p style="margin: 0; font-size: 2.5rem; font-weight: 700; color: var(--color-accent);">${stats.total_usos}</p>
-            </div>
-            <div style="background: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-light); box-shadow: 0 2px 8px var(--shadow-color); transition: all 0.3s ease; cursor: pointer;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px var(--shadow-medium)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px var(--shadow-color)'">
-              <p style="margin: 0 0 0.75rem 0; font-size: 0.85rem; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Descuento Total</p>
-              <p style="margin: 0; font-size: 2.5rem; font-weight: 700; color: var(--color-accent);">${stats.descuento_total.toFixed(2)}€</p>
-            </div>
-            <div style="background: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-light); box-shadow: 0 2px 8px var(--shadow-color); transition: all 0.3s ease; cursor: pointer;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px var(--shadow-medium)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px var(--shadow-color)'">
-              <p style="margin: 0 0 0.75rem 0; font-size: 0.85rem; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Promedio por Uso</p>
-              <p style="margin: 0; font-size: 2.5rem; font-weight: 700; color: var(--color-accent);">${stats.promedio_descuento}€</p>
-            </div>
-          </div>
-          
-          <h3 style="margin: 2rem 0 1.5rem 0; color: var(--text-primary); font-size: 1.25rem; font-weight: 600;">Historial de Uso</h3>
-          ${usos.length === 0 ? '<p style="text-align: center; padding: 2rem; color: var(--text-muted); background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--border-light);">No hay usos registrados</p>' : `
-            <div style="overflow-x: auto; border-radius: 8px; border: 1px solid var(--border-light); box-shadow: 0 2px 8px var(--shadow-color);">
-              <table style="width: 100%; border-collapse: collapse;">
-                <thead style="background: var(--bg-tertiary);">
-                  <tr>
-                    <th style="padding: 1rem; text-align: left; font-weight: 600; font-size: 0.9rem; color: var(--text-primary); border-bottom: 2px solid var(--border-light);">Usuario</th>
-                    <th style="padding: 1rem; text-align: left; font-weight: 600; font-size: 0.9rem; color: var(--text-primary); border-bottom: 2px solid var(--border-light);">Email</th>
-                    <th style="padding: 1rem; text-align: left; font-weight: 600; font-size: 0.9rem; color: var(--text-primary); border-bottom: 2px solid var(--border-light);">Descuento Aplicado</th>
-                    <th style="padding: 1rem; text-align: left; font-weight: 600; font-size: 0.9rem; color: var(--text-primary); border-bottom: 2px solid var(--border-light);">Fecha</th>
-                    <th style="padding: 1rem; text-align: left; font-weight: 600; font-size: 0.9rem; color: var(--text-primary); border-bottom: 2px solid var(--border-light);">Pedido</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${usos.map((uso, index) => `
-                    <tr style="border-bottom: 1px solid var(--border-light); transition: background 0.2s ease; background: ${index % 2 === 0 ? 'transparent' : 'var(--bg-tertiary)'};" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='${index % 2 === 0 ? 'transparent' : 'var(--bg-tertiary)'}'">
-                      <td style="padding: 1rem; font-size: 0.95rem; color: var(--text-primary);">${uso.nombre_usuario}</td>
-                      <td style="padding: 1rem; font-size: 0.95rem; color: var(--text-primary);">${uso.email_usuario || '-'}</td>
-                      <td style="padding: 1rem; font-size: 0.95rem; color: var(--color-accent); font-weight: 600;">${uso.descuento_aplicado.toFixed(2)}€</td>
-                      <td style="padding: 1rem; font-size: 0.95rem; color: var(--text-primary);">${new Date(uso.fecha_uso).toLocaleDateString('es-ES')}</td>
-                      <td style="padding: 1rem; font-size: 0.95rem; color: var(--text-primary); font-weight: 500;">#${uso.pedido_id}</td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
-            </div>
-          `}
+          </form>
         </div>
       `;
 
       document.getElementById('tablaCodigos').innerHTML = html;
+
+      // Vincular evento submit al formulario de edición
+      document.getElementById('formEditarCodigo').addEventListener('submit', guardarEdicion);
+    }
+
+    async function guardarEdicion(e) {
+      e.preventDefault();
+      const id = document.getElementById('editCodigoId').value;
+      const mensaje = document.getElementById('mensajeEditar');
+
+      const body = {
+        codigo: document.getElementById('editCodigo').value,
+        descripcion: document.getElementById('editDescripcion').value,
+        tipo_descuento: document.getElementById('editTipoDescuento').value,
+        valor_descuento: parseFloat(document.getElementById('editValorDescuento').value),
+        fecha_inicio: new Date(document.getElementById('editFechaInicio').value).toISOString(),
+        fecha_fin: new Date(document.getElementById('editFechaFin').value).toISOString(),
+        uso_maximo: document.getElementById('editUsoMaximo').value ? parseInt(document.getElementById('editUsoMaximo').value) : null,
+        restriccion_monto_minimo: document.getElementById('editMontoMinimo').value ? parseFloat(document.getElementById('editMontoMinimo').value) : null
+      };
+
+      try {
+        const response = await fetch(`/api/admin/codigos-detalles?id=${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          mostrarToast('success', '✓ Actualizado', 'El código de descuento se ha actualizado correctamente.');
+          setTimeout(() => cargarCodigos(), 1800);
+        } else {
+          mensaje.textContent = 'Error: ' + (data.message || 'No se pudo actualizar');
+          mensaje.style.display = 'block';
+          mensaje.className = 'admin-hint mensaje-error';
+        }
+      } catch (error) {
+        console.error('Error guardando edición:', error);
+        mensaje.textContent = 'Error de conexión';
+        mensaje.style.display = 'block';
+        mensaje.className = 'admin-hint mensaje-error';
+      }
     }
 
     form.addEventListener('submit', async (e) => {
@@ -697,6 +756,37 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       }
     });
 
+    function mostrarToast(tipo, titulo, mensaje) {
+      const toast = document.getElementById('toastNotificacion');
+      const icon = document.getElementById('toastIcon');
+      const titleEl = document.getElementById('toastTitulo');
+      const msgEl = document.getElementById('toastMensaje');
+
+      const estilos = {
+        success: { icon: '✓', bg: '#ecfdf5', color: '#065f46', border: '#10b981' },
+        error: { icon: '✕', bg: '#fef2f2', color: '#991b1b', border: '#ef4444' }
+      };
+      const s = estilos[tipo] || estilos.success;
+
+      icon.textContent = s.icon;
+      icon.style.color = s.color;
+      titleEl.textContent = titulo;
+      titleEl.style.color = s.color;
+      msgEl.textContent = mensaje;
+      msgEl.style.color = s.color;
+      toast.style.display = 'flex';
+      toast.style.background = s.bg;
+      toast.style.borderLeft = '4px solid ' + s.border;
+
+      setTimeout(() => {
+        toast.style.animation = 'toastSlideOut 0.4s ease';
+        setTimeout(() => {
+          toast.style.display = 'none';
+          toast.style.animation = 'toastSlideIn 0.4s ease';
+        }, 400);
+      }, 3000);
+    }
+
     document.addEventListener('DOMContentLoaded', cargarCodigos);
 
     // Funciones globales para eliminar código
@@ -706,6 +796,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     };
 
     window.verDetalles = verDetalles;
+    window.cargarCodigos = cargarCodigos;
 
     window.toggleEstadoCodigo = async function(codigoId, nuevoEstado) {
       try {

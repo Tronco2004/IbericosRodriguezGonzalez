@@ -1,19 +1,22 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient } from '../../../lib/supabase';
+import { supabaseClient, supabaseAdmin } from '../../../lib/supabase';
 
 export const GET: APIRoute = async () => {
   try {
     console.log('Cargando estadísticas del dashboard');
 
-    // 1. Obtener usuarios activos
-    const { data: usuarios, error } = await supabaseClient
+    // 1. Obtener total de clientes (usuarios con rol cliente)
+    const { data: clientesData, error: errorClientes } = await supabaseAdmin
       .from('usuarios')
-      .select('id, nombre, rol, activo')
-      .eq('rol', 'cliente')
-      .eq('activo', true);
+      .select('id')
+      .eq('rol', 'cliente');
 
-    const clientesActivos = usuarios?.length || 0;
-    console.log('✅ Clientes activos:', clientesActivos);
+    if (errorClientes) {
+      console.error('Error obteniendo clientes:', errorClientes);
+    }
+
+    const clientesActivos = clientesData?.length || 0;
+    console.log('✅ Clientes totales:', clientesActivos);
 
     // 2. Obtener pedidos pendientes
     const { data: pedidos } = await supabaseClient
