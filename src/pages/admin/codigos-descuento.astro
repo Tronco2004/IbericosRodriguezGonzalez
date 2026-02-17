@@ -566,6 +566,9 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
               <p style="margin: 0; color: var(--text-muted); font-size: 0.95rem;">${codigo.descripcion || 'Sin descripción'}</p>
             </div>
             <button onclick="cargarCodigos()" class="admin-btn-secondary" style="margin-left: 1rem; white-space: nowrap;">← Volver</button>
+            <button onclick="window.toggleEstadoCodigo(${codigo.id}, ${!codigo.activo})" class="admin-btn-primary" style="margin-left: 0.5rem; white-space: nowrap; background: ${codigo.activo ? '#ef4444' : '#22c55e'};">
+              ${codigo.activo ? '✘ Desactivar' : '✔ Activar'}
+            </button>
           </div>
           
           <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 2rem; padding: 1.5rem; background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--border-light);">
@@ -703,6 +706,26 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     };
 
     window.verDetalles = verDetalles;
+
+    window.toggleEstadoCodigo = async function(codigoId, nuevoEstado) {
+      try {
+        const response = await fetch(`/api/admin/codigos-detalles?id=${codigoId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ activo: nuevoEstado })
+        });
+        const data = await response.json();
+        if (data.success) {
+          // Recargar los detalles para actualizar el botón
+          verDetalles(codigoId);
+        } else {
+          alert('Error: ' + (data.message || 'No se pudo actualizar'));
+        }
+      } catch (error) {
+        console.error('Error toggling estado:', error);
+        alert('Error al cambiar el estado del código');
+      }
+    };
 
     // Event listeners para modal de eliminar código
     document.getElementById('btnConfirmarEliminarCodigo').addEventListener('click', async () => {

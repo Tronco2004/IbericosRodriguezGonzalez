@@ -116,7 +116,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     });
 
     // 4. Determinar redirección según rol
-    const redirect_url = usuarioData.rol === 'admin' ? '/admin/dashboard' : '/productos';
+    const redirect_url = usuarioData.rol === 'admin' ? '/admin/dashboard' : '/';
 
     return new Response(
       JSON.stringify({

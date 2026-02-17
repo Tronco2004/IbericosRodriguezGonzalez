@@ -132,7 +132,7 @@ import Layout from '../../layouts/Layout.astro';
           }
 
           // Redirigir
-          window.location.href = result.redirect_url || '/productos';
+          window.location.href = result.redirect_url || '/';
         } else {
           throw new Error(result.error || 'Error al completar el inicio de sesión');
         }
