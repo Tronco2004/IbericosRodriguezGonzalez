@@ -68,11 +68,11 @@ const info = categoryInfo[slug as string] || {
           <label class="filtro-precio-label">Rango de Precio</label>
           <div class="filtro-precio-values">
             <span class="filtro-precio-value">
-              <span id="precioMinDisplay">€0</span>
+              <span id="precioMinDisplay">0 €</span>
             </span>
             <span class="filtro-precio-separator">—</span>
             <span class="filtro-precio-value">
-              <span id="precioMaxDisplay">€1000</span>
+              <span id="precioMaxDisplay">1000 €</span>
             </span>
           </div>
         </div>
@@ -1229,8 +1229,8 @@ const info = categoryInfo[slug as string] || {
         // Actualizar los sliders de visualización
         sliderPrecioMin.value = 0;
         sliderPrecioMax.value = precioMaxReal;
-        precioMinDisplay.textContent = `€0`;
-        precioMaxDisplay.textContent = `€${precioMaxReal}`;
+        precioMinDisplay.textContent = `0 €`;
+        precioMaxDisplay.textContent = `${precioMaxReal} €`;
         
         sliderPrecioMin.max = precioMaxReal;
         sliderPrecioMax.min = 0;
@@ -1251,8 +1251,8 @@ const info = categoryInfo[slug as string] || {
           const minVal = Math.round(sliderPrecioMin.value) || 0;
           const maxVal = Math.round(sliderPrecioMax.value) || precioMaxReal;
           
-          precioMinDisplay.textContent = `€${minVal}`;
-          precioMaxDisplay.textContent = `€${maxVal}`;
+          precioMinDisplay.textContent = `${minVal} €`;
+          precioMaxDisplay.textContent = `${maxVal} €`;
           
           actualizarContadorFiltrado();
           aplicarFiltros();
@@ -1272,8 +1272,8 @@ const info = categoryInfo[slug as string] || {
           btnResetFiltros.addEventListener('click', () => {
             sliderPrecioMin.value = 0;
             sliderPrecioMax.value = precioMaxReal;
-            precioMinDisplay.textContent = `€0`;
-            precioMaxDisplay.textContent = `€${precioMaxReal}`;
+            precioMinDisplay.textContent = `0 €`;
+            precioMaxDisplay.textContent = `${precioMaxReal} €`;
             if (filtroOrden) filtroOrden.value = '';
             document.getElementById('productsCount').textContent =
               `${productosOriginales.length} producto${productosOriginales.length !== 1 ? 's' : ''} encontrado${productosOriginales.length !== 1 ? 's' : ''}`;
@@ -1616,7 +1616,7 @@ const info = categoryInfo[slug as string] || {
 
       document.querySelectorAll('.product-title').forEach(title => {
         title.addEventListener('mouseover', () => title.style.color = '#a89968');
-        title.addEventListener('mouseout', () => title.style.color = '#1a1a1a');
+        title.addEventListener('mouseout', () => title.style.color = '');
       });
 
       document.querySelectorAll('.product-btn').forEach(btn => {

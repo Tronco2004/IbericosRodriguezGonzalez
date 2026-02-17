@@ -1460,7 +1460,7 @@ export const prerender = false;
                     ${index === 0 ? 'checked' : ''}
                   />
                   <span class="js-radio-label">${v.peso_kg} kg</span>
-                  <span class="js-price-extra">€${(Number(v.precio_total) / 100).toFixed(2)}</span>
+                  <span class="js-price-extra">${(Number(v.precio_total) / 100).toFixed(2)} €</span>
                 </label>
               `).join('')}
             </div>
@@ -1547,15 +1547,15 @@ export const prerender = false;
             <!-- PRICE -->
             <div class="js-price-section">
               ${producto.es_variable ? `
-                <div class="js-price-main" style="font-size: 1.8rem;">€${Number(precioPorKg).toFixed(2)}/kg</div>
+                <div class="js-price-main" style="font-size: 1.8rem;">${Number(precioPorKg).toFixed(2)} €/kg</div>
                 <div id="precioDisplay" style="font-size: 1.4rem; color: var(--text-secondary); margin-top: 0.5rem;">
                   ${variantesDisponibles.length > 0 
-                    ? `Pieza seleccionada: €${(Number(variantesDisponibles[0].precio_total) / 100).toFixed(2)}` 
+                    ? `Pieza seleccionada: ${(Number(variantesDisponibles[0].precio_total) / 100).toFixed(2)} €` 
                     : 'Sin piezas disponibles'}
                 </div>
               ` : `
-                <div class="js-price-main" id="precioDisplay">€${precioFinal.toFixed(2)}</div>
-                ${oferta ? `<div class="js-price-original">€${precioOriginal.toFixed(2)}</div>` : ''}
+                <div class="js-price-main" id="precioDisplay">${precioFinal.toFixed(2)} €</div>
+                ${oferta ? `<div class="js-price-original">${precioOriginal.toFixed(2)} €</div>` : ''}
               `}
             </div>
 
@@ -1629,7 +1629,7 @@ export const prerender = false;
               peso_kg: parseFloat(peso),
               precio_total: parseFloat(precioCentimos) // Guardamos en céntimos
             };
-            document.getElementById('precioDisplay').textContent = `Pieza seleccionada: €${(Number(precioCentimos) / 100).toFixed(2)}`;
+            document.getElementById('precioDisplay').textContent = `Pieza seleccionada: ${(Number(precioCentimos) / 100).toFixed(2)} €`;
             console.log('Variante seleccionada:', varianteSeleccionada);
           });
         });
@@ -1967,7 +1967,7 @@ export const prerender = false;
             ${index === 0 ? 'checked' : ''}
           />
           <span class="js-radio-label">${v.peso_kg} kg</span>
-          <span class="js-price-extra">€${(Number(v.precio_total) / 100).toFixed(2)}</span>
+          <span class="js-price-extra">${(Number(v.precio_total) / 100).toFixed(2)} €</span>
         </label>
       `).join('');
 
@@ -1982,7 +1982,7 @@ export const prerender = false;
             peso_kg: parseFloat(peso),
             precio_total: parseFloat(precioCentimos)
           };
-          document.getElementById('precioDisplay').textContent = `Pieza seleccionada: €${(Number(precioCentimos) / 100).toFixed(2)}`;
+          document.getElementById('precioDisplay').textContent = `Pieza seleccionada: ${(Number(precioCentimos) / 100).toFixed(2)} €`;
         });
       });
 
@@ -1994,7 +1994,7 @@ export const prerender = false;
           peso_kg: parseFloat(primeraVariante.getAttribute('data-peso')),
           precio_total: parseFloat(primeraVariante.getAttribute('data-precio'))
         };
-        document.getElementById('precioDisplay').textContent = `Pieza seleccionada: €${(varianteSeleccionada.precio_total / 100).toFixed(2)}`;
+        document.getElementById('precioDisplay').textContent = `Pieza seleccionada: ${(varianteSeleccionada.precio_total / 100).toFixed(2)} €`;
       }
     }
 

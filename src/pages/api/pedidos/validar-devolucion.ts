@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { supabaseClient } from '../../../lib/supabase';
 import { notificarDevolucionValidada } from '../../../lib/email';
+import { procesarReembolsoStripe } from '../../../lib/stripe';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -23,10 +24,10 @@ export const POST: APIRoute = async ({ request }) => {
 
     console.log('🔵 Validando devolución del pedido:', pedido_id);
 
-    // Obtener datos del pedido
+    // Obtener datos del pedido (incluir stripe_session_id para el reembolso)
     const { data: pedido, error: errorPedido } = await supabaseClient
       .from('pedidos')
-      .select('id, numero_pedido, estado, total, usuario_id, email_cliente, nombre_cliente')
+      .select('id, numero_pedido, estado, total, usuario_id, email_cliente, nombre_cliente, stripe_session_id')
       .eq('id', parseInt(pedido_id))
       .single();
 
@@ -114,6 +115,36 @@ export const POST: APIRoute = async ({ request }) => {
       }
     }
 
+    // ✅ PROCESAR REEMBOLSO REAL EN STRIPE
+    let reembolsoInfo = { procesado: false, refundId: '', error: '' };
+
+    if (pedido.stripe_session_id) {
+      console.log('💳 Procesando reembolso en Stripe para sesión:', pedido.stripe_session_id);
+
+      const resultado = await procesarReembolsoStripe(
+        pedido.stripe_session_id,
+        `Devolución aprobada - Pedido ${pedido.numero_pedido}`
+      );
+
+      if (resultado.success) {
+        reembolsoInfo.procesado = true;
+        reembolsoInfo.refundId = resultado.refundId || '';
+
+        if (resultado.alreadyRefunded) {
+          console.log('⚠️ El pago ya estaba reembolsado en Stripe');
+        } else {
+          console.log('✅ Reembolso procesado en Stripe:', resultado.refundId, '| Monto:', resultado.amount, resultado.currency);
+        }
+      } else {
+        console.error('❌ Error al procesar reembolso en Stripe:', resultado.error);
+        reembolsoInfo.error = resultado.error || 'Error desconocido';
+        // No bloqueamos el flujo: el admin puede hacer el reembolso manual desde Stripe
+      }
+    } else {
+      console.warn('⚠️ El pedido no tiene stripe_session_id, no se puede procesar reembolso automático');
+      reembolsoInfo.error = 'Sin stripe_session_id';
+    }
+
     // Cambiar estado a devolucion_recibida
     const { error: errorUpdate } = await supabaseClient
       .from('pedidos')
@@ -158,8 +189,15 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Devolución validada correctamente. Cliente notificado.',
-        pedido_id: pedido_id
+        message: reembolsoInfo.procesado
+          ? 'Devolución validada y reembolso procesado en Stripe. Cliente notificado.'
+          : `Devolución validada. Cliente notificado. ${reembolsoInfo.error ? 'Reembolso Stripe pendiente: ' + reembolsoInfo.error : ''}`,
+        pedido_id: pedido_id,
+        reembolso: {
+          procesado: reembolsoInfo.procesado,
+          refund_id: reembolsoInfo.refundId || null,
+          error: reembolsoInfo.error || null
+        }
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );

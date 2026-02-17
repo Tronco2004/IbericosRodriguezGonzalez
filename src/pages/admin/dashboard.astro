@@ -479,7 +479,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
               <p class="kpi-label">Ingresos</p>
               <div class="kpi-icon"></div>
             </div>
-            <div class="kpi-value" id="ingresosCount">€0</div>
+            <div class="kpi-value" id="ingresosCount">0 €</div>
             <p class="kpi-desc">Este mes</p>
           </div>
         </a>
@@ -517,7 +517,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         <!-- Ticket Promedio -->
         <div class="analytics-card accent-gold">
           <p class="analytics-label">Ticket Promedio</p>
-          <div class="analytics-value gold" id="ticketPromedio">€0</div>
+          <div class="analytics-value gold" id="ticketPromedio">0 €</div>
           <p class="analytics-desc">Por pedido</p>
         </div>
 
@@ -531,7 +531,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         <!-- Ingresos Hoy -->
         <div class="analytics-card accent-dark">
           <p class="analytics-label">Ingresos Hoy</p>
-          <div class="analytics-value dark" id="ingresosHoy">€0</div>
+          <div class="analytics-value dark" id="ingresosHoy">0 €</div>
           <p class="analytics-desc">Ventas del día</p>
         </div>
 
@@ -590,10 +590,10 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           if (productosEl) productosEl.textContent = String(data.stockTotal || 0);
           if (pedidosEl) pedidosEl.textContent = String(data.pedidosPendientes || 0);
           if (clientesEl) clientesEl.textContent = String(data.clientesActivos || 0);
-          if (ingresosEl) ingresosEl.textContent = '€' + (data.ingresosTotal || '0.00');
-          if (ingresosHoyEl) ingresosHoyEl.textContent = '€' + (data.ingresosHoy || '0.00');
+          if (ingresosEl) ingresosEl.textContent = (data.ingresosTotal || '0.00') + ' €';
+          if (ingresosHoyEl) ingresosHoyEl.textContent = (data.ingresosHoy || '0.00') + ' €';
           if (pedidosHoyEl) pedidosHoyEl.textContent = String(data.pedidosHoy || 0);
-          if (ticketPromedioEl) ticketPromedioEl.textContent = '€' + (data.ticketPromedio || '0.00');
+          if (ticketPromedioEl) ticketPromedioEl.textContent = (data.ticketPromedio || '0.00') + ' €';
           
           // Guardar datos para usarlos en los gráficos
           window.dashboardData = data;
@@ -700,7 +700,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
                 color: '#94a3b8',
                 font: { size: 11 },
                 callback: function(value) {
-                  return '€' + value;
+                  return value + ' €';
                 }
               }
             },
@@ -724,7 +724,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         const totalIngresos = parseFloat(window.dashboardData.ingresosTotal || '0');
         const totalPedidos = window.dashboardData.pedidosPendientes || 1;
         const ticketPromedio = (totalIngresos / totalPedidos).toFixed(2);
-        ticketPromedioEl.textContent = '€' + ticketPromedio;
+        ticketPromedioEl.textContent = ticketPromedio + ' €';
       }
     }
 

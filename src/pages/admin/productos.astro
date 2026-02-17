@@ -653,9 +653,9 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           </td>
           <td class="prod-cell prod-nombre">${p.nombre}</td>
           <td class="prod-cell prod-categoria">${p.categoria}</td>
-          <td class="prod-cell center prod-precio">€${(p.precio / 100).toFixed(2)}</td>
+          <td class="prod-cell center prod-precio">${(p.precio / 100).toFixed(2)} €</td>
           <td class="prod-cell center prod-precio">${(p.iva ?? 21).toFixed(2)}%</td>
-          <td class="prod-cell center prod-precio-empresa">€${(p.precio_empresa || 0) / 100 > 0 ? ((p.precio_empresa || 0) / 100).toFixed(2) : '-'}</td>
+          <td class="prod-cell center prod-precio-empresa">${(p.precio_empresa || 0) / 100 > 0 ? ((p.precio_empresa || 0) / 100).toFixed(2) + ' €' : '-'}</td>
           <td class="prod-cell center prod-precio-empresa">${(p.precio_empresa || 0) / 100 > 0 ? (p.iva_empresa ?? 21).toFixed(2) + '%' : '-'}</td>
           <td class="prod-cell center prod-stock">${p.stock}</td>
           <td class="prod-cell center">

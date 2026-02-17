@@ -14,18 +14,38 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Verificar que el pedido pertenece al usuario y está entregado
+    // Obtener email del usuario para verificar propiedad por email también
+    let userEmail: string | null = null;
+    const { data: usuario } = await supabaseClient
+      .from('usuarios')
+      .select('email')
+      .eq('id', userId)
+      .single();
+    if (usuario?.email) userEmail = usuario.email;
+
+    // Buscar pedido por ID (sin filtrar por usuario_id, puede ser null en pedidos de invitado)
     const { data: pedido, error: errorPedido } = await supabaseClient
       .from('pedidos')
       .select('id, estado, usuario_id, numero_pedido, email_cliente, nombre_cliente')
       .eq('id', pedido_id)
-      .eq('usuario_id', userId)
       .single();
 
     if (errorPedido || !pedido) {
       return new Response(
         JSON.stringify({ success: false, error: 'Pedido no encontrado' }),
         { status: 404 }
+      );
+    }
+
+    // Verificar que el pedido pertenece al usuario (por usuario_id o por email)
+    const esPropietario = pedido.usuario_id === userId || 
+      (userEmail && pedido.email_cliente === userEmail);
+
+    if (!esPropietario) {
+      console.error('❌ El pedido no pertenece al usuario:', { pedidoUserId: pedido.usuario_id, pedidoEmail: pedido.email_cliente, userId, userEmail });
+      return new Response(
+        JSON.stringify({ success: false, error: 'No tienes permiso para solicitar devolución de este pedido' }),
+        { status: 403 }
       );
     }
 
