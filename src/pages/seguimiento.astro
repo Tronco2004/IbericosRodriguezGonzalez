@@ -410,6 +410,13 @@ const codigoURL = Astro.url.searchParams.get('codigo') || '';
     50% { box-shadow: 0 0 0 10px rgba(168, 153, 104, 0); }
   }
 
+  /* Dark mode para el bloque de cancelado */
+  [data-theme="dark"] {
+    --cancelado-bg: #2a1515;
+    --cancelado-border: #5c2020;
+    --cancelado-text: #f8a0a0;
+  }
+
   /* Responsive */
   @media (max-width: 600px) {
     .seguimiento-container {
@@ -497,8 +504,9 @@ const codigoURL = Astro.url.searchParams.get('codigo') || '';
   }
 
   function mostrarResultado(data) {
+    const esCancelado = data.estado === 'cancelado';
     const estados = ['pagado', 'enviado', 'entregado'];
-    const estadoActual = estados.indexOf(data.estado);
+    const estadoActual = esCancelado ? -1 : estados.indexOf(data.estado);
 
     const formatearFecha = (fecha) => {
       if (!fecha) return null;
@@ -510,6 +518,57 @@ const codigoURL = Astro.url.searchParams.get('codigo') || '';
         minute: '2-digit'
       });
     };
+
+    let timelineHTML = '';
+
+    if (esCancelado) {
+      timelineHTML = `
+        <div style="text-align: center; padding: 2rem 1rem; background: var(--cancelado-bg, #fef2f2); border: 1px solid var(--cancelado-border, #fecaca); border-radius: 12px; margin-top: 1rem;">
+          <div style="font-size: 3rem; margin-bottom: 0.5rem;">❌</div>
+          <h3 style="color: #ef4444; font-size: 1.3rem; margin-bottom: 0.5rem;">PEDIDO CANCELADO</h3>
+          <p style="color: var(--cancelado-text, #991b1b); font-size: 0.95rem;">Este pedido ha sido cancelado y no será procesado.</p>
+        </div>
+      `;
+    } else {
+      timelineHTML = `
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: ${data.progreso}%; background: ${data.color}"></div>
+        </div>
+
+        <ul class="timeline">
+          <li class="timeline-item">
+            <div class="timeline-dot ${estadoActual >= 0 ? 'completado' : 'pendiente'}">
+              ${estadoActual >= 0 ? '✓' : '1'}
+            </div>
+            <div class="timeline-content">
+              <h4>Pedido Pagado</h4>
+              <p>Tu pedido ha sido confirmado y pagado</p>
+              ${data.fechas.pago ? `<span class="fecha">${formatearFecha(data.fechas.pago)}</span>` : ''}
+            </div>
+          </li>
+          <li class="timeline-item">
+            <div class="timeline-dot ${estadoActual >= 1 ? 'completado' : 'pendiente'}">
+              ${estadoActual >= 1 ? '✓' : '2'}
+            </div>
+            <div class="timeline-content">
+              <h4>Enviado</h4>
+              <p>Tu pedido ha sido enviado</p>
+              ${data.fechas.envio ? `<span class="fecha">${formatearFecha(data.fechas.envio)}</span>` : ''}
+            </div>
+          </li>
+          <li class="timeline-item">
+            <div class="timeline-dot ${estadoActual >= 2 ? 'completado' : 'pendiente'}">
+              ${estadoActual >= 2 ? '✓' : '3'}
+            </div>
+            <div class="timeline-content">
+              <h4>Entregado</h4>
+              <p>Tu pedido ha sido entregado</p>
+              ${data.fechas.entrega ? `<span class="fecha">${formatearFecha(data.fechas.entrega)}</span>` : ''}
+            </div>
+          </li>
+        </ul>
+      `;
+    }
 
     resultadoContainer.innerHTML = `
       <div class="resultado-header">
@@ -524,42 +583,7 @@ const codigoURL = Astro.url.searchParams.get('codigo') || '';
 
       <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">${data.mensaje}</p>
 
-      <div class="progress-bar">
-        <div class="progress-fill" style="width: ${data.progreso}%; background: ${data.color}"></div>
-      </div>
-
-      <ul class="timeline">
-        <li class="timeline-item">
-          <div class="timeline-dot ${estadoActual >= 0 ? 'completado' : 'pendiente'}">
-            ${estadoActual >= 0 ? '✓' : '1'}
-          </div>
-          <div class="timeline-content">
-            <h4>Pedido Pagado</h4>
-            <p>Tu pedido ha sido confirmado y pagado</p>
-            ${data.fechas.pago ? `<span class="fecha">${formatearFecha(data.fechas.pago)}</span>` : ''}
-          </div>
-        </li>
-        <li class="timeline-item">
-          <div class="timeline-dot ${estadoActual >= 1 ? 'completado' : estadoActual === 0 ? 'pendiente' : 'pendiente'}">
-            ${estadoActual >= 1 ? '✓' : '2'}
-          </div>
-          <div class="timeline-content">
-            <h4>Enviado</h4>
-            <p>Tu pedido ha sido enviado</p>
-            ${data.fechas.envio ? `<span class="fecha">${formatearFecha(data.fechas.envio)}</span>` : ''}
-          </div>
-        </li>
-        <li class="timeline-item">
-          <div class="timeline-dot ${estadoActual >= 2 ? 'completado' : 'pendiente'}">
-            ${estadoActual >= 2 ? '✓' : '3'}
-          </div>
-          <div class="timeline-content">
-            <h4>Entregado</h4>
-            <p>Tu pedido ha sido entregado</p>
-            ${data.fechas.entrega ? `<span class="fecha">${formatearFecha(data.fechas.entrega)}</span>` : ''}
-          </div>
-        </li>
-      </ul>
+      ${timelineHTML}
 
       ${data.total ? `
         <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); text-align: right;">

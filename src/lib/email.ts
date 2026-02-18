@@ -699,7 +699,7 @@ export async function enviarEmailCancelacion(
                       </tr>
                       ${totalReembolso ? `<tr>
                         <td style="color: #888; font-size: 13px;">Reembolso</td>
-                        <td style="font-weight: 700; color: #a89968; font-size: 15px;">${(totalReembolso / 100).toFixed(2)} &euro;</td>
+                        <td style="font-weight: 700; color: #a89968; font-size: 15px;">${Number(totalReembolso).toFixed(2)} &euro;</td>
                       </tr>` : ''}
                       <tr>
                         <td style="color: #888; font-size: 13px;">Fecha</td>
@@ -796,7 +796,7 @@ export async function notificarCancelacionAlAdmin(
               <p style="margin: 5px 0;"><strong>Número de Pedido:</strong> ${numeroPedido}</p>
               <p style="margin: 5px 0;"><strong>Email del Cliente:</strong> ${emailCliente}</p>
               ${nombreCliente ? `<p style="margin: 5px 0;"><strong>Cliente:</strong> ${nombreCliente}</p>` : ''}
-              ${totalPedido ? `<p style="margin: 5px 0;"><strong>Total Reembolsado:</strong> €${(totalPedido / 100).toFixed(2)}</p>` : ''}
+              ${totalPedido ? `<p style="margin: 5px 0;"><strong>Total Reembolsado:</strong> €${Number(totalPedido).toFixed(2)}</p>` : ''}
               <p style="margin: 5px 0;"><strong>Fecha de Cancelación:</strong> ${new Date().toLocaleDateString('es-ES', { 
                 year: 'numeric', 
                 month: 'long', 
@@ -898,7 +898,7 @@ export async function notificarDevolucionValidada(
                       </tr>
                       ${totalReembolso ? `<tr>
                         <td style="color: #888; font-size: 13px;">Reembolso Autorizado</td>
-                        <td style="font-weight: 700; color: #a89968; font-size: 15px;">${(totalReembolso / 100).toFixed(2)} &euro;</td>
+                        <td style="font-weight: 700; color: #a89968; font-size: 15px;">${Number(totalReembolso).toFixed(2)} &euro;</td>
                       </tr>` : ''}
                       <tr>
                         <td style="color: #888; font-size: 13px;">Fecha</td>

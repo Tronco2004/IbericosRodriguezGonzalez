@@ -59,7 +59,7 @@ export const GET: APIRoute = async ({ cookies, request }) => {
       .from('carrito_items')
       .select(`
         *,
-        productos:producto_id(id, nombre, precio_centimos, imagen_url, categoria_id)
+        productos:producto_id(id, nombre, precio_centimos, imagen_url, categoria_id, stock)
       `)
       .eq('carrito_id', carrito.id)
       .order('fecha_agregado', { ascending: false });
@@ -96,6 +96,19 @@ export const GET: APIRoute = async ({ cookies, request }) => {
       ofertasMap[oferta.producto_id] = oferta;
     });
 
+    // Obtener stock de variantes si hay items con variante
+    const varianteIds = (items || []).filter(i => i.producto_variante_id).map(i => i.producto_variante_id);
+    const variantesStockMap: Record<number, number> = {};
+    if (varianteIds.length > 0) {
+      const { data: variantesData } = await supabaseClient
+        .from('producto_variantes')
+        .select('id, cantidad_disponible')
+        .in('id', varianteIds);
+      variantesData?.forEach((v: any) => {
+        variantesStockMap[v.id] = v.cantidad_disponible || 0;
+      });
+    }
+
     // Enriquecer items con nombre de categoría y corregir precios con ofertas activas
     const itemsEnriquecidos = [];
     for (const item of (items || [])) {
@@ -116,9 +129,22 @@ export const GET: APIRoute = async ({ cookies, request }) => {
         }
       }
 
+      // Calcular stock máximo permitido para este item
+      // stock_disponible = stock actual en BD (aún no reservado) + cantidad que ya tiene en carrito
+      let stockMaximo: number | null = null;
+      if (!item.peso_kg) { // Solo limitar para productos sin peso variable
+        if (item.producto_variante_id) {
+          const stockVariante = variantesStockMap[item.producto_variante_id] ?? 0;
+          stockMaximo = item.cantidad + stockVariante;
+        } else if (item.productos?.stock !== undefined) {
+          stockMaximo = item.cantidad + (item.productos.stock || 0);
+        }
+      }
+
       itemsEnriquecidos.push({
         ...item,
         precio_unitario: precioCorregido,
+        stock_maximo: stockMaximo,
         productos: item.productos ? {
           ...item.productos,
           categoria: categoriaMap[item.productos.categoria_id] || 'Sin categoría'
