@@ -1304,7 +1304,7 @@ export const prerender = false;
       try {
         const productoId = window.location.pathname.split('/').pop();
 
-        const response = await fetch(`/api/admin/productos`);
+        const response = await fetch(`/api/productos/lista`);
         const data = await response.json();
 
         if (!data.success || !data.productos) {
