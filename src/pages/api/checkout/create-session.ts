@@ -1,7 +1,6 @@
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
 import { supabaseAdmin } from '../../../lib/supabase';
-import { obtenerUsuarioDelToken } from '../../../lib/auth';
 
 const STRIPE_SECRET_KEY = import.meta.env.STRIPE_SECRET_KEY;
 if (!STRIPE_SECRET_KEY) {
@@ -34,13 +33,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     let userId = request.headers.get('x-user-id');
     if (!userId) {
       userId = cookies.get('user_id')?.value || null;
-    }
-    if (!userId) {
-      const token = cookies.get('auth_token')?.value;
-      if (token) {
-        const usr = obtenerUsuarioDelToken(token);
-        if (usr?.id) userId = usr.id;
-      }
     }
 
     let dbUser: { nombre: string; email: string; telefono: string | null; direccion: string | null } | null = null;

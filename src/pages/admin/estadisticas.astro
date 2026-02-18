@@ -1,13 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { obtenerUsuarioDelToken } from '../../lib/auth';
-
-const token = Astro.cookies.get('auth_token')?.value;
-const usuario = token ? obtenerUsuarioDelToken(token) : null;
-
-if (!usuario || usuario.rol !== 'admin') {
-  return Astro.redirect('/sin-acceso');
-}
+// La protección admin se gestiona en el middleware (src/middleware.ts)
 ---
 
 <Layout>

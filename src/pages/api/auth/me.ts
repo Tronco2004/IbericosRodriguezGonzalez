@@ -1,5 +1,4 @@
 import type { APIRoute } from 'astro';
-import { obtenerUsuarioDelToken } from '../../../lib/auth';
 import { supabaseClient, supabaseAdmin } from '../../../lib/supabase';
 
 export const GET: APIRoute = async ({ cookies, request }) => {
@@ -10,17 +9,6 @@ export const GET: APIRoute = async ({ cookies, request }) => {
     // Si no viene en header, intentar desde la cookie user_id directamente
     if (!userId) {
       userId = cookies.get('user_id')?.value;
-    }
-    
-    // Si no viene en cookie, intentar desde el token
-    if (!userId) {
-      const token = cookies.get('auth_token')?.value;
-      if (token) {
-        const usuario = obtenerUsuarioDelToken(token);
-        if (usuario && usuario.id) {
-          userId = usuario.id;
-        }
-      }
     }
 
     if (!userId) {
