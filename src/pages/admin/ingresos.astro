@@ -460,6 +460,9 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 
       document.getElementById('modalTitulo').textContent = `Pedidos de ${usuario.nombre}`;
       
+      // Contar solo pedidos con importe > 0
+      const pedidosReales = usuario.pedidos.filter(p => p.subtotal > 0);
+      
       let html = `
         <div style="margin-bottom: 1rem; display: flex; gap: 1.5rem; flex-wrap: wrap;">
           <div>
@@ -468,7 +471,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           </div>
           <div>
             <span style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: 600;">Total pedidos</span>
-            <p style="margin: 0.2rem 0 0; color: var(--text-primary); font-weight: 600;">${usuario.totalPedidos}</p>
+            <p style="margin: 0.2rem 0 0; color: var(--text-primary); font-weight: 600;">${pedidosReales.length}</p>
           </div>
           <div>
             <span style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: 600;">Total ingresos</span>
@@ -486,7 +489,10 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           <tbody>
       `;
 
-      usuario.pedidos.forEach(pedido => {
+      // Filtrar pedidos con importe 0€
+      const pedidosConImporte = usuario.pedidos.filter(p => p.subtotal > 0);
+
+      pedidosConImporte.forEach(pedido => {
         const fecha = new Date(pedido.fecha).toLocaleDateString('es-ES', {
           day: '2-digit', month: '2-digit', year: 'numeric'
         });

@@ -49,7 +49,7 @@ const info = categoryTitles[slug] || { title: 'Productos', subtitle: 'Nuestros p
   <script define:vars={{ categoria: slug }}>
     async function cargarProductos() {
       try {
-        const response = await fetch('/api/admin/productos');
+        const response = await fetch('/api/productos/lista');
         const data = await response.json();
         
         let productos = [];
