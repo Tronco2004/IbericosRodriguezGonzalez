@@ -91,10 +91,7 @@ export const GET: APIRoute = async () => {
       .gte('fecha_creacion', primerDiaDelMes)
       .lte('fecha_creacion', ultimoDiaDelMes);
 
-    console.log('📋 Pedidos pagados del mes:', pedidosMes?.length || 0, 'Error:', ingresosError);
-    if (pedidosMes) {
-      console.log('📊 Primeros pedidos (para debug):', JSON.stringify(pedidosMes.slice(0, 3), null, 2));
-    }
+    console.log('📋 Pedidos pagados del mes:', pedidosMes?.length || 0);
 
     // Obtener devoluciones validadas del mes para restarlas
     const { data: devolucionesValidadas } = await supabaseAdmin
@@ -159,8 +156,9 @@ export const GET: APIRoute = async () => {
     console.log('✅ Ingresos de hoy:', ingresosHoy);
     console.log('✅ Pedidos de hoy:', pedidosHoy);
 
-    // Calcular ticket promedio (ingresos totales / número de pedidos)
-    const ticketPromedio = pedidosPendientes > 0 ? ingresosTotal / pedidosPendientes : 0;
+    // Calcular ticket promedio (ingresos totales / total de pedidos pagados del mes)
+    const totalPedidosMes = pedidosMes?.length || 0;
+    const ticketPromedio = totalPedidosMes > 0 ? ingresosTotal / totalPedidosMes : 0;
 
     return new Response(
       JSON.stringify({
@@ -176,20 +174,13 @@ export const GET: APIRoute = async () => {
       { status: 200 }
     );
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error en dashboard-stats:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
-        clientesActivos: 0,
-        pedidosPendientes: 0,
-        stockTotal: 0,
-        ingresosTotal: '0.00',
-        ingresosHoy: '0.00',
-        pedidosHoy: 0,
-        ticketPromedio: '0.00',
-        error: error.toString()
+        error: 'Error interno del servidor'
       }),
-      { status: 200 }
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
 };

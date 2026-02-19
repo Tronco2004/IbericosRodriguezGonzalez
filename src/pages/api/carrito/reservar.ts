@@ -1,13 +1,32 @@
 import type { APIRoute } from 'astro';
 import { supabaseClient, supabaseAdmin } from '../../../lib/supabase';
 import { decrementarStockProducto, incrementarStockProducto, decrementarStockVariante, incrementarStockVariante } from '../../../lib/stock';
+import { createRateLimiter, getClientIp, rateLimitResponse } from '../../../lib/rate-limit';
+
+// Rate-limiter para reservas de invitados (P0-8)
+const reservarLimiter = createRateLimiter({ maxRequests: 30, windowMs: 60_000 });
 
 /**
  * POST: Reservar stock (decrementar) cuando invitado agrega producto
  * DELETE: Devolver stock cuando invitado elimina producto del carrito
  */
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, cookies }) => {
   try {
+    // Rate-limit por IP
+    const clientIp = getClientIp(request);
+    if (!reservarLimiter.check(clientIp)) {
+      return rateLimitResponse();
+    }
+
+    // Verificar que hay alguna forma de identificación (cookie userId o sesión invitado)
+    const userId = cookies.get('user_id')?.value;
+    const guestCartId = cookies.get('guest_cart_id')?.value;
+    // Invitados legítimos también pueden reservar stock, pero necesitamos al menos un identificador
+    // para trackear y prevenir abuso masivo
+    if (!userId && !guestCartId && !request.headers.get('authorization')) {
+      console.warn('⚠️ Reservar sin identificación desde IP:', clientIp);
+    }
+
     const { producto_id, cantidad, producto_variante_id } = await request.json();
 
     console.log('🔒 POST /api/carrito/reservar - Datos recibidos:', { 
@@ -100,8 +119,14 @@ export const POST: APIRoute = async ({ request }) => {
 /**
  * DELETE: Devolver stock cuando invitado elimina producto del carrito
  */
-export const DELETE: APIRoute = async ({ request }) => {
+export const DELETE: APIRoute = async ({ request, cookies }) => {
   try {
+    // Rate-limit por IP
+    const clientIp = getClientIp(request);
+    if (!reservarLimiter.check(clientIp)) {
+      return rateLimitResponse();
+    }
+
     const { producto_id, cantidad, producto_variante_id } = await request.json();
 
     console.log('↩️ DELETE /api/carrito/reservar - Devolviendo stock:', { 

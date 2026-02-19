@@ -1,13 +1,34 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin, supabaseClient } from '../../../lib/supabase';
+import { getAuthenticatedUserId } from '../../../lib/auth-helpers';
+import { incrementarStockProducto, incrementarStockVariante, decrementarStockProducto, decrementarStockVariante } from '../../../lib/stock';
 
 export const prerender = false;
 
+/**
+ * Verifica que un carrito_item pertenece al carrito del usuario autenticado.
+ * Previene IDOR (acceso a items de otros usuarios).
+ */
+async function verificarPropietarioItem(itemId: number, userId: string): Promise<boolean> {
+  const { data } = await supabaseAdmin
+    .from('carrito_items')
+    .select('carrito_id, carritos!inner(usuario_id)')
+    .eq('id', itemId)
+    .single();
+
+  if (!data) return false;
+  // carritos es un objeto con usuario_id
+  return (data as any).carritos?.usuario_id === userId;
+}
+
 export const PUT: APIRoute = async ({ request, cookies }) => {
   try {
-    const { item_id, cantidad, user_id } = await request.json();
+    const { item_id, cantidad } = await request.json();
     
-    let userId = user_id || cookies.get('user_id')?.value;
+    // ═══════════════════════════════════════════════════════════
+    // FIX P1-1: Autenticación via JWT, no confiar en user_id del body
+    // ═══════════════════════════════════════════════════════════
+    const { userId } = await getAuthenticatedUserId(request, cookies);
     if (!userId) {
       return new Response(
         JSON.stringify({ error: 'No autenticado' }),
@@ -37,6 +58,15 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
       );
     }
 
+    // FIX P1-1: Verificar que el item pertenece al usuario
+    const esPropietario = await verificarPropietarioItem(item_id, userId);
+    if (!esPropietario) {
+      return new Response(
+        JSON.stringify({ error: 'No tienes permiso para modificar este item', success: false }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Si la cantidad es 0 o menor, eliminar
     if (cantidad <= 0) {
       const { error: deleteError } = await supabaseAdmin
@@ -51,43 +81,22 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
         );
       }
 
-      // Devolver stock si es producto simple
+      // FIX P1-2: Devolver stock con CAS
       if (itemAnterior && !itemAnterior.producto_variante_id) {
-        const { data: producto } = await supabaseAdmin
-          .from('productos')
-          .select('stock')
-          .eq('id', itemAnterior.producto_id)
-          .single();
-        
-        if (producto) {
-          const nuevoStock = producto.stock + itemAnterior.cantidad;
-          await supabaseAdmin
-            .from('productos')
-            .update({ stock: nuevoStock })
-            .eq('id', itemAnterior.producto_id);
-          console.log('✅ Stock devuelto (cantidad=0):', { producto_id: itemAnterior.producto_id, nuevoStock });
+        const result = await incrementarStockProducto(itemAnterior.producto_id, itemAnterior.cantidad);
+        if (result.success) {
+          console.log('✅ Stock devuelto (CAS, cantidad=0):', { producto_id: itemAnterior.producto_id, nuevoStock: result.stockRestante });
+        } else {
+          console.error('❌ Error devolviendo stock (CAS):', result.error);
         }
       }
 
-      // Devolver stock si es producto variable
       if (itemAnterior && itemAnterior.producto_variante_id) {
-        const { data: variante } = await supabaseAdmin
-          .from('producto_variantes')
-          .select('cantidad_disponible')
-          .eq('id', itemAnterior.producto_variante_id)
-          .single();
-        
-        if (variante) {
-          const nuevoStock = (variante.cantidad_disponible || 0) + itemAnterior.cantidad;
-          const nuevoDisponible = nuevoStock > 0;
-          await supabaseAdmin
-            .from('producto_variantes')
-            .update({ 
-              cantidad_disponible: nuevoStock,
-              disponible: nuevoDisponible
-            })
-            .eq('id', itemAnterior.producto_variante_id);
-          console.log('✅ Stock variante devuelto (cantidad=0):', { variante_id: itemAnterior.producto_variante_id, nuevoStock });
+        const result = await incrementarStockVariante(itemAnterior.producto_variante_id, itemAnterior.cantidad);
+        if (result.success) {
+          console.log('✅ Stock variante devuelto (CAS, cantidad=0):', { variante_id: itemAnterior.producto_variante_id, nuevoStock: result.stockRestante });
+        } else {
+          console.error('❌ Error devolviendo stock variante (CAS):', result.error);
         }
       }
 
@@ -97,36 +106,37 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    // Actualizar cantidad - VALIDAR STOCK
-    if (cantidad > 0) {
-      // Si estamos incrementando, validar stock disponible
-      if (cantidad > itemAnterior.cantidad) {
-        const incremento = cantidad - itemAnterior.cantidad;
-        
-        let stockDisponible = 0;
-        if (itemAnterior.producto_variante_id) {
-          const { data: variante } = await supabaseAdmin
-            .from('producto_variantes')
-            .select('cantidad_disponible')
-            .eq('id', itemAnterior.producto_variante_id)
-            .single();
-          stockDisponible = variante?.cantidad_disponible || 0;
-        } else {
-          const { data: producto } = await supabaseAdmin
-            .from('productos')
-            .select('stock')
-            .eq('id', itemAnterior.producto_id)
-            .single();
-          stockDisponible = producto?.stock || 0;
-        }
-
-        if (incremento > stockDisponible) {
-          console.log('❌ Stock insuficiente para incremento:', { solicitado: incremento, disponible: stockDisponible });
+    // Actualizar cantidad - VALIDAR STOCK con CAS
+    if (cantidad > 0 && cantidad > itemAnterior.cantidad) {
+      const incremento = cantidad - itemAnterior.cantidad;
+      
+      // Intentar decrementar stock (CAS valida disponibilidad)
+      if (itemAnterior.producto_variante_id) {
+        const result = await decrementarStockVariante(itemAnterior.producto_variante_id, incremento);
+        if (!result.success) {
+          console.log('❌ Stock insuficiente (CAS):', result.error);
           return new Response(
             JSON.stringify({ error: 'No hay suficiente stock', success: false }),
             { status: 400 }
           );
         }
+      } else {
+        const result = await decrementarStockProducto(itemAnterior.producto_id, incremento);
+        if (!result.success) {
+          console.log('❌ Stock insuficiente (CAS):', result.error);
+          return new Response(
+            JSON.stringify({ error: 'No hay suficiente stock', success: false }),
+            { status: 400 }
+          );
+        }
+      }
+    } else if (cantidad > 0 && cantidad < itemAnterior.cantidad) {
+      // Devolver stock sobrante con CAS
+      const devolver = itemAnterior.cantidad - cantidad;
+      if (itemAnterior.producto_variante_id) {
+        await incrementarStockVariante(itemAnterior.producto_variante_id, devolver);
+      } else {
+        await incrementarStockProducto(itemAnterior.producto_id, devolver);
       }
     }
 
@@ -144,50 +154,6 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    // Ajustar stock si cambió la cantidad (solo si es producto simple)
-    if (itemAnterior && !itemAnterior.producto_variante_id && itemAnterior.cantidad !== cantidad) {
-      const diferencia = itemAnterior.cantidad - cantidad; // Si es positivo, devolvemos stock
-      
-      const { data: producto } = await supabaseAdmin
-        .from('productos')
-        .select('stock')
-        .eq('id', itemAnterior.producto_id)
-        .single();
-      
-      if (producto) {
-        const nuevoStock = producto.stock + diferencia;
-        await supabaseAdmin
-          .from('productos')
-          .update({ stock: nuevoStock })
-          .eq('id', itemAnterior.producto_id);
-        console.log('✅ Stock ajustado:', { producto_id: itemAnterior.producto_id, cantidadAnterior: itemAnterior.cantidad, cantidadNueva: cantidad, diferencia, nuevoStock });
-      }
-    }
-
-    // Ajustar stock si cambió la cantidad (para variantes)
-    if (itemAnterior && itemAnterior.producto_variante_id && itemAnterior.cantidad !== cantidad) {
-      const diferencia = itemAnterior.cantidad - cantidad; // Si es positivo, devolvemos stock
-      
-      const { data: variante } = await supabaseAdmin
-        .from('producto_variantes')
-        .select('cantidad_disponible')
-        .eq('id', itemAnterior.producto_variante_id)
-        .single();
-      
-      if (variante) {
-        const nuevoStock = (variante.cantidad_disponible || 0) + diferencia;
-        const nuevoDisponible = nuevoStock > 0;
-        await supabaseAdmin
-          .from('producto_variantes')
-          .update({ 
-            cantidad_disponible: nuevoStock,
-            disponible: nuevoDisponible
-          })
-          .eq('id', itemAnterior.producto_variante_id);
-        console.log('✅ Stock variante ajustado:', { variante_id: itemAnterior.producto_variante_id, cantidadAnterior: itemAnterior.cantidad, cantidadNueva: cantidad, diferencia, nuevoStock });
-      }
-    }
-
     return new Response(
       JSON.stringify({ success: true, item: actualizado }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
@@ -203,9 +169,8 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
 
 export const DELETE: APIRoute = async ({ request, cookies, params }) => {
   try {
-    const body = await request.json().catch(() => ({}));
-    let userId = body.user_id || cookies.get('user_id')?.value;
-    
+    // FIX P1-1: Auth via JWT
+    const { userId } = await getAuthenticatedUserId(request, cookies);
     if (!userId) {
       return new Response(
         JSON.stringify({ error: 'No autenticado' }),
@@ -222,11 +187,22 @@ export const DELETE: APIRoute = async ({ request, cookies, params }) => {
       );
     }
 
+    const itemIdNum = parseInt(itemId);
+
+    // FIX P1-1: Verificar propiedad del item
+    const esPropietario = await verificarPropietarioItem(itemIdNum, userId);
+    if (!esPropietario) {
+      return new Response(
+        JSON.stringify({ error: 'No tienes permiso para eliminar este item', success: false }),
+        { status: 403 }
+      );
+    }
+
     // Obtener el item antes de eliminarlo
     const { data: item, error: getError } = await supabaseAdmin
       .from('carrito_items')
       .select('*')
-      .eq('id', parseInt(itemId))
+      .eq('id', itemIdNum)
       .single();
 
     if (getError || !item) {
@@ -240,7 +216,7 @@ export const DELETE: APIRoute = async ({ request, cookies, params }) => {
     const { error: deleteError } = await supabaseAdmin
       .from('carrito_items')
       .delete()
-      .eq('id', parseInt(itemId));
+      .eq('id', itemIdNum);
 
     if (deleteError) {
       return new Response(
@@ -251,46 +227,20 @@ export const DELETE: APIRoute = async ({ request, cookies, params }) => {
 
     console.log('✅ Item eliminado:', itemId);
 
-    // Si es un producto simple (sin variante), devolver el stock
+    // FIX P1-2: Devolver stock con CAS
     if (!item.producto_variante_id) {
-      console.log('➕ Devolviendo stock del producto:', item.producto_id, 'cantidad:', item.cantidad);
-      const { data: producto } = await supabaseAdmin
-        .from('productos')
-        .select('stock')
-        .eq('id', item.producto_id)
-        .single();
-
-      if (producto) {
-        const nuevoStock = producto.stock + item.cantidad;
-        await supabaseAdmin
-          .from('productos')
-          .update({ stock: nuevoStock })
-          .eq('id', item.producto_id);
-        console.log('✅ Stock devuelto:', { producto_id: item.producto_id, stockAnterior: producto.stock, nuevoStock });
+      const result = await incrementarStockProducto(item.producto_id, item.cantidad);
+      if (result.success) {
+        console.log('✅ Stock devuelto (CAS):', { producto_id: item.producto_id, nuevoStock: result.stockRestante });
+      } else {
+        console.error('❌ Error devolviendo stock (CAS):', result.error);
       }
-    }
-
-    // Si es un producto variable (con variante), devolver el stock
-    if (item.producto_variante_id) {
-      console.log('➕ Devolviendo stock de variante:', item.producto_variante_id, 'cantidad:', item.cantidad);
-      const { data: variante } = await supabaseAdmin
-        .from('producto_variantes')
-        .select('cantidad_disponible')
-        .eq('id', item.producto_variante_id)
-        .single();
-
-      if (variante) {
-        const stockAnterior = variante.cantidad_disponible || 0;
-        const nuevoStock = stockAnterior + item.cantidad;
-        const nuevoDisponible = nuevoStock > 0;
-        await supabaseAdmin
-          .from('producto_variantes')
-          .update({ 
-            cantidad_disponible: nuevoStock,
-            disponible: nuevoDisponible
-          })
-          .eq('id', item.producto_variante_id);
-        console.log('✅ Stock variante devuelto:', { variante_id: item.producto_variante_id, stockAnterior, nuevoStock, ahora_disponible: nuevoDisponible });
+    } else {
+      const result = await incrementarStockVariante(item.producto_variante_id, item.cantidad);
+      if (result.success) {
+        console.log('✅ Stock variante devuelto (CAS):', { variante_id: item.producto_variante_id, nuevoStock: result.stockRestante });
+      } else {
+        console.error('❌ Error devolviendo stock variante (CAS):', result.error);
       }
     }
 

@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
 import { supabaseClient, supabaseAdmin } from '../../../lib/supabase';
 import { enviarConfirmacionPedido } from '../../../lib/email';
+import { getAuthenticatedUserId } from '../../../lib/auth-helpers';
 
 const STRIPE_SECRET_KEY = import.meta.env.STRIPE_SECRET_KEY;
 const stripe = new Stripe(STRIPE_SECRET_KEY || '');
@@ -9,21 +10,45 @@ const stripe = new Stripe(STRIPE_SECRET_KEY || '');
 // Constante para el envío
 const SHIPPING_COST = 5.00; // 5€
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     console.log('\n✅ ======= [VALIDAR Y CREAR PEDIDO] INICIADO =======');
     
-    const { sessionId, userId, userEmail, cartItems, codigoDescuento, descuentoAplicado, datosInvitado } = await request.json();
+    const { sessionId, cartItems, codigoDescuento, datosInvitado } = await request.json();
 
     if (!sessionId) {
       console.error('❌ No hay sessionId');
       return new Response(JSON.stringify({ error: 'No hay sessionId' }), { status: 400 });
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // IDEMPOTENCIA: verificar si ya existe un pedido con este session_id
+    // ═══════════════════════════════════════════════════════════
+    const { data: pedidoExistente } = await supabaseAdmin
+      .from('pedidos')
+      .select('id, numero_pedido, total, codigo_seguimiento')
+      .eq('stripe_session_id', sessionId)
+      .maybeSingle();
+
+    if (pedidoExistente) {
+      console.log('⚠️ Pedido ya existente para session_id:', sessionId, '→', pedidoExistente.numero_pedido);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          pedidoId: pedidoExistente.id,
+          numeroPedido: pedidoExistente.numero_pedido,
+          codigoSeguimiento: pedidoExistente.codigo_seguimiento,
+          total: pedidoExistente.total,
+          message: 'Pedido ya existente (idempotente)'
+        }),
+        { status: 200 }
+      );
+    }
+
+    // ── Auth: obtener userId desde JWT (no de header) ──
+    const { userId: jwtUserId } = await getAuthenticatedUserId(request, cookies);
+
     console.log('📝 Parámetros recibidos:', {
-      sessionId,
-      userId,
-      userEmail,
       numItems: cartItems?.length,
       esInvitado: !!datosInvitado
     });
@@ -31,13 +56,7 @@ export const POST: APIRoute = async ({ request }) => {
     // Obtener la sesión de Stripe (shipping_details se incluye automáticamente)
     const session = await stripe.checkout.sessions.retrieve(sessionId);
     
-    console.log('📋 Sesión Stripe completa:', {
-      id: session.id,
-      payment_status: session.payment_status,
-      customer_email: session.customer_email,
-      customer: session.customer,
-      metadata: session.metadata
-    });
+    console.log('📋 Sesión Stripe - payment_status:', session.payment_status);
     
     if (session.payment_status !== 'paid') {
       console.error('❌ El pago no fue completado. Estado:', session.payment_status);
@@ -49,13 +68,24 @@ export const POST: APIRoute = async ({ request }) => {
 
     console.log('✅ Pago confirmado en Stripe');
 
+    // Obtener email del usuario autenticado (si existe) para usarlo como fallback
+    let authUserEmail: string | null = null;
+    if (jwtUserId) {
+      const { data: authUsuario } = await supabaseAdmin
+        .from('usuarios')
+        .select('email')
+        .eq('id', jwtUserId)
+        .single();
+      if (authUsuario?.email) authUserEmail = authUsuario.email;
+    }
+
     // Determinar email
     let customerEmail = session.customer_email;
     if (!customerEmail) {
       if (datosInvitado?.email) {
         customerEmail = datosInvitado.email;
-      } else if (userEmail) {
-        customerEmail = userEmail;
+      } else if (authUserEmail) {
+        customerEmail = authUserEmail;
       }
     }
 
@@ -67,17 +97,16 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    console.log('📧 Email del cliente:', customerEmail);
-    console.log('👤 UserId:', userId || 'Sin usuario (invitado)');
+    console.log('� Usuario:', jwtUserId ? 'autenticado' : 'invitado');
 
     // ✅ BUSCAR SI EXISTE UN USUARIO CON ESTE EMAIL (para vincular pedidos de invitados)
-    let finalUserId = userId;
-    let esInvitado = !userId;
+    let finalUserId = jwtUserId;
+    let esInvitado = !jwtUserId;
     let usuarioDatos: any = {};
     
     if (finalUserId) {
       // Usuario logueado: obtener sus datos (incluyendo dirección)
-      console.log('👤 Obteniendo datos del usuario logueado:', finalUserId);
+      console.log('👤 Obteniendo datos del usuario logueado');
       const { data: usuario, error: errorUsuario } = await supabaseClient
         .from('usuarios')
         .select('nombre, email, telefono, direccion')
@@ -88,8 +117,8 @@ export const POST: APIRoute = async ({ request }) => {
         usuarioDatos = usuario;
         console.log('✅ Datos del usuario obtenidos');
       }
-    } else if (!userId && customerEmail) {
-      console.log('🔍 Buscando usuario existente con email:', customerEmail);
+    } else if (!jwtUserId && customerEmail) {
+      console.log('🔍 Buscando usuario existente por email');
       const { data: usuarioExistente, error: errorBusqueda } = await supabaseClient
         .from('usuarios')
         .select('id, nombre, email, telefono, direccion')
@@ -97,7 +126,7 @@ export const POST: APIRoute = async ({ request }) => {
         .single();
       
       if (!errorBusqueda && usuarioExistente) {
-        console.log('✅ Usuario encontrado con este email. Vinculando pedido a usuario:', usuarioExistente.id);
+        console.log('✅ Usuario encontrado. Vinculando pedido.');
         finalUserId = usuarioExistente.id;
         esInvitado = false; // Ya no es invitado, tiene cuenta
         usuarioDatos = usuarioExistente;
@@ -106,16 +135,86 @@ export const POST: APIRoute = async ({ request }) => {
       }
     }
 
-    // Calcular totales (todos en centimos)
-    // NOTA: Los precios del carrito YA vienen en céntimos desde la BD
-    const subtotalCentimos = cartItems.reduce((sum: number, item: any) => {
-      // El precio ya viene en céntimos desde el carrito
-      const precioCentimos = Math.round(parseFloat(item.precio) || 0);
-      return sum + (precioCentimos * (item.cantidad || 1));
-    }, 0);
+    // ═══════════════════════════════════════════════════════════
+    // CALCULAR TOTALES DESDE BD (no confiar en el cliente)
+    // ═══════════════════════════════════════════════════════════
+    
+    // Obtener precios reales de la BD
+    const productoIds = [...new Set(cartItems.map((i: any) => i.producto_id).filter(Boolean))];
+    const varianteIds = [...new Set(cartItems.map((i: any) => i.producto_variante_id || i.variante_id).filter(Boolean))];
+
+    const { data: productosDB } = await supabaseAdmin
+      .from('productos')
+      .select('id, precio_centimos')
+      .in('id', productoIds);
+
+    let variantesDB: any[] = [];
+    if (varianteIds.length > 0) {
+      const { data } = await supabaseAdmin
+        .from('producto_variantes')
+        .select('id, producto_id, precio_total')
+        .in('id', varianteIds);
+      variantesDB = data || [];
+    }
+
+    // Ofertas activas
+    const ahora = new Date().toISOString();
+    const { data: ofertasDB } = await supabaseAdmin
+      .from('ofertas')
+      .select('producto_id, precio_descuento_centimos')
+      .in('producto_id', productoIds)
+      .eq('activa', true)
+      .lte('fecha_inicio', ahora)
+      .gte('fecha_fin', ahora);
+
+    const productoMap = new Map((productosDB || []).map((p: any) => [p.id, p]));
+    const varianteMap = new Map(variantesDB.map((v: any) => [v.id, v]));
+    const ofertaMap = new Map((ofertasDB || []).map((o: any) => [o.producto_id, o]));
+
+    // Calcular subtotal con precios de BD
+    let subtotalCentimos = 0;
+    for (const item of cartItems) {
+      const varianteId = item.producto_variante_id || item.variante_id;
+      let precioCentimos: number;
+      
+      if (varianteId && varianteMap.has(varianteId)) {
+        precioCentimos = varianteMap.get(varianteId).precio_total;
+      } else {
+        const oferta = ofertaMap.get(item.producto_id);
+        const producto = productoMap.get(item.producto_id);
+        precioCentimos = oferta?.precio_descuento_centimos ?? producto?.precio_centimos ?? 0;
+      }
+      
+      subtotalCentimos += precioCentimos * (item.cantidad || 1);
+    }
 
     const envioCentimos = Math.round(SHIPPING_COST * 100); // 500 centimos
-    const descuentoCentimos = descuentoAplicado ? descuentoAplicado : 0; // ya en centimos
+    
+    // Validar descuento desde BD si hay código
+    let descuentoCentimos = 0;
+    if (codigoDescuento && typeof codigoDescuento === 'string') {
+      const { data: codigoDB } = await supabaseAdmin
+        .from('codigos_promocionales')
+        .select('tipo_descuento, valor_descuento, uso_maximo, usos_actuales, fecha_inicio, fecha_fin, activo')
+        .eq('codigo', codigoDescuento.trim().toUpperCase())
+        .eq('activo', true)
+        .single();
+
+      if (codigoDB) {
+        const ahoraDate = new Date();
+        const valido = new Date(codigoDB.fecha_inicio) <= ahoraDate && 
+                       new Date(codigoDB.fecha_fin) >= ahoraDate &&
+                       (!codigoDB.uso_maximo || codigoDB.usos_actuales < codigoDB.uso_maximo);
+        if (valido) {
+          if (codigoDB.tipo_descuento === 'porcentaje') {
+            descuentoCentimos = Math.round(subtotalCentimos * codigoDB.valor_descuento / 100);
+          } else {
+            descuentoCentimos = Math.round(codigoDB.valor_descuento * 100);
+          }
+        }
+      }
+    }
+    
     const totalCentimos = (subtotalCentimos + envioCentimos) - descuentoCentimos;
 
     // Convertir a euros para guardar
@@ -186,17 +285,25 @@ export const POST: APIRoute = async ({ request }) => {
     const pedidoId = pedidoCreado[0].id;
     console.log('✅ Pedido creado. ID:', pedidoId);
 
-    // ✅ CREAR ITEMS DEL PEDIDO
+    // ✅ CREAR ITEMS DEL PEDIDO (con precios de BD)
     const itemsData = cartItems.map((item: any) => {
-      // El precio ya viene en céntimos desde el carrito
-      const precioCentimos = Math.round(parseFloat(item.precio) || 0);
-      // Convertir centimos a euros para guardar en BD
+      const varianteId = item.producto_variante_id || item.variante_id || null;
+      let precioCentimos: number;
+      
+      if (varianteId && varianteMap.has(varianteId)) {
+        precioCentimos = varianteMap.get(varianteId).precio_total;
+      } else {
+        const oferta = ofertaMap.get(item.producto_id);
+        const producto = productoMap.get(item.producto_id);
+        precioCentimos = oferta?.precio_descuento_centimos ?? producto?.precio_centimos ?? 0;
+      }
+      
       const precioUnitarioEuros = precioCentimos / 100;
 
       return {
         pedido_id: pedidoId,
         producto_id: item.producto_id,
-        producto_variante_id: item.producto_variante_id || item.variante_id || null,
+        producto_variante_id: varianteId,
         nombre_producto: item.nombre,
         cantidad: item.cantidad || 1,
         precio_unitario: precioUnitarioEuros,

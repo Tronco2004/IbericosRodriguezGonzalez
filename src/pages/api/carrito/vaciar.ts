@@ -1,9 +1,12 @@
 import type { APIRoute } from 'astro';
 import { supabaseClient, supabaseAdmin } from '../../../lib/supabase';
+import { getAuthenticatedUserId } from '../../../lib/auth-helpers';
+import { incrementarStockProducto, incrementarStockVariante } from '../../../lib/stock';
 
-export const DELETE: APIRoute = async ({ request }) => {
+export const DELETE: APIRoute = async ({ request, cookies }) => {
   try {
-    const userId = request.headers.get('x-user-id');
+    // FIX: Autenticación via JWT en vez de header spoofable
+    const { userId } = await getAuthenticatedUserId(request, cookies);
 
     if (!userId) {
       return new Response(
@@ -12,15 +15,13 @@ export const DELETE: APIRoute = async ({ request }) => {
       );
     }
 
-    console.log('🗑️ Vaciando carrito para usuario:', userId);
+    console.log('🗑️ Vaciando carrito para usuario');
 
     // Primero obtener todos los items del carrito para devolver el stock
-    const { data: carritoData, error: errorCarrito } = await supabaseClient
+    const { data: carritoData, error: errorCarrito } = await supabaseAdmin
       .from('carritos')
       .select('id')
       .eq('usuario_id', userId);
-
-    console.log('📦 Consulta carrito - Data:', carritoData, 'Error:', errorCarrito);
 
     if (errorCarrito) {
       console.error('❌ Error en query carrito:', errorCarrito);
@@ -42,12 +43,10 @@ export const DELETE: APIRoute = async ({ request }) => {
     console.log('✅ Carrito encontrado, ID:', carritoId);
 
     // Obtener todos los items del carrito
-    const { data: items, error: errorItems } = await supabaseClient
+    const { data: items, error: errorItems } = await supabaseAdmin
       .from('carrito_items')
       .select('*')
       .eq('carrito_id', carritoId);
-
-    console.log('📋 Items obtenidos:', items?.length || 0, 'Error:', errorItems);
 
     if (errorItems) {
       console.error('❌ Error obteniendo items:', errorItems);
@@ -56,58 +55,27 @@ export const DELETE: APIRoute = async ({ request }) => {
     if (items && items.length > 0) {
       console.log('Devolviendo stock de', items.length, 'items');
       
-      // Devolver el stock de cada item
+      // FIX P1-2: Devolver el stock de cada item con CAS
       for (const item of items) {
         if (item.producto_variante_id) {
-          // Producto con variante
-          const { data: variante } = await supabaseClient
-            .from('producto_variantes')
-            .select('cantidad_disponible')
-            .eq('id', item.producto_variante_id)
-            .single();
-
-          if (variante) {
-            const nuevoStock = (variante.cantidad_disponible || 0) + item.cantidad;
-            const { error: errorUpdate } = await supabaseAdmin
-              .from('producto_variantes')
-              .update({ 
-                cantidad_disponible: nuevoStock,
-                disponible: nuevoStock > 0
-              })
-              .eq('id', item.producto_variante_id);
-            
-            if (errorUpdate) {
-              console.error('Error actualizando variante:', errorUpdate);
-            } else {
-              console.log('Stock variante devuelto:', item.producto_variante_id, '+', item.cantidad, '=', nuevoStock);
-            }
+          const result = await incrementarStockVariante(item.producto_variante_id, item.cantidad);
+          if (result.success) {
+            console.log('Stock variante devuelto (CAS):', item.producto_variante_id, '+', item.cantidad, '=', result.stockRestante);
+          } else {
+            console.error('Error devolviendo stock variante (CAS):', result.error);
           }
         } else {
-          // Producto simple
-          const { data: producto } = await supabaseAdmin
-            .from('productos')
-            .select('stock')
-            .eq('id', item.producto_id)
-            .single();
-
-          if (producto) {
-            const nuevoStock = producto.stock + item.cantidad;
-            const { error: errorUpdate } = await supabaseAdmin
-              .from('productos')
-              .update({ stock: nuevoStock })
-              .eq('id', item.producto_id);
-            
-            if (errorUpdate) {
-              console.error('Error actualizando producto:', errorUpdate);
-            } else {
-              console.log('Stock producto devuelto:', item.producto_id, '+', item.cantidad, '=', nuevoStock);
-            }
+          const result = await incrementarStockProducto(item.producto_id, item.cantidad);
+          if (result.success) {
+            console.log('Stock producto devuelto (CAS):', item.producto_id, '+', item.cantidad, '=', result.stockRestante);
+          } else {
+            console.error('Error devolviendo stock producto (CAS):', result.error);
           }
         }
       }
 
       // Eliminar todos los items del carrito
-      const { error: errorDelete } = await supabaseClient
+      const { error: errorDelete } = await supabaseAdmin
         .from('carrito_items')
         .delete()
         .eq('carrito_id', carritoId);

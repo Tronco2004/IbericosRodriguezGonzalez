@@ -1,19 +1,37 @@
 import { defineMiddleware } from 'astro:middleware';
 import { supabaseAdmin } from './lib/supabase';
 
+/**
+ * Extrae y valida el JWT del request (cookie o header Authorization).
+ * Devuelve el userId validado o null.
+ */
+async function validateAuthToken(token: string | undefined): Promise<string | null> {
+  if (!token) return null;
+  try {
+    const { data, error } = await supabaseAdmin.auth.getUser(token);
+    if (!error && data?.user?.id) return data.user.id;
+  } catch {
+    // Token inválido o expirado
+  }
+  return null;
+}
+
 export const onRequest = defineMiddleware(async (context, next) => {
   const token = context.cookies.get('auth_token')?.value;
-  const userRole = context.cookies.get('user_role')?.value;
-  const userId = context.cookies.get('user_id')?.value;
-  const userName = context.cookies.get('user_name')?.value;
   const path = context.url.pathname;
+
+  // Extraer JWT de Authorization header (Flutter / API)
+  const authHeader = context.request.headers.get('authorization');
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : undefined;
+  const effectiveToken = token || bearerToken;
 
   // ═══════════════════════════════════════════════════════════
   // PROTECCIÓN DE PÁGINAS ADMIN - Redirigir si no es admin
   // ═══════════════════════════════════════════════════════════
   if (path.startsWith('/admin')) {
-    // Verificación rápida: si no hay cookie de autenticación, redirigir
-    if (!userId || !token) {
+    // FIX P1-4: Validar JWT real, no cookies de texto plano
+    const validatedUserId = await validateAuthToken(effectiveToken);
+    if (!validatedUserId) {
       return context.redirect('/login?redirect=' + encodeURIComponent(path));
     }
 
@@ -22,7 +40,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
       const { data: usuario } = await supabaseAdmin
         .from('usuarios')
         .select('rol')
-        .eq('id', userId)
+        .eq('id', validatedUserId)
         .single();
 
       if (!usuario || usuario.rol !== 'admin') {
@@ -37,24 +55,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // PROTECCIÓN DE APIs ADMIN - Bloquear acceso sin autenticación
   // ═══════════════════════════════════════════════════════════
   if (path.startsWith('/api/admin')) {
-    // 1) Obtener token: cookie > header Authorization > header x-user-id
-    let authToken = token;
-    let authUserId = userId;
+    // FIX P1-4: Validar JWT real
+    const validatedUserId = await validateAuthToken(effectiveToken);
 
-    // Soporte para header Authorization: Bearer <token> (Flutter / API REST)
-    const authHeader = context.request.headers.get('authorization');
-    if (!authToken && authHeader?.startsWith('Bearer ')) {
-      authToken = authHeader.substring(7);
-    }
-
-    // Soporte para header x-user-id (usado por algunos fetch internos)
-    const headerUserId = context.request.headers.get('x-user-id');
-    if (!authUserId && headerUserId) {
-      authUserId = headerUserId;
-    }
-
-    // 2) Si no hay ninguna forma de autenticación, denegar
-    if (!authToken && !authUserId) {
+    if (!validatedUserId) {
       return new Response(
         JSON.stringify({ success: false, error: 'No autenticado' }),
         { status: 401, headers: { 'Content-Type': 'application/json' } }
@@ -62,12 +66,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
 
     // 3) Verificar que el usuario es admin consultando la BD
-    const idParaVerificar = authUserId || authToken;
     try {
       const { data: usuario, error } = await supabaseAdmin
         .from('usuarios')
         .select('rol')
-        .eq('id', idParaVerificar)
+        .eq('id', validatedUserId)
         .single();
 
       if (error || !usuario || usuario.rol !== 'admin') {
@@ -88,22 +91,20 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // PROTECCIÓN DE ENDPOINTS DEBUG - Bloquear en producción
   // ═══════════════════════════════════════════════════════════
   if (path.startsWith('/api/debug')) {
-    const authToken = token || context.request.headers.get('authorization')?.substring(7);
-    const authUserId = userId || context.request.headers.get('x-user-id');
+    const validatedUserId = await validateAuthToken(effectiveToken);
     
-    if (!authToken && !authUserId) {
+    if (!validatedUserId) {
       return new Response(
         JSON.stringify({ success: false, error: 'No autorizado' }),
         { status: 403, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    const idParaVerificar = authUserId || authToken;
     try {
       const { data: usuario } = await supabaseAdmin
         .from('usuarios')
         .select('rol')
-        .eq('id', idParaVerificar)
+        .eq('id', validatedUserId)
         .single();
 
       if (!usuario || usuario.rol !== 'admin') {
@@ -128,7 +129,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const esRutaExenta = rutasExentas.some(ruta => path === ruta);
   
   if (!esRutaExenta && rutasProtegidas.some(ruta => path.startsWith(ruta))) {
-    if (!token) {
+    if (!effectiveToken) {
       return context.redirect('/login?redirect=' + encodeURIComponent(path));
     }
   }

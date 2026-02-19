@@ -1,9 +1,11 @@
 import type { APIRoute } from 'astro';
 import { supabaseClient } from '../../../lib/supabase';
+import { getAuthenticatedUserId } from '../../../lib/auth-helpers';
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, cookies }) => {
   try {
-    const userId = request.headers.get('x-user-id');
+    // ── Auth: validar JWT (no confiar en x-user-id) ──
+    const { userId } = await getAuthenticatedUserId(request, cookies);
     
     if (!userId) {
       return new Response(

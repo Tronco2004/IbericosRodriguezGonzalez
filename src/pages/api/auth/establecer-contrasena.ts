@@ -1,16 +1,15 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { requireAuth } from '../../../lib/auth-helpers';
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, cookies }) => {
   try {
-    const userId = request.headers.get('x-user-id');
-
-    if (!userId) {
-      return new Response(
-        JSON.stringify({ success: false, message: 'No autenticado' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+    // ═══════════════════════════════════════════════════════════
+    // FIX P0-4: Usar JWT validado en vez de x-user-id spoofable
+    // ═══════════════════════════════════════════════════════════
+    const authResult = await requireAuth(request, cookies);
+    if (authResult instanceof Response) return authResult;
+    const userId = authResult.userId;
 
     const { contrasenaNueva, contrasenaConfirm } = await request.json();
 
@@ -59,7 +58,7 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    console.log('✅ Contraseña establecida para usuario OAuth:', userId);
+    console.log('✅ Contraseña establecida para usuario OAuth');
 
     return new Response(
       JSON.stringify({

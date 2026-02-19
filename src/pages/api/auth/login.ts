@@ -1,7 +1,14 @@
 import type { APIRoute } from 'astro';
 import { supabaseClient } from '../../../lib/supabase';
+import { createRateLimiter, getClientIp, rateLimitResponse } from '../../../lib/rate-limit';
+
+// Limitar login a 10 intentos por minuto por IP (anti brute-force)
+const loginLimiter = createRateLimiter({ maxRequests: 10, windowMs: 60_000 });
 
 export const POST: APIRoute = async ({ request, cookies }) => {
+  const clientIp = getClientIp(request);
+  if (!loginLimiter.check(clientIp)) return rateLimitResponse();
+
   let email: string;
   let password: string;
   
@@ -42,7 +49,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const token = authData.session?.access_token;
     const userEmail = authData.user.email;
 
-    console.log('✅ Autenticación en auth exitosa:', userId);
+    console.log('✅ Autenticación en auth exitosa');
 
     // 2. Obtener datos del usuario desde tabla usuarios usando el email
     const { data: usuarioData, error: dbError } = await supabaseClient
@@ -51,10 +58,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       .eq('email', userEmail)
       .single();
 
-    console.log('🔍 Query a tabla usuarios por email:');
-    console.log('  Email:', userEmail);
-    console.log('  Datos encontrados:', usuarioData);
-    console.log('  Error:', dbError);
+    console.log('🔍 Query a tabla usuarios por email');
+    console.log('  Encontrado:', !!usuarioData);
+    if (dbError) console.log('  Error:', dbError.message);
 
     if (dbError || !usuarioData) {
       console.log('Usuario no encontrado en tabla usuarios:', dbError?.message);
@@ -66,7 +72,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     // Validar que el usuario esté activo
     if (!usuarioData.activo) {
-      console.log('Usuario inactivo:', email);
+      console.log('Usuario inactivo');
       return new Response(
         JSON.stringify({ success: false, message: 'Usuario inactivo' }),
         { status: 403 }
@@ -77,25 +83,27 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     console.log('Rol:', usuarioData.rol);
 
     // 3. Guardar sesión en cookies
+    // FIX P1-5: auth_token y user_id son httpOnly para prevenir robo por XSS
     cookies.set('auth_token', token || '', {
-      httpOnly: false,
-      secure: false,
+      httpOnly: true,
+      secure: true,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
     });
 
     cookies.set('user_id', usuarioData.id, {
-      httpOnly: false,
-      secure: false,
+      httpOnly: true,
+      secure: true,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
     });
 
+    // user_role y user_name accesibles al frontend para UI
     cookies.set('user_role', usuarioData.rol, {
       httpOnly: false,
-      secure: false,
+      secure: true,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
@@ -103,7 +111,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     cookies.set('user_name', usuarioData.nombre, {
       httpOnly: false,
-      secure: false,
+      secure: true,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',

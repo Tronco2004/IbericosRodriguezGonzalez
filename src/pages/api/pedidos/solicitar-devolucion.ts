@@ -1,10 +1,12 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { enviarEmailDevolucion, notificarDevolucionAlAdmin } from '../../../lib/email';
+import { getAuthenticatedUserId } from '../../../lib/auth-helpers';
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, cookies }) => {
   try {
-    const userId = request.headers.get('x-user-id');
+    // ── Auth: validar JWT (no confiar en x-user-id) ──
+    const { userId } = await getAuthenticatedUserId(request, cookies);
     const { pedido_id } = await request.json();
 
     if (!userId || !pedido_id) {
@@ -42,7 +44,7 @@ export const POST: APIRoute = async ({ request }) => {
       (userEmail && pedido.email_cliente === userEmail);
 
     if (!esPropietario) {
-      console.error('❌ El pedido no pertenece al usuario:', { pedidoUserId: pedido.usuario_id, pedidoEmail: pedido.email_cliente, userId, userEmail });
+      console.error('❌ El pedido no pertenece al usuario');
       return new Response(
         JSON.stringify({ success: false, error: 'No tienes permiso para solicitar devolución de este pedido' }),
         { status: 403 }
@@ -84,7 +86,7 @@ export const POST: APIRoute = async ({ request }) => {
     // Enviar email con etiqueta de devolución
     try {
       await enviarEmailDevolucion(pedido.email_cliente, pedido.numero_pedido);
-      console.log('Email de devolución enviado a:', pedido.email_cliente);
+      console.log('Email de devolución enviado');
     } catch (emailError) {
       console.error('Error enviando email de devolución:', emailError);
       // No fallar si el email no se envía
@@ -92,7 +94,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Notificar al admin sobre la devolución
     try {
-      console.log('📧 Notificando al admin sobre devolución. Email cliente:', pedido.email_cliente, 'Nombre:', pedido.nombre_cliente);
+      console.log('📧 Notificando al admin sobre devolución');
       
       await notificarDevolucionAlAdmin(
         pedido.numero_pedido,

@@ -519,6 +519,12 @@
     chatInput?.focus();
   }
 
+  function escapeHtmlChat(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
   function addMessage(content: string, role: 'user' | 'assistant') {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
@@ -528,8 +534,9 @@
   }
 
   function formatMessage(content: string): string {
-    // Convert markdown-like formatting to HTML
-    return content
+    // Escapar HTML primero para prevenir XSS, luego aplicar formato markdown seguro
+    const escaped = escapeHtmlChat(content);
+    return escaped
       .replace(/\n/g, '<br>')
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>');

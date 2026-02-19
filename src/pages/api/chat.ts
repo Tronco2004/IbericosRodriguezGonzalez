@@ -1,7 +1,14 @@
 import type { APIRoute } from 'astro';
 import { supabaseClient } from '../../lib/supabase';
+import { createRateLimiter, getClientIp, rateLimitResponse } from '../../lib/rate-limit';
+
+// Limitar chat a 15 por minuto por IP (proteger créditos Groq)
+const chatLimiter = createRateLimiter({ maxRequests: 15, windowMs: 60_000 });
 
 export const POST: APIRoute = async ({ request }) => {
+  const clientIp = getClientIp(request);
+  if (!chatLimiter.check(clientIp)) return rateLimitResponse();
+
   try {
     // Obtener API key en runtime - Astro usa import.meta.env
     const GROQ_API_KEY = import.meta.env.GROQ_API_KEY;
@@ -116,10 +123,17 @@ INSTRUCCIONES:
 RESPONDE SIEMPRE EN ESPAÑOL.`;
 
     // Preparar mensajes para Groq
+    // FIX P2-6: Filtrar roles para prevenir prompt injection
+    // Solo permitir "user" y "assistant" del historial del cliente
+    const safeHistory = conversationHistory
+      .filter((msg: any) => msg.role === 'user' || msg.role === 'assistant')
+      .slice(-6) // Últimos 6 mensajes para contexto
+      .map((msg: any) => ({ role: msg.role, content: String(msg.content).slice(0, 2000) }));
+
     const messages = [
       { role: 'system', content: systemPrompt },
-      ...conversationHistory.slice(-6), // Últimos 6 mensajes para contexto
-      { role: 'user', content: message }
+      ...safeHistory,
+      { role: 'user', content: message.slice(0, 2000) }
     ];
 
     // Llamar a Groq API

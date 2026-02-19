@@ -2010,7 +2010,17 @@ import Layout from '../../layouts/Layout.astro';
             }, 1500);
             return;
           }
-          throw new Error('Error agregando al carrito');
+          // Leer el error real del servidor
+          const errorData = await response.json().catch(() => ({}));
+          console.error('❌ Error del servidor:', errorData);
+          const errorMsg = errorData.error || 'Error agregando al carrito';
+          // Revertir stock optimista
+          if (productoEnGrilla) {
+            productoEnGrilla.stock = stockAnterior;
+            actualizarStockVisualEnGrilla(parseInt(productoId), stockAnterior);
+          }
+          mostrarNotificacion(errorMsg, 'error');
+          return;
         }
 
         const result = await response.json();

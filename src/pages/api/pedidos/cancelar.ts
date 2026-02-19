@@ -2,20 +2,26 @@ import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { enviarEmailCancelacion, notificarCancelacionAlAdmin } from '../../../lib/email';
 import { procesarReembolsoStripe } from '../../../lib/stripe';
+import { requireAuth } from '../../../lib/auth-helpers';
+import { incrementarStockProducto } from '../../../lib/stock';
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, cookies }) => {
   try {
-    const userId = request.headers.get('x-user-id');
+    // FIX: Auth via JWT en vez de x-user-id
+    const authResult = await requireAuth(request, cookies);
+    if (authResult instanceof Response) return authResult;
+    const userId = authResult.userId;
+
     const { pedido_id } = await request.json();
 
-    if (!userId || !pedido_id) {
+    if (!pedido_id) {
       return new Response(
         JSON.stringify({ success: false, error: 'Datos incompletos' }),
         { status: 400 }
       );
     }
 
-    console.log('🔵 Cancelando pedido:', { pedido_id, userId });
+    console.log('🔵 Cancelando pedido:', pedido_id);
 
     // Obtener email del usuario para poder verificar propiedad por email también
     let userEmail: string | null = null;
@@ -46,7 +52,7 @@ export const POST: APIRoute = async ({ request }) => {
       (userEmail && pedido.email_cliente === userEmail);
 
     if (!esPropietario) {
-      console.error('❌ El pedido no pertenece al usuario:', { pedidoUserId: pedido.usuario_id, pedidoEmail: pedido.email_cliente, userId, userEmail });
+      console.error('❌ El pedido no pertenece al usuario');
       return new Response(
         JSON.stringify({ success: false, error: 'No tienes permiso para cancelar este pedido' }),
         { status: 403 }
@@ -72,7 +78,7 @@ export const POST: APIRoute = async ({ request }) => {
       .select('producto_id, producto_variante_id, cantidad, precio_unitario, peso_kg')
       .eq('pedido_id', pedido.id);
 
-    console.log('🔵 Items encontrados:', JSON.stringify(items, null, 2));
+    console.log('🔵 Items encontrados:', items?.length || 0);
 
     if (!errorItems && items && items.length > 0) {
       let restaurados = 0;
@@ -109,36 +115,19 @@ export const POST: APIRoute = async ({ request }) => {
           if (insertError) {
             console.error('❌ Error recreando variante:', insertError);
           } else {
-            console.log('✅ Variante recreada:', nuevaVariante.id, 'peso:', item.peso_kg, 'kg, precio:', precioTotalCentimos, 'céntimos');
+            console.log('✅ Variante recreada:', nuevaVariante.id, 'peso:', item.peso_kg, 'kg');
             restaurados++;
           }
         } else {
-          // Producto normal: incrementar stock
-          console.log('🔵 Producto normal, incrementando stock...');
+          // FIX P1-3: Producto normal: incrementar stock con CAS
+          console.log('🔵 Producto normal, incrementando stock con CAS...');
           
-          const { data: producto, error: errorGetProducto } = await supabaseAdmin
-            .from('productos')
-            .select('stock')
-            .eq('id', item.producto_id)
-            .single();
+          const result = await incrementarStockProducto(item.producto_id, item.cantidad || 1);
 
-          if (errorGetProducto || !producto) {
-            console.warn('⚠️ No se encontró el producto:', item.producto_id, errorGetProducto);
-            continue;
-          }
-
-          const nuevoStock = (producto.stock || 0) + (item.cantidad || 1);
-          console.log('🔵 Actualizando producto', item.producto_id, 'stock de', producto.stock, 'a', nuevoStock);
-          
-          const { error: errorRestore } = await supabaseAdmin
-            .from('productos')
-            .update({ stock: nuevoStock })
-            .eq('id', item.producto_id);
-
-          if (errorRestore) {
-            console.error('❌ Error restaurando stock:', errorRestore);
+          if (!result.success) {
+            console.error('❌ Error restaurando stock (CAS):', result.error);
           } else {
-            console.log('✅ Stock restaurado para producto', item.producto_id);
+            console.log('✅ Stock restaurado (CAS) para producto', item.producto_id, '→', result.stockRestante);
             restaurados++;
           }
         }
@@ -152,7 +141,7 @@ export const POST: APIRoute = async ({ request }) => {
     let reembolsoInfo = { procesado: false, refundId: '', error: '' };
 
     if (pedido.stripe_session_id) {
-      console.log('💳 Procesando reembolso en Stripe para sesión:', pedido.stripe_session_id);
+      console.log('💳 Procesando reembolso en Stripe');
 
       const resultado = await procesarReembolsoStripe(
         pedido.stripe_session_id,
@@ -209,7 +198,7 @@ export const POST: APIRoute = async ({ request }) => {
         .single();
 
       if (pedidoCompleto && pedidoCompleto.email_cliente) {
-        console.log('📧 Enviando correos de cancelación a cliente:', pedidoCompleto.email_cliente, 'y admin:', import.meta.env.ADMIN_EMAIL);
+        console.log('📧 Enviando correos de cancelación');
         
         // Enviar ambos correos en paralelo para que el fallo de uno no bloquee al otro
         const resultados = await Promise.allSettled([

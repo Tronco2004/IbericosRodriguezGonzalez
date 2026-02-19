@@ -1,18 +1,17 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { notificarDevolucionDenegada } from '../../../lib/email';
+import { requireAdmin } from '../../../lib/auth-helpers';
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, cookies }) => {
   try {
-    const userRole = request.headers.get('x-user-role');
-    const { pedido_id } = await request.json();
+    // ═══════════════════════════════════════════════════════════
+    // FIX P0-5: Verificar admin con JWT+BD en vez de header spoofable
+    // ═══════════════════════════════════════════════════════════
+    const adminResult = await requireAdmin(request, cookies);
+    if (adminResult instanceof Response) return adminResult;
 
-    if (userRole !== 'admin') {
-      return new Response(
-        JSON.stringify({ success: false, error: 'No autorizado' }),
-        { status: 403 }
-      );
-    }
+    const { pedido_id } = await request.json();
 
     if (!pedido_id) {
       return new Response(
@@ -76,7 +75,7 @@ export const POST: APIRoute = async ({ request }) => {
       const nombreCliente = pedido.nombre_cliente;
       
       if (emailCliente) {
-        console.log('📧 Enviando correo de denegación de devolución a:', emailCliente);
+        console.log('📧 Enviando correo de denegación de devolución');
         
         await notificarDevolucionDenegada(
           emailCliente,

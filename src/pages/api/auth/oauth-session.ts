@@ -49,9 +49,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       || email.split('@')[0]
       || 'Usuario';
 
-    console.log('🔐 OAuth session - Usuario verificado:', email);
+    console.log('🔐 OAuth session - Usuario verificado');
     console.log('   Provider:', authUser.app_metadata?.provider);
-    console.log('   Nombre:', nombre);
 
     // Buscar o crear usuario en la tabla "usuarios"
     let usuarioData: { id: string; nombre: string; email: string; rol: string; telefono?: string; direccion?: string } | null = null;
@@ -75,7 +74,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       console.log('✅ Usuario existente:', existingUser.nombre, '- Rol:', existingUser.rol);
     } else {
       // Crear nuevo usuario
-      console.log('🆕 Creando usuario en tabla usuarios:', email);
+      console.log('🆕 Creando usuario en tabla usuarios');
       const { data: newUser, error: insertError } = await supabaseAdmin
         .from('usuarios')
         .insert({
@@ -139,7 +138,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     cookies.set('auth_token', access_token, {
-      httpOnly: false,
+      httpOnly: true,
       secure: false,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
@@ -170,11 +169,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       path: '/',
     });
 
-    console.log('🍪 Cookies OAuth establecidas:', {
-      user_id: usuarioData.id,
-      user_name: usuarioData.nombre,
-      user_role: usuarioData.rol,
-    });
+    console.log('🍪 Cookies OAuth establecidas');
 
     // Determinar redirección según rol
     const redirect_url = usuarioData.rol === 'admin' ? '/admin/dashboard' : '/productos';
