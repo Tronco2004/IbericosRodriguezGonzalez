@@ -24,6 +24,20 @@ const { data: ofertasData } = await supabaseClient
 const ofertas = ofertasData || [];
 const totalOfertas = ofertas.length;
 
+// Cargar categorías principales desde la BD (excluir Lácteos y Promociones, incluir Mantecas y Paquetes 100g)
+const { data: categoriasData } = await supabaseClient
+  .from('categorias')
+  .select('id, nombre, slug, descripcion, categoria_padre')
+  .eq('activa', true)
+  .not('slug', 'in', '("lacteos","promociones")')
+  .order('orden', { ascending: true });
+
+// Filtrar: solo principales + mantecas y paquetes-100g (que son subcategorías)
+const slugsExtra = ['mantecas', 'paquetes-100g'];
+const categoriasPrincipales = (categoriasData || []).filter(
+  c => c.categoria_padre === null || slugsExtra.includes(c.slug)
+);
+
 // Encontrar la oferta más urgente (la que expira primero)
 const ofertaUrgente = ofertas.find(o => o.fecha_fin) || null;
 ---
@@ -202,87 +216,19 @@ const ofertaUrgente = ofertas.find(o => o.fecha_fin) || null;
     </div>
 
     <div class="categorias-grid">
-      <a href="/categoria/jamones" class="categoria-card">
-        <div class="categoria-icon">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <ellipse cx="12" cy="8" rx="9" ry="5"/>
-            <path d="M3 8v8c0 2.76 4.03 5 9 5s9-2.24 9-5V8"/>
-            <path d="M3 13c0 2.76 4.03 5 9 5s9-2.24 9-5"/>
-          </svg>
-        </div>
-        <h3 class="categoria-nombre">Jamones</h3>
-        <p class="categoria-desc">Jamón ibérico de bellota, reserva y gran reserva</p>
-        <span class="categoria-link">Ver productos →</span>
-      </a>
-
-      <a href="/categoria/paletas" class="categoria-card">
-        <div class="categoria-icon">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-            <path d="M2 17l10 5 10-5"/>
-            <path d="M2 12l10 5 10-5"/>
-          </svg>
-        </div>
-        <h3 class="categoria-nombre">Paletas</h3>
-        <p class="categoria-desc">Paletas ibéricas con el sabor auténtico de la dehesa</p>
-        <span class="categoria-link">Ver productos →</span>
-      </a>
-
-      <a href="/categoria/quesos" class="categoria-card">
-        <div class="categoria-icon">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <circle cx="12" cy="12" r="10"/>
-            <circle cx="8" cy="10" r="1.5"/>
-            <circle cx="15" cy="8" r="1"/>
-            <circle cx="14" cy="14" r="2"/>
-            <circle cx="7" cy="15" r="1"/>
-          </svg>
-        </div>
-        <h3 class="categoria-nombre">Quesos</h3>
-        <p class="categoria-desc">Manchego, torta del casar y quesos artesanales</p>
-        <span class="categoria-link">Ver productos →</span>
-      </a>
-
-      <a href="/categoria/embutidos" class="categoria-card">
-        <div class="categoria-icon">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <rect x="3" y="6" width="18" height="12" rx="2"/>
-            <line x1="8" y1="6" x2="8" y2="18"/>
-            <line x1="16" y1="6" x2="16" y2="18"/>
-            <line x1="12" y1="6" x2="12" y2="18"/>
-          </svg>
-        </div>
-        <h3 class="categoria-nombre">Embutidos</h3>
-        <p class="categoria-desc">Chorizo, salchichón, lomo y morcón ibérico</p>
-        <span class="categoria-link">Ver productos →</span>
-      </a>
-
-      <a href="/categoria/loncheados" class="categoria-card">
-        <div class="categoria-icon">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <rect x="4" y="4" width="16" height="16" rx="2"/>
-            <line x1="4" y1="9" x2="20" y2="9"/>
-            <line x1="4" y1="14" x2="20" y2="14"/>
-          </svg>
-        </div>
-        <h3 class="categoria-nombre">Loncheados</h3>
-        <p class="categoria-desc">Sobres de jamón y embutidos cortados a cuchillo</p>
-        <span class="categoria-link">Ver productos →</span>
-      </a>
-
-      <a href="/categoria/aceites" class="categoria-card">
-        <div class="categoria-icon">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M8 2h8l2 4H6l2-4z"/>
-            <path d="M6 6v14a2 2 0 002 2h8a2 2 0 002-2V6"/>
-            <path d="M12 10v6"/>
-            <path d="M9 13h6"/>
-          </svg>
-        </div>
-        <h3 class="categoria-nombre">Aceites</h3>
-        <p class="categoria-desc">Aceite de oliva virgen extra de primera prensada</p>
-        <span class="categoria-link">Ver productos →</span>
-      </a>
+      {categoriasPrincipales.map((cat) => (
+        <a href={`/categoria/${cat.slug}`} class="categoria-card">
+          <div class="categoria-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="3"/>
+              <path d="M8 12h8M12 8v8"/>
+            </svg>
+          </div>
+          <h3 class="categoria-nombre">{cat.nombre}</h3>
+          <p class="categoria-desc">{cat.descripcion || `Productos ${cat.nombre.toLowerCase()} de la más alta calidad`}</p>
+          <span class="categoria-link">Ver productos →</span>
+        </a>
+      ))}
     </div>
   </section>
 

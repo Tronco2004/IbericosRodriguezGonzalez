@@ -1157,7 +1157,7 @@ const info = categoryInfo[slug as string] || {
           console.error('Error cargando ofertas:', error);
         }
 
-        const response = await fetch('/api/admin/productos');
+        const response = await fetch('/api/productos/lista');
         const data = await response.json();
 
         // Obtener variantes reservadas

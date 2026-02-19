@@ -23,6 +23,7 @@ export const GET: APIRoute = async ({ url }) => {
       .select(`
         codigo_seguimiento,
         estado_seguimiento,
+        estado,
         fecha_creacion,
         fecha_pago,
         fecha_envio,
@@ -67,10 +68,18 @@ export const GET: APIRoute = async ({ url }) => {
         icono: '✅',
         color: '#22c55e',
         progreso: 100
+      },
+      cancelado: {
+        titulo: 'Pedido Cancelado',
+        mensaje: 'Este pedido ha sido cancelado',
+        icono: '❌',
+        color: '#ef4444',
+        progreso: 0
       }
     };
 
-    const estado = pedido.estado_seguimiento || 'pagado';
+    // Si el estado del pedido es cancelado, mostrar cancelado independientemente del estado_seguimiento
+    const estado = (pedido.estado === 'cancelado') ? 'cancelado' : (pedido.estado_seguimiento || 'pagado');
     const info = estadoInfo[estado as keyof typeof estadoInfo] || estadoInfo.pagado;
 
     const respuesta = {

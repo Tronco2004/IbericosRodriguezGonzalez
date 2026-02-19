@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient } from '../../../lib/supabase';
+import { supabaseAdmin, supabaseClient } from '../../../lib/supabase';
 
 export const prerender = false;
 
@@ -23,15 +23,23 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
     }
 
     // Obtener el item antes de actualizar para saber la cantidad anterior
-    const { data: itemAnterior } = await supabaseClient
+    const { data: itemAnterior, error: itemError } = await supabaseAdmin
       .from('carrito_items')
       .select('*')
       .eq('id', item_id)
       .single();
 
+    if (itemError || !itemAnterior) {
+      console.error('❌ Item no encontrado para actualizar:', item_id, itemError);
+      return new Response(
+        JSON.stringify({ error: 'Item no encontrado en el carrito', success: false }),
+        { status: 404, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Si la cantidad es 0 o menor, eliminar
     if (cantidad <= 0) {
-      const { error: deleteError } = await supabaseClient
+      const { error: deleteError } = await supabaseAdmin
         .from('carrito_items')
         .delete()
         .eq('id', item_id);
@@ -45,7 +53,7 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
 
       // Devolver stock si es producto simple
       if (itemAnterior && !itemAnterior.producto_variante_id) {
-        const { data: producto } = await supabaseClient
+        const { data: producto } = await supabaseAdmin
           .from('productos')
           .select('stock')
           .eq('id', itemAnterior.producto_id)
@@ -53,7 +61,7 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
         
         if (producto) {
           const nuevoStock = producto.stock + itemAnterior.cantidad;
-          await supabaseClient
+          await supabaseAdmin
             .from('productos')
             .update({ stock: nuevoStock })
             .eq('id', itemAnterior.producto_id);
@@ -63,7 +71,7 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
 
       // Devolver stock si es producto variable
       if (itemAnterior && itemAnterior.producto_variante_id) {
-        const { data: variante } = await supabaseClient
+        const { data: variante } = await supabaseAdmin
           .from('producto_variantes')
           .select('cantidad_disponible')
           .eq('id', itemAnterior.producto_variante_id)
@@ -72,7 +80,7 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
         if (variante) {
           const nuevoStock = (variante.cantidad_disponible || 0) + itemAnterior.cantidad;
           const nuevoDisponible = nuevoStock > 0;
-          await supabaseClient
+          await supabaseAdmin
             .from('producto_variantes')
             .update({ 
               cantidad_disponible: nuevoStock,
@@ -97,14 +105,14 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
         
         let stockDisponible = 0;
         if (itemAnterior.producto_variante_id) {
-          const { data: variante } = await supabaseClient
+          const { data: variante } = await supabaseAdmin
             .from('producto_variantes')
             .select('cantidad_disponible')
             .eq('id', itemAnterior.producto_variante_id)
             .single();
           stockDisponible = variante?.cantidad_disponible || 0;
         } else {
-          const { data: producto } = await supabaseClient
+          const { data: producto } = await supabaseAdmin
             .from('productos')
             .select('stock')
             .eq('id', itemAnterior.producto_id)
@@ -122,7 +130,7 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
       }
     }
 
-    const { data: actualizado, error: updateError } = await supabaseClient
+    const { data: actualizado, error: updateError } = await supabaseAdmin
       .from('carrito_items')
       .update({ cantidad })
       .eq('id', item_id)
@@ -140,7 +148,7 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
     if (itemAnterior && !itemAnterior.producto_variante_id && itemAnterior.cantidad !== cantidad) {
       const diferencia = itemAnterior.cantidad - cantidad; // Si es positivo, devolvemos stock
       
-      const { data: producto } = await supabaseClient
+      const { data: producto } = await supabaseAdmin
         .from('productos')
         .select('stock')
         .eq('id', itemAnterior.producto_id)
@@ -148,7 +156,7 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
       
       if (producto) {
         const nuevoStock = producto.stock + diferencia;
-        await supabaseClient
+        await supabaseAdmin
           .from('productos')
           .update({ stock: nuevoStock })
           .eq('id', itemAnterior.producto_id);
@@ -160,7 +168,7 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
     if (itemAnterior && itemAnterior.producto_variante_id && itemAnterior.cantidad !== cantidad) {
       const diferencia = itemAnterior.cantidad - cantidad; // Si es positivo, devolvemos stock
       
-      const { data: variante } = await supabaseClient
+      const { data: variante } = await supabaseAdmin
         .from('producto_variantes')
         .select('cantidad_disponible')
         .eq('id', itemAnterior.producto_variante_id)
@@ -169,7 +177,7 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
       if (variante) {
         const nuevoStock = (variante.cantidad_disponible || 0) + diferencia;
         const nuevoDisponible = nuevoStock > 0;
-        await supabaseClient
+        await supabaseAdmin
           .from('producto_variantes')
           .update({ 
             cantidad_disponible: nuevoStock,
@@ -215,7 +223,7 @@ export const DELETE: APIRoute = async ({ request, cookies, params }) => {
     }
 
     // Obtener el item antes de eliminarlo
-    const { data: item, error: getError } = await supabaseClient
+    const { data: item, error: getError } = await supabaseAdmin
       .from('carrito_items')
       .select('*')
       .eq('id', parseInt(itemId))
@@ -229,7 +237,7 @@ export const DELETE: APIRoute = async ({ request, cookies, params }) => {
       );
     }
 
-    const { error: deleteError } = await supabaseClient
+    const { error: deleteError } = await supabaseAdmin
       .from('carrito_items')
       .delete()
       .eq('id', parseInt(itemId));
@@ -246,7 +254,7 @@ export const DELETE: APIRoute = async ({ request, cookies, params }) => {
     // Si es un producto simple (sin variante), devolver el stock
     if (!item.producto_variante_id) {
       console.log('➕ Devolviendo stock del producto:', item.producto_id, 'cantidad:', item.cantidad);
-      const { data: producto } = await supabaseClient
+      const { data: producto } = await supabaseAdmin
         .from('productos')
         .select('stock')
         .eq('id', item.producto_id)
@@ -254,7 +262,7 @@ export const DELETE: APIRoute = async ({ request, cookies, params }) => {
 
       if (producto) {
         const nuevoStock = producto.stock + item.cantidad;
-        await supabaseClient
+        await supabaseAdmin
           .from('productos')
           .update({ stock: nuevoStock })
           .eq('id', item.producto_id);
@@ -265,7 +273,7 @@ export const DELETE: APIRoute = async ({ request, cookies, params }) => {
     // Si es un producto variable (con variante), devolver el stock
     if (item.producto_variante_id) {
       console.log('➕ Devolviendo stock de variante:', item.producto_variante_id, 'cantidad:', item.cantidad);
-      const { data: variante } = await supabaseClient
+      const { data: variante } = await supabaseAdmin
         .from('producto_variantes')
         .select('cantidad_disponible')
         .eq('id', item.producto_variante_id)
@@ -275,7 +283,7 @@ export const DELETE: APIRoute = async ({ request, cookies, params }) => {
         const stockAnterior = variante.cantidad_disponible || 0;
         const nuevoStock = stockAnterior + item.cantidad;
         const nuevoDisponible = nuevoStock > 0;
-        await supabaseClient
+        await supabaseAdmin
           .from('producto_variantes')
           .update({ 
             cantidad_disponible: nuevoStock,
