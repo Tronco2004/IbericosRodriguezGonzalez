@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { supabaseClient, supabaseAdmin } from '../../../lib/supabase';
+import { decrementarStockProducto, incrementarStockProducto, decrementarStockVariante, incrementarStockVariante } from '../../../lib/stock';
 
 /**
  * POST: Reservar stock (decrementar) cuando invitado agrega producto
@@ -28,64 +29,31 @@ export const POST: APIRoute = async ({ request }) => {
     if (producto_variante_id && producto_variante_id !== 'undefined' && producto_variante_id > 0) {
       console.log('📉 Reservando stock de variante:', producto_variante_id, 'cantidad:', cantidad);
       
-      const { data: variante, error: getError } = await supabaseClient
-        .from('producto_variantes')
-        .select('cantidad_disponible')
-        .eq('id', producto_variante_id)
-        .single();
+      const result = await decrementarStockVariante(producto_variante_id, cantidad);
       
-      if (getError || !variante) {
-        console.log('❌ Variante no encontrada:', getError);
-        return new Response(
-          JSON.stringify({ error: 'Variante no encontrada', success: false }),
-          { status: 404 }
-        );
-      }
-
-      const stockActual = variante.cantidad_disponible || 0;
-      if (cantidad > stockActual) {
-        console.log('❌ Stock insuficiente:', { disponible: stockActual, solicitado: cantidad });
+      if (!result.success) {
+        console.log('❌ Stock insuficiente (CAS):', result.error);
         return new Response(
           JSON.stringify({ 
-            error: 'No hay suficiente stock', 
+            error: result.error || 'No hay suficiente stock', 
             success: false,
-            stockDisponible: stockActual
+            stockDisponible: result.stockRestante
           }),
           { status: 400 }
         );
       }
 
-      const nuevoStock = Math.max(0, stockActual - cantidad);
-      const nuevoDisponible = nuevoStock > 0;
-      
-      const { error: updateError } = await supabaseAdmin
-        .from('producto_variantes')
-        .update({ 
-          cantidad_disponible: nuevoStock,
-          disponible: nuevoDisponible
-        })
-        .eq('id', producto_variante_id);
-      
-      if (updateError) {
-        console.log('❌ Error actualizando stock:', updateError);
-        return new Response(
-          JSON.stringify({ error: 'Error actualizando stock', success: false }),
-          { status: 500 }
-        );
-      }
-
-      console.log('✅ Stock variante reservado:', { 
+      console.log('✅ Stock variante reservado (CAS):', { 
         variante_id: producto_variante_id, 
-        stockAnterior: stockActual,
-        nuevoStock,
-        ahora_disponible: nuevoDisponible
+        stockRestante: result.stockRestante,
+        disponible: result.disponible
       });
 
       return new Response(
         JSON.stringify({ 
           success: true, 
-          stockRestante: nuevoStock,
-          disponible: nuevoDisponible
+          stockRestante: result.stockRestante,
+          disponible: result.disponible
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
@@ -93,58 +61,29 @@ export const POST: APIRoute = async ({ request }) => {
       // Si es un producto simple, restar stock
       console.log('📉 Reservando stock del producto:', producto_id, 'cantidad:', cantidad);
       
-      const { data: producto, error: getError } = await supabaseAdmin
-        .from('productos')
-        .select('stock')
-        .eq('id', producto_id)
-        .single();
+      const result = await decrementarStockProducto(producto_id, cantidad);
       
-      if (getError || !producto) {
-        console.log('❌ Producto no encontrado:', getError);
-        return new Response(
-          JSON.stringify({ error: 'Producto no encontrado', success: false }),
-          { status: 404 }
-        );
-      }
-
-      const stockActual = producto.stock || 0;
-      if (cantidad > stockActual) {
-        console.log('❌ Stock insuficiente:', { disponible: stockActual, solicitado: cantidad });
+      if (!result.success) {
+        console.log('❌ Stock insuficiente (CAS):', result.error);
         return new Response(
           JSON.stringify({ 
-            error: 'No hay suficiente stock', 
+            error: result.error || 'No hay suficiente stock', 
             success: false,
-            stockDisponible: stockActual
+            stockDisponible: result.stockRestante
           }),
           { status: 400 }
         );
       }
 
-      const nuevoStock = Math.max(0, stockActual - cantidad);
-      
-      const { error: updateError } = await supabaseAdmin
-        .from('productos')
-        .update({ stock: nuevoStock })
-        .eq('id', producto_id);
-      
-      if (updateError) {
-        console.log('❌ Error actualizando stock:', updateError);
-        return new Response(
-          JSON.stringify({ error: 'Error actualizando stock', success: false }),
-          { status: 500 }
-        );
-      }
-
-      console.log('✅ Stock producto reservado:', { 
+      console.log('✅ Stock producto reservado (CAS):', { 
         producto_id, 
-        stockAnterior: stockActual,
-        nuevoStock
+        stockRestante: result.stockRestante
       });
 
       return new Response(
         JSON.stringify({ 
           success: true, 
-          stockRestante: nuevoStock
+          stockRestante: result.stockRestante
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
@@ -184,50 +123,25 @@ export const DELETE: APIRoute = async ({ request }) => {
     if (producto_variante_id && producto_variante_id !== 'undefined' && producto_variante_id > 0) {
       console.log('↩️ Devolviendo stock de variante:', producto_variante_id, 'cantidad:', cantidad);
       
-      const { data: variante, error: getError } = await supabaseClient
-        .from('producto_variantes')
-        .select('cantidad_disponible')
-        .eq('id', producto_variante_id)
-        .single();
+      const result = await incrementarStockVariante(producto_variante_id, cantidad);
       
-      if (getError || !variante) {
-        console.log('❌ Variante no encontrada:', getError);
+      if (!result.success) {
+        console.log('❌ Error devolviendo stock variante (CAS):', result.error);
         return new Response(
-          JSON.stringify({ error: 'Variante no encontrada', success: false }),
-          { status: 404 }
-        );
-      }
-
-      const stockActual = variante.cantidad_disponible || 0;
-      const nuevoStock = stockActual + cantidad;
-      const nuevoDisponible = nuevoStock > 0;
-      
-      const { error: updateError } = await supabaseAdmin
-        .from('producto_variantes')
-        .update({ 
-          cantidad_disponible: nuevoStock,
-          disponible: nuevoDisponible
-        })
-        .eq('id', producto_variante_id);
-      
-      if (updateError) {
-        console.log('❌ Error devolviendo stock:', updateError);
-        return new Response(
-          JSON.stringify({ error: 'Error devolviendo stock', success: false }),
+          JSON.stringify({ error: result.error || 'Error devolviendo stock', success: false }),
           { status: 500 }
         );
       }
 
-      console.log('✅ Stock variante devuelto:', { 
+      console.log('✅ Stock variante devuelto (CAS):', { 
         variante_id: producto_variante_id, 
-        stockAnterior: stockActual,
-        nuevoStock
+        stockRestante: result.stockRestante
       });
 
       return new Response(
         JSON.stringify({ 
           success: true, 
-          stockRestante: nuevoStock
+          stockRestante: result.stockRestante
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
@@ -235,46 +149,25 @@ export const DELETE: APIRoute = async ({ request }) => {
       // Si es un producto simple, devolver stock
       console.log('↩️ Devolviendo stock del producto:', producto_id, 'cantidad:', cantidad);
       
-      const { data: producto, error: getError } = await supabaseAdmin
-        .from('productos')
-        .select('stock')
-        .eq('id', producto_id)
-        .single();
+      const result = await incrementarStockProducto(producto_id, cantidad);
       
-      if (getError || !producto) {
-        console.log('❌ Producto no encontrado:', getError);
+      if (!result.success) {
+        console.log('❌ Error devolviendo stock producto (CAS):', result.error);
         return new Response(
-          JSON.stringify({ error: 'Producto no encontrado', success: false }),
-          { status: 404 }
-        );
-      }
-
-      const stockActual = producto.stock || 0;
-      const nuevoStock = stockActual + cantidad;
-      
-      const { error: updateError } = await supabaseAdmin
-        .from('productos')
-        .update({ stock: nuevoStock })
-        .eq('id', producto_id);
-      
-      if (updateError) {
-        console.log('❌ Error devolviendo stock:', updateError);
-        return new Response(
-          JSON.stringify({ error: 'Error devolviendo stock', success: false }),
+          JSON.stringify({ error: result.error || 'Error devolviendo stock', success: false }),
           { status: 500 }
         );
       }
 
-      console.log('✅ Stock producto devuelto:', { 
+      console.log('✅ Stock producto devuelto (CAS):', { 
         producto_id, 
-        stockAnterior: stockActual,
-        nuevoStock
+        stockRestante: result.stockRestante
       });
 
       return new Response(
         JSON.stringify({ 
           success: true, 
-          stockRestante: nuevoStock
+          stockRestante: result.stockRestante
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       );

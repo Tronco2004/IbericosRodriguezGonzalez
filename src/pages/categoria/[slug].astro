@@ -1381,7 +1381,7 @@ const info = categoryInfo[slug as string] || {
       });
 
       grid.innerHTML = productosOrdenados.map(p => {
-        const botonText = p.es_variable ? 'Seleccionar Peso' : 'Añadir al Carrito';
+        const botonTextNormal = p.es_variable ? 'Seleccionar Peso' : 'Añadir al Carrito';
         const botonClass = p.es_variable ? 'btn-seleccionar-variante' : 'btn-agregar-carrito';
 
         // Verificar stock (teniendo en cuenta las variantes en el carrito local)
@@ -1546,26 +1546,27 @@ const info = categoryInfo[slug as string] || {
                 </div>
                 
                 <button 
-                  class="product-btn ${botonClass}"
+                  class="product-btn ${productoAgotado ? 'btn-agotado' : botonClass}"
                   data-id="${p.id}"
-                  ${productoAgotado ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}
+                  ${productoAgotado ? 'disabled' : ''}
                   style="
                     padding: 6px 10px;
-                    background: linear-gradient(135deg, #a89968 0%, #9a8a5c 100%);
-                    color: white;
+                    background: ${productoAgotado ? '#d0d0d0' : 'linear-gradient(135deg, #a89968 0%, #9a8a5c 100%)'};
+                    color: ${productoAgotado ? '#888' : 'white'};
                     border: none;
                     border-radius: 8px;
                     font-weight: 600;
                     font-size: 0.65rem;
                     cursor: ${productoAgotado ? 'not-allowed' : 'pointer'};
                     transition: all 0.3s;
-                    box-shadow: 0 4px 12px rgba(168, 153, 104, 0.3);
+                    box-shadow: ${productoAgotado ? 'none' : '0 4px 12px rgba(168, 153, 104, 0.3)'};
                     flex-shrink: 0;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
                     white-space: nowrap;
+                    opacity: ${productoAgotado ? '0.7' : '1'};
                   "
-                >${botonText}</button>
+                >${productoAgotado ? '✖ Agotado' : botonTextNormal}</button>
               </div>
             </div>
           </article>
@@ -1753,6 +1754,12 @@ const info = categoryInfo[slug as string] || {
       productoEnModal = productosGlobal.find(p => p.id === parseInt(productoId));
       if (!productoEnModal) return;
 
+      // No abrir el modal si no hay stock
+      if (productoEnModal.stock <= 0) {
+        mostrarNotificacion('Este producto está agotado', 'error');
+        return;
+      }
+
       const modal = document.getElementById('cantidadModal');
       const input = document.getElementById('cantidadInput');
       const btnMenos = document.querySelector('.cantidad-minus');
@@ -1769,7 +1776,7 @@ const info = categoryInfo[slug as string] || {
     function actualizarBotonesModalCat() {
       const input = document.getElementById('cantidadInput');
       const valor = parseInt(input.value) || 1;
-      const max = productoEnModal?.stock || 1;
+      const max = productoEnModal?.stock ?? 0;
       const btnMenos = document.querySelector('.cantidad-minus');
       const btnMas = document.querySelector('.cantidad-plus');
       if (btnMenos) btnMenos.disabled = valor <= 1;
@@ -1804,7 +1811,7 @@ const info = categoryInfo[slug as string] || {
       });
 
       if (disponibles.length === 0) {
-        alert('No hay variantes disponibles para este producto');
+        mostrarNotificacion('No hay variantes disponibles para este producto', 'error');
         return;
       }
 
@@ -1888,11 +1895,11 @@ const info = categoryInfo[slug as string] || {
             cerrarModales();
             window.dispatchEvent(new CustomEvent('carritoActualizado'));
           } else {
-            alert(result.error || 'Error al añadir al carrito');
+            mostrarNotificacion(result.error || 'Error al añadir al carrito', 'error');
           }
         } catch (error) {
           console.error('Error:', error);
-          alert('Error al añadir al carrito');
+          mostrarNotificacion('Error al añadir al carrito', 'error');
         }
       } else {
         agregarAlCarritoLocalVariante(varianteId, peso, precio);
@@ -2021,11 +2028,11 @@ const info = categoryInfo[slug as string] || {
             actualizarStockVisual(productoId, nuevoStock);
             window.dispatchEvent(new CustomEvent('carritoActualizado'));
           } else {
-            alert(result.error || 'Error al añadir al carrito');
+            mostrarNotificacion(result.error || 'Error al añadir al carrito', 'error');
           }
         } catch (error) {
           console.error('Error:', error);
-          alert('Error al añadir al carrito');
+          mostrarNotificacion('Error al añadir al carrito', 'error');
         }
       } else {
         agregarAlCarritoLocal(cantidad);
@@ -2129,15 +2136,16 @@ const info = categoryInfo[slug as string] || {
       productoEnModal = null;
     }
 
-    function mostrarNotificacion(mensaje) {
+    function mostrarNotificacion(mensaje, tipo = 'success') {
       const notif = document.createElement('div');
       notif.textContent = mensaje;
+      const bgColor = tipo === 'error' ? '#dc2626' : tipo === 'info' ? '#2563eb' : '#1a1a1a';
       notif.style.cssText = `
         position: fixed;
         bottom: 24px;
         left: 50%;
         transform: translateX(-50%);
-        background: #1a1a1a;
+        background: ${bgColor};
         color: white;
         padding: 14px 28px;
         border-radius: 12px;
@@ -2177,16 +2185,20 @@ const info = categoryInfo[slug as string] || {
     document.querySelector('.cantidad-plus').addEventListener('click', () => {
       const input = document.getElementById('cantidadInput');
       const val = parseInt(input.value) || 1;
-      const max = productoEnModal?.stock || 1;
+      const max = productoEnModal?.stock ?? 0;
       if (val < max) input.value = val + 1;
       actualizarBotonesModalCat();
     });
 
     document.getElementById('cantidadConfirm').addEventListener('click', () => {
       const cantidad = parseInt(document.getElementById('cantidadInput').value) || 1;
-      const stockMax = productoEnModal?.stock || 0;
+      const stockMax = productoEnModal?.stock ?? 0;
+      if (stockMax <= 0) {
+        mostrarNotificacion('Este producto está agotado', 'error');
+        return;
+      }
       if (cantidad > stockMax) {
-        alert(`Solo hay ${stockMax} unidades disponibles`);
+        mostrarNotificacion(`Solo hay ${stockMax} unidades disponibles`, 'error');
         document.getElementById('cantidadInput').value = stockMax;
         actualizarBotonesModalCat();
         return;

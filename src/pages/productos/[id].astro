@@ -1875,7 +1875,10 @@ export const prerender = false;
       } finally {
         procesandoCarrito = false;
         const btnAgregar = document.getElementById('btnAgregarCarrito');
-        if (btnAgregar && (productoActual.stock > 0 || productoActual.es_variable)) {
+        const tieneStock = productoActual.es_variable 
+          ? variantesDisponibles.length > 0 
+          : (productoActual.stock > 0);
+        if (btnAgregar && tieneStock) {
           btnAgregar.disabled = false;
           btnAgregar.style.opacity = '1';
         }
@@ -1893,8 +1896,8 @@ export const prerender = false;
       const inputCantidad = document.getElementById('cantidad');
       if (inputCantidad) {
         inputCantidad.max = stockDisponible;
-        if (parseInt(inputCantidad.value) > stockDisponible) {
-          inputCantidad.value = Math.max(stockDisponible, 1);
+        if (stockDisponible === 0 || parseInt(inputCantidad.value) > stockDisponible) {
+          inputCantidad.value = stockDisponible > 0 ? stockDisponible : 0;
         }
         
         // Actualizar botones +/-
@@ -2148,7 +2151,10 @@ export const prerender = false;
       } finally {
         procesandoCarrito = false;
         const btnAgregar = document.getElementById('btnAgregarCarrito');
-        if (btnAgregar && (productoActual.stock > 0 || productoActual.es_variable)) {
+        const tieneStock = productoActual.es_variable 
+          ? variantesDisponibles.length > 0 
+          : (productoActual.stock > 0);
+        if (btnAgregar && tieneStock) {
           btnAgregar.disabled = false;
           btnAgregar.style.opacity = '1';
         }
