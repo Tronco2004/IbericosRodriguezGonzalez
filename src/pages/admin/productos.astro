@@ -696,7 +696,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         
         if (data.success && data.productos && data.productos.length > 0) {
           // Convertir productos de Supabase al formato esperado
-          productos = data.productos.map((p: any) => ({
+          productos = data.productos.map((p) => ({
             id: p.id,
             nombre: p.nombre,
             categoria: p.categorias?.slug || 'desconocida',
