@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient } from '../../../lib/supabase';
+import { supabaseClient, supabaseAdmin } from '../../../lib/supabase';
 
 export const DELETE: APIRoute = async ({ request }) => {
   try {
@@ -68,7 +68,7 @@ export const DELETE: APIRoute = async ({ request }) => {
 
           if (variante) {
             const nuevoStock = (variante.cantidad_disponible || 0) + item.cantidad;
-            const { error: errorUpdate } = await supabaseClient
+            const { error: errorUpdate } = await supabaseAdmin
               .from('producto_variantes')
               .update({ 
                 cantidad_disponible: nuevoStock,
@@ -84,7 +84,7 @@ export const DELETE: APIRoute = async ({ request }) => {
           }
         } else {
           // Producto simple
-          const { data: producto } = await supabaseClient
+          const { data: producto } = await supabaseAdmin
             .from('productos')
             .select('stock')
             .eq('id', item.producto_id)
@@ -92,7 +92,7 @@ export const DELETE: APIRoute = async ({ request }) => {
 
           if (producto) {
             const nuevoStock = producto.stock + item.cantidad;
-            const { error: errorUpdate } = await supabaseClient
+            const { error: errorUpdate } = await supabaseAdmin
               .from('productos')
               .update({ stock: nuevoStock })
               .eq('id', item.producto_id);

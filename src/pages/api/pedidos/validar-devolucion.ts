@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient } from '../../../lib/supabase';
+import { supabaseAdmin } from '../../../lib/supabase';
 import { notificarDevolucionValidada } from '../../../lib/email';
 import { procesarReembolsoStripe } from '../../../lib/stripe';
 
@@ -25,7 +25,7 @@ export const POST: APIRoute = async ({ request }) => {
     console.log('🔵 Validando devolución del pedido:', pedido_id);
 
     // Obtener datos del pedido (incluir stripe_session_id para el reembolso)
-    const { data: pedido, error: errorPedido } = await supabaseClient
+    const { data: pedido, error: errorPedido } = await supabaseAdmin
       .from('pedidos')
       .select('id, numero_pedido, estado, total, usuario_id, email_cliente, nombre_cliente, stripe_session_id')
       .eq('id', parseInt(pedido_id))
@@ -56,7 +56,7 @@ export const POST: APIRoute = async ({ request }) => {
     console.log('🔵 Restaurando stock de productos...');
     
     // Obtener los items del pedido
-    const { data: pedidoItems, error: itemsError } = await supabaseClient
+    const { data: pedidoItems, error: itemsError } = await supabaseAdmin
       .from('pedido_items')
       .select('producto_id, producto_variante_id, cantidad, precio_unitario, peso_kg, nombre_producto')
       .eq('pedido_id', pedido.id);
@@ -72,7 +72,7 @@ export const POST: APIRoute = async ({ request }) => {
           // precio_unitario está en euros, convertir a céntimos para precio_total
           const precioTotalCentimos = Math.round((item.precio_unitario || 0) * 100);
           
-          const { error: varianteError } = await supabaseClient
+          const { error: varianteError } = await supabaseAdmin
             .from('producto_variantes')
             .insert({
               producto_id: item.producto_id,
@@ -92,7 +92,7 @@ export const POST: APIRoute = async ({ request }) => {
           console.log('🔵 Incrementando stock para producto:', item.producto_id, 'cantidad:', item.cantidad);
           
           // Obtener stock actual
-          const { data: producto, error: getError } = await supabaseClient
+          const { data: producto, error: getError } = await supabaseAdmin
             .from('productos')
             .select('stock')
             .eq('id', item.producto_id)
@@ -100,7 +100,7 @@ export const POST: APIRoute = async ({ request }) => {
           
           if (!getError && producto) {
             const nuevoStock = (producto.stock || 0) + (item.cantidad || 1);
-            const { error: stockError } = await supabaseClient
+            const { error: stockError } = await supabaseAdmin
               .from('productos')
               .update({ stock: nuevoStock })
               .eq('id', item.producto_id);
@@ -146,7 +146,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Cambiar estado a devolucion_recibida
-    const { error: errorUpdate } = await supabaseClient
+    const { error: errorUpdate } = await supabaseAdmin
       .from('pedidos')
       .update({ 
         estado: 'devolucion_recibida',

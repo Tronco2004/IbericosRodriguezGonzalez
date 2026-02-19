@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient } from '../../../lib/supabase';
+import { supabaseClient, supabaseAdmin } from '../../../lib/supabase';
 
 export const prerender = false;
 
@@ -93,7 +93,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     // Generar SKU automático
     const sku = `VAR-${producto_id}-${peso_kg.toString().replace('.', '')}`;
 
-    const { data: variante, error } = await supabaseClient
+    const { data: variante, error } = await supabaseAdmin
       .from('producto_variantes')
       .insert({
         producto_id: parseInt(producto_id),
@@ -108,7 +108,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     // Si falla porque el campo no existe, reintentar sin cantidad_disponible
     if (error && error.message.includes('cantidad_disponible')) {
-      const { data: varianteRetry, error: errorRetry } = await supabaseClient
+      const { data: varianteRetry, error: errorRetry } = await supabaseAdmin
         .from('producto_variantes')
         .insert({
           producto_id: parseInt(producto_id),
@@ -175,7 +175,7 @@ export const DELETE: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    const { error } = await supabaseClient
+    const { error } = await supabaseAdmin
       .from('producto_variantes')
       .delete()
       .eq('id', parseInt(varianteId));
@@ -229,7 +229,7 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
       updateData.disponible = Boolean(disponible);
     }
 
-    const { data: variante, error } = await supabaseClient
+    const { data: variante, error } = await supabaseAdmin
       .from('producto_variantes')
       .update(updateData)
       .eq('id', parseInt(varianteId))

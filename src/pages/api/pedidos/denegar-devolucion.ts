@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient } from '../../../lib/supabase';
+import { supabaseAdmin } from '../../../lib/supabase';
 import { notificarDevolucionDenegada } from '../../../lib/email';
 
 export const POST: APIRoute = async ({ request }) => {
@@ -24,7 +24,7 @@ export const POST: APIRoute = async ({ request }) => {
     console.log('🔵 Denegando devolución del pedido:', pedido_id);
 
     // Obtener datos del pedido
-    const { data: pedido, error: errorPedido } = await supabaseClient
+    const { data: pedido, error: errorPedido } = await supabaseAdmin
       .from('pedidos')
       .select('id, numero_pedido, estado, total, usuario_id, email_cliente, nombre_cliente')
       .eq('id', parseInt(pedido_id))
@@ -52,7 +52,7 @@ export const POST: APIRoute = async ({ request }) => {
     console.log('🔵 Actualizando estado del pedido a devolucion_denegada...');
 
     // Cambiar estado a devolucion_denegada
-    const { error: errorUpdate } = await supabaseClient
+    const { error: errorUpdate } = await supabaseAdmin
       .from('pedidos')
       .update({ 
         estado: 'devolucion_denegada',

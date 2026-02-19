@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient } from '../../../lib/supabase';
+import { supabaseAdmin } from '../../../lib/supabase';
 import { enviarEmailDevolucion, notificarDevolucionAlAdmin } from '../../../lib/email';
 
 export const POST: APIRoute = async ({ request }) => {
@@ -16,7 +16,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Obtener email del usuario para verificar propiedad por email también
     let userEmail: string | null = null;
-    const { data: usuario } = await supabaseClient
+    const { data: usuario } = await supabaseAdmin
       .from('usuarios')
       .select('email')
       .eq('id', userId)
@@ -24,7 +24,7 @@ export const POST: APIRoute = async ({ request }) => {
     if (usuario?.email) userEmail = usuario.email;
 
     // Buscar pedido por ID (sin filtrar por usuario_id, puede ser null en pedidos de invitado)
-    const { data: pedido, error: errorPedido } = await supabaseClient
+    const { data: pedido, error: errorPedido } = await supabaseAdmin
       .from('pedidos')
       .select('id, estado, usuario_id, numero_pedido, email_cliente, nombre_cliente')
       .eq('id', pedido_id)
@@ -65,7 +65,7 @@ export const POST: APIRoute = async ({ request }) => {
     console.log('🔵 Solicitud de devolución recibida para pedido:', pedido_id);
 
     // Actualizar estado a "devolucion_solicitada"
-    const { error: errorUpdate } = await supabaseClient
+    const { error: errorUpdate } = await supabaseAdmin
       .from('pedidos')
       .update({ 
         estado: 'devolucion_solicitada',

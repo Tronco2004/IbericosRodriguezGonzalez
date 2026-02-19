@@ -214,6 +214,72 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     .delete-btn-confirm:hover {
       background: #dc2626;
     }
+
+    /* Popup de notificación */
+    .popup-notification {
+      position: fixed;
+      top: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100px);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.25rem 2rem;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      z-index: 3000;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      max-width: 500px;
+      width: 90%;
+      opacity: 0;
+      transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    }
+
+    .popup-notification.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .popup-notification.popup-error {
+      border-left: 4px solid #ef4444;
+    }
+
+    .popup-notification.popup-success {
+      border-left: 4px solid #16a34a;
+    }
+
+    .popup-notification.popup-warning {
+      border-left: 4px solid #f59e0b;
+    }
+
+    .popup-icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .popup-text {
+      color: var(--text-primary);
+      font-size: 0.95rem;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+
+    .popup-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.25rem;
+      cursor: pointer;
+      padding: 0.25rem;
+      margin-left: auto;
+      flex-shrink: 0;
+      transition: color 0.2s;
+    }
+
+    .popup-close:hover {
+      color: var(--text-primary);
+    }
   </style>
   
   <div class="admin-page">
@@ -413,7 +479,48 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     </div>
   </div>
 
-  <script>
+  <!-- Popup de notificación -->
+  <div id="popupNotification" class="popup-notification">
+    <span class="popup-icon" id="popupIcon"></span>
+    <span class="popup-text" id="popupText"></span>
+    <button class="popup-close" onclick="window.closePopup()">&times;</button>
+  </div>
+
+  <script is:inline>
+    let popupTimeout = null;
+    
+    window.showPopup = function(message, type = 'error') {
+      const popup = document.getElementById('popupNotification');
+      const icon = document.getElementById('popupIcon');
+      const text = document.getElementById('popupText');
+      
+      // Limpiar timeout anterior
+      if (popupTimeout) clearTimeout(popupTimeout);
+      
+      // Configurar icono y tipo
+      popup.className = 'popup-notification popup-' + type;
+      if (type === 'error') icon.textContent = '⚠️';
+      else if (type === 'success') icon.textContent = '✅';
+      else if (type === 'warning') icon.textContent = '⚡';
+      
+      text.textContent = message;
+      
+      // Mostrar
+      requestAnimationFrame(() => {
+        popup.classList.add('show');
+      });
+      
+      // Auto-ocultar después de 4 segundos
+      popupTimeout = setTimeout(() => {
+        window.closePopup();
+      }, 4000);
+    };
+    
+    window.closePopup = function() {
+      const popup = document.getElementById('popupNotification');
+      popup.classList.remove('show');
+    };
+
     const STORAGE_KEY = 'ibericosRG_productos';
     let productos = [];
     let categorias = [];
@@ -437,13 +544,13 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       console.log('peso:', peso, 'precioTotal:', precioTotal);
       
       if (!peso || !precioTotal) {
-        alert('Por favor completa todos los campos - peso: ' + peso + ', precio: ' + precioTotal);
+        showPopup('Por favor completa todos los campos (peso y precio)', 'warning');
         return;
       }
 
       // Verificar que no exista peso duplicado
       if (variantesActuales.some(v => v.peso === peso)) {
-        alert('Ya existe una variante con este peso');
+        showPopup('Ya existe una variante con este peso', 'warning');
         return;
       }
 
@@ -800,19 +907,19 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       if (esVariable) {
         const precioKg = parseFloat(document.getElementById('precioKg').value);
         if (!precioKg || precioKg <= 0) {
-          alert('Por favor ingresa el precio por kg para productos variables');
+          showPopup('Por favor ingresa el precio por kg para productos variables', 'warning');
           return;
         }
         
         // Validar que haya al menos una variante agregada (solo en CREATE)
         if (!editingId && variantesActuales.length === 0) {
-          alert('Por favor agrega al menos una variante (peso) para el producto variable');
+          showPopup('No has añadido ningún peso. Agrega al menos una variante para el producto variable.', 'error');
           return;
         }
       } else {
         const stock = parseInt(document.getElementById('stock').value);
         if (isNaN(stock) || stock < 0) {
-          alert('Por favor ingresa un stock válido');
+          showPopup('Por favor ingresa un stock válido', 'warning');
           return;
         }
       }

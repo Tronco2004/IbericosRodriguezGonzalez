@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient } from '../../../lib/supabase';
+import { supabaseClient, supabaseAdmin } from '../../../lib/supabase';
 
 // Función para generar SKU automáticamente
 function generarSKU(categoria: string): string {
@@ -18,7 +18,7 @@ function generarSKU(categoria: string): string {
 export const GET: APIRoute = async ({ request }) => {
   try {
     // Obtener todos los productos
-    const { data: productos, error: prodError } = await supabaseClient
+    const { data: productos, error: prodError } = await supabaseAdmin
       .from('productos')
       .select('*')
       .eq('activo', true)
@@ -40,7 +40,7 @@ export const GET: APIRoute = async ({ request }) => {
     }
 
     // Obtener todas las categorías
-    const { data: categorias, error: catError } = await supabaseClient
+    const { data: categorias, error: catError } = await supabaseAdmin
       .from('categorias')
       .select('id, nombre, slug');
 
@@ -95,7 +95,7 @@ export const POST: APIRoute = async ({ request }) => {
     if (action === 'create') {
       // Crear nuevo producto
       // Primero obtener el categoria_id basado en el slug
-      const { data: catData, error: catError } = await supabaseClient
+      const { data: catData, error: catError } = await supabaseAdmin
         .from('categorias')
         .select('id')
         .eq('slug', producto.categoria)
@@ -114,7 +114,7 @@ export const POST: APIRoute = async ({ request }) => {
         );
       }
 
-      const { data, error } = await supabaseClient
+      const { data, error } = await supabaseAdmin
         .from('productos')
         .insert([{
           nombre: producto.nombre,
@@ -172,7 +172,7 @@ export const POST: APIRoute = async ({ request }) => {
       });
 
       // Primero obtener el categoria_id basado en el slug
-      const { data: catData, error: catError } = await supabaseClient
+      const { data: catData, error: catError } = await supabaseAdmin
         .from('categorias')
         .select('id')
         .eq('slug', producto.categoria)
@@ -207,7 +207,7 @@ export const POST: APIRoute = async ({ request }) => {
 
       console.log('Update data a enviar:', updateData);
 
-      const { data, error } = await supabaseClient
+      const { data, error } = await supabaseAdmin
         .from('productos')
         .update(updateData)
         .eq('id', id)
@@ -245,7 +245,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     if (action === 'delete') {
       // Eliminar producto
-      const { error } = await supabaseClient
+      const { error } = await supabaseAdmin
         .from('productos')
         .delete()
         .eq('id', id);

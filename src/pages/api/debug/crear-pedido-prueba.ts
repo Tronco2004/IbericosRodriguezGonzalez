@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient } from '../../../lib/supabase';
+import { supabaseAdmin } from '../../../lib/supabase';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -13,7 +13,7 @@ export const POST: APIRoute = async ({ request }) => {
     console.log('userId:', userId);
 
     // Crear pedido de prueba
-    const { data: pedidoCreado, error: pedidoError } = await supabaseClient
+    const { data: pedidoCreado, error: pedidoError } = await supabaseAdmin
       .from('pedidos')
       .insert({
         usuario_id: userId,
@@ -38,7 +38,7 @@ export const POST: APIRoute = async ({ request }) => {
     console.log('✅ Pedido creado:', pedidoId);
 
     // Crear items de prueba
-    const { data: itemsCreated, error: itemsError } = await supabaseClient
+    const { data: itemsCreated, error: itemsError } = await supabaseAdmin
       .from('pedido_items')
       .insert([
         {
@@ -60,7 +60,7 @@ export const POST: APIRoute = async ({ request }) => {
     console.log('✅ Verificando que se guardó...');
 
     // Verificar que se creó
-    const { data: verificar } = await supabaseClient
+    const { data: verificar } = await supabaseAdmin
       .from('pedidos')
       .select('*')
       .eq('id', pedidoId)

@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient } from '../../../lib/supabase';
+import { supabaseAdmin } from '../../../lib/supabase';
 
 export const GET: APIRoute = async () => {
   try {
@@ -11,7 +11,7 @@ export const GET: APIRoute = async () => {
     const ultimoDiaDelMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0).toISOString();
 
     // Obtener todos los pedidos pagados del mes (calcula subtotal desde items)
-    const { data: pedidosMes, error: errorPedidos } = await supabaseClient
+    const { data: pedidosMes, error: errorPedidos } = await supabaseAdmin
       .from('pedidos')
       .select(`
         id,
@@ -61,7 +61,7 @@ export const GET: APIRoute = async () => {
     }
     
     // Restar devoluciones validadas del mes
-    const { data: devolucionesValidadas } = await supabaseClient
+    const { data: devolucionesValidadas } = await supabaseAdmin
       .from('pedidos')
       .select(`
         id,

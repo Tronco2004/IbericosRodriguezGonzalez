@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient } from '../../../lib/supabase';
+import { supabaseClient, supabaseAdmin } from '../../../lib/supabase';
 
 export const GET: APIRoute = async ({ cookies, request }) => {
   try {
@@ -202,7 +202,7 @@ export const GET: APIRoute = async ({ cookies, request }) => {
         // Productos simples
         if (!item.producto_variante_id) {
           console.log('➕ Devolviendo stock del producto simple:', item.producto_id, 'cantidad:', item.cantidad);
-          const { data: producto } = await supabaseClient
+          const { data: producto } = await supabaseAdmin
             .from('productos')
             .select('stock')
             .eq('id', item.producto_id)
@@ -210,7 +210,7 @@ export const GET: APIRoute = async ({ cookies, request }) => {
           
           if (producto) {
             const nuevoStock = producto.stock + item.cantidad;
-            await supabaseClient
+            await supabaseAdmin
               .from('productos')
               .update({ stock: nuevoStock })
               .eq('id', item.producto_id);
@@ -221,7 +221,7 @@ export const GET: APIRoute = async ({ cookies, request }) => {
         // Productos variables (variantes)
         if (item.producto_variante_id) {
           console.log('➕ Devolviendo stock de variante:', item.producto_variante_id, 'cantidad:', item.cantidad);
-          const { data: variante } = await supabaseClient
+          const { data: variante } = await supabaseAdmin
             .from('producto_variantes')
             .select('cantidad_disponible')
             .eq('id', item.producto_variante_id)
@@ -231,7 +231,7 @@ export const GET: APIRoute = async ({ cookies, request }) => {
             const stockAnterior = variante.cantidad_disponible || 0;
             const nuevoStock = stockAnterior + item.cantidad;
             const nuevoDisponible = nuevoStock > 0;
-            await supabaseClient
+            await supabaseAdmin
               .from('producto_variantes')
               .update({ 
                 cantidad_disponible: nuevoStock,
@@ -528,7 +528,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         if (variante) {
           const nuevoStock = Math.max(0, (variante.cantidad_disponible || 0) - cantidad);
           stockRestante = nuevoStock; // Devolver stock de variante
-          await supabaseClient
+          await supabaseAdmin
             .from('producto_variantes')
             .update({ 
               cantidad_disponible: nuevoStock,
@@ -539,7 +539,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         }
       } else {
         // Decrementar stock de producto simple
-        const { data: producto } = await supabaseClient
+        const { data: producto } = await supabaseAdmin
           .from('productos')
           .select('stock')
           .eq('id', producto_id)
@@ -548,7 +548,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         if (producto) {
           const nuevoStock = Math.max(0, (producto.stock || 0) - cantidad);
           stockRestante = nuevoStock;
-          await supabaseClient
+          await supabaseAdmin
             .from('productos')
             .update({ stock: nuevoStock })
             .eq('id', producto_id);
@@ -604,7 +604,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           stockRestante = nuevoStock;
           const nuevoDisponible = nuevoStock > 0;
           
-          await supabaseClient
+          await supabaseAdmin
             .from('producto_variantes')
             .update({ 
               cantidad_disponible: nuevoStock,
@@ -633,7 +633,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         // Si es un producto simple (no tiene variante), restar stock
         console.log('📉 Restando stock del producto:', producto_id, 'cantidad:', cantidad);
         
-        const { data: producto, error: getError } = await supabaseClient
+        const { data: producto, error: getError } = await supabaseAdmin
           .from('productos')
           .select('stock')
           .eq('id', producto_id)
@@ -642,7 +642,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         if (!getError && producto) {
           const nuevoStock = Math.max(0, producto.stock - cantidad);
           stockRestante = nuevoStock;
-          const { error: updateError } = await supabaseClient
+          const { error: updateError } = await supabaseAdmin
             .from('productos')
             .update({ stock: nuevoStock })
             .eq('id', producto_id);

@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient } from '../../../../lib/supabase';
+import { supabaseAdmin } from '../../../../lib/supabase';
 
 export const PUT: APIRoute = async ({ request }) => {
   try {
@@ -31,7 +31,7 @@ export const PUT: APIRoute = async ({ request }) => {
     }
 
     // Actualizar el estado del pedido
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabaseAdmin
       .from('pedidos')
       .update(updateData)
       .eq('id', pedido_id)

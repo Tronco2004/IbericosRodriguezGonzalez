@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
-import { supabaseClient } from '../../../lib/supabase';
+import { supabaseClient, supabaseAdmin } from '../../../lib/supabase';
 import { enviarConfirmacionPedido } from '../../../lib/email';
 
 const STRIPE_SECRET_KEY = import.meta.env.STRIPE_SECRET_KEY;
@@ -151,7 +151,8 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // ✅ CREAR PEDIDO DIRECTAMENTE con subtotal inicial en 0
-    const { data: pedidoCreado, error: pedidoError } = await supabaseClient
+    // Usar supabaseAdmin para bypasear RLS (endpoint server-side)
+    const { data: pedidoCreado, error: pedidoError } = await supabaseAdmin
       .from('pedidos')
       .insert({
         usuario_id: finalUserId || null,
@@ -204,7 +205,7 @@ export const POST: APIRoute = async ({ request }) => {
       };
     });
 
-    const { data: itemsCreated, error: itemsError } = await supabaseClient
+    const { data: itemsCreated, error: itemsError } = await supabaseAdmin
       .from('pedido_items')
       .insert(itemsData)
       .select();
@@ -225,7 +226,7 @@ export const POST: APIRoute = async ({ request }) => {
       if (item.producto_variante_id) {
         // Producto con variante: eliminar la variante de la BD
         console.log('🗑️ Eliminando variante vendida:', item.producto_variante_id);
-        const { error: deleteError } = await supabaseClient
+        const { error: deleteError } = await supabaseAdmin
           .from('producto_variantes')
           .delete()
           .eq('id', item.producto_variante_id);
@@ -244,7 +245,7 @@ export const POST: APIRoute = async ({ request }) => {
       console.log('🗑️ Vaciando carrito del usuario:', finalUserId);
       
       // Obtener el carrito del usuario
-      const { data: carrito } = await supabaseClient
+      const { data: carrito } = await supabaseAdmin
         .from('carritos')
         .select('id')
         .eq('usuario_id', finalUserId)
@@ -252,7 +253,7 @@ export const POST: APIRoute = async ({ request }) => {
       
       if (carrito) {
         // Eliminar todos los items del carrito
-        const { error: deleteItemsError } = await supabaseClient
+        const { error: deleteItemsError } = await supabaseAdmin
           .from('carrito_items')
           .delete()
           .eq('carrito_id', carrito.id);
@@ -276,7 +277,7 @@ export const POST: APIRoute = async ({ request }) => {
     });
 
     // ✅ ACTUALIZAR EL PEDIDO CON LOS TOTALES CORRECTOS
-    const { data: pedidoActualizado, error: updateError } = await supabaseClient
+    const { data: pedidoActualizado, error: updateError } = await supabaseAdmin
       .from('pedidos')
       .update({
         subtotal: subtotalCalculado,

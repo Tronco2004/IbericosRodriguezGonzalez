@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient, supabaseAdmin } from '../../../lib/supabase';
+import { supabaseAdmin } from '../../../lib/supabase';
 
 export const GET: APIRoute = async () => {
   try {
@@ -19,7 +19,7 @@ export const GET: APIRoute = async () => {
     console.log('✅ Clientes totales:', clientesActivos);
 
     // 2. Obtener pedidos pendientes
-    const { data: pedidos } = await supabaseClient
+    const { data: pedidos } = await supabaseAdmin
       .from('pedidos')
       .select('id, total')
       .eq('estado', 'pagado');
@@ -28,7 +28,7 @@ export const GET: APIRoute = async () => {
     console.log('✅ Pedidos pendientes:', pedidosPendientes);
 
     // 3. Obtener stock total de productos simples
-    const { data: productos, error: productosError } = await supabaseClient
+    const { data: productos, error: productosError } = await supabaseAdmin
       .from('productos')
       .select('stock');
 
@@ -44,7 +44,7 @@ export const GET: APIRoute = async () => {
     console.log('✅ Stock productos simples:', stockProductosSimples);
 
     // 4. Obtener stock total de variantes
-    const { data: variantes, error: variantesError } = await supabaseClient
+    const { data: variantes, error: variantesError } = await supabaseAdmin
       .from('producto_variantes')
       .select('cantidad_disponible, disponible');
 
@@ -78,7 +78,7 @@ export const GET: APIRoute = async () => {
     console.log('📅 Buscando ingresos entre:', primerDiaDelMes, 'y', ultimoDiaDelMes);
     
     // Obtener pedidos CON sus items para calcular subtotal desde los items
-    const { data: pedidosMes, error: ingresosError } = await supabaseClient
+    const { data: pedidosMes, error: ingresosError } = await supabaseAdmin
       .from('pedidos')
       .select(`
         id,
@@ -97,7 +97,7 @@ export const GET: APIRoute = async () => {
     }
 
     // Obtener devoluciones validadas del mes para restarlas
-    const { data: devolucionesValidadas } = await supabaseClient
+    const { data: devolucionesValidadas } = await supabaseAdmin
       .from('pedidos')
       .select(`
         id,
