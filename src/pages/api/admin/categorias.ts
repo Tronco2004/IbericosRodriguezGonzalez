@@ -1,4 +1,4 @@
-import { supabaseClient } from '../../../lib/supabase';
+import { supabaseClient, supabaseAdmin } from '../../../lib/supabase';
 
 export async function POST(context: any) {
   try {
@@ -7,8 +7,8 @@ export async function POST(context: any) {
 
     console.log('Insertando categoría:', { nombre, slug, descripcion, imagen_url, categoria_padre, orden });
 
-    // Insertar en Supabase
-    const { data, error } = await supabaseClient
+    // Insertar en Supabase (admin bypasea RLS)
+    const { data, error } = await supabaseAdmin
       .from('categorias')
       .insert([
         {
@@ -81,7 +81,7 @@ export async function PUT(context: any) {
     const body = await context.request.json();
     const { id, nombre, slug, descripcion, imagen_url, activa, categoria_padre, orden } = body;
 
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabaseAdmin
       .from('categorias')
       .update({ 
         nombre, 
@@ -121,7 +121,7 @@ export async function DELETE(context: any) {
     const url = new URL(context.request.url);
     const id = url.searchParams.get('id');
 
-    const { error } = await supabaseClient
+    const { error } = await supabaseAdmin
       .from('categorias')
       .delete()
       .eq('id', id);
