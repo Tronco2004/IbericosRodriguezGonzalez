@@ -199,15 +199,31 @@ export const GET: APIRoute = async ({ cookies, request }) => {
     // Si el carrito expiró, eliminar TODOS los items y devolver stock
     if (carritoExpirado && itemsEnriquecidos && itemsEnriquecidos.length > 0) {
       // Devolver stock de TODOS los items (simples y variantes) - operaciones atómicas CAS
+      const fallosDevolucion: string[] = [];
       for (const item of itemsEnriquecidos) {
-        if (!item.producto_variante_id) {
-          console.log('➕ Devolviendo stock del producto simple:', item.producto_id, 'cantidad:', item.cantidad);
-          await incrementarStockProducto(item.producto_id, item.cantidad);
+        try {
+          if (!item.producto_variante_id) {
+            console.log('➕ Devolviendo stock del producto simple:', item.producto_id, 'cantidad:', item.cantidad);
+            const result = await incrementarStockProducto(item.producto_id, item.cantidad);
+            if (!result.success) {
+              fallosDevolucion.push(`Producto ${item.producto_id}: ${result.error}`);
+            }
+          }
+          if (item.producto_variante_id) {
+            console.log('➕ Devolviendo stock de variante:', item.producto_variante_id, 'cantidad:', item.cantidad);
+            const result = await incrementarStockVariante(item.producto_variante_id, item.cantidad);
+            if (!result.success) {
+              fallosDevolucion.push(`Variante ${item.producto_variante_id}: ${result.error}`);
+            }
+          }
+        } catch (err) {
+          console.error('❌ Error devolviendo stock item:', item.id, err);
+          fallosDevolucion.push(`Item ${item.id}: excepción`);
         }
-        if (item.producto_variante_id) {
-          console.log('➕ Devolviendo stock de variante:', item.producto_variante_id, 'cantidad:', item.cantidad);
-          await incrementarStockVariante(item.producto_variante_id, item.cantidad);
-        }
+      }
+
+      if (fallosDevolucion.length > 0) {
+        console.error('⚠️ Fallos parciales devolviendo stock:', fallosDevolucion);
       }
 
       // Eliminar TODOS los items del carrito
@@ -349,9 +365,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
 
       // Validar que hay suficiente stock disponible
-      // Si cantidad_disponible es null/undefined, asumir que es disponible (compatibilidad con variantes creadas sin cantidad_disponible)
-      const stockDisponible = variante.cantidad_disponible ?? 999; // Si no existe, asumir stock ilimitado
-      if (cantidad > stockDisponible) {
+      const stockDisponible = variante.cantidad_disponible ?? 0;
+      if (stockDisponible <= 0 || cantidad > stockDisponible) {
         console.log('❌ Stock insuficiente para variante:', { variante_id: producto_variante_id, solicitado: cantidad, disponible: stockDisponible });
         return new Response(
           JSON.stringify({ error: 'No hay suficiente stock', success: false }),
@@ -432,74 +447,81 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const { data: existente } = await queryExistente.single();
 
     if (existente) {
-      // Actualizar cantidad - VALIDAR STOCK DISPONIBLE
+      // Actualizar cantidad - PRIMERO decrementar stock atómicamente, LUEGO actualizar carrito
       console.log('📝 Item existente, actualizando cantidad:', existente.id);
       
       const nuevaCantidad = existente.cantidad + cantidad;
-      
-      // Validar stock disponible para la nueva cantidad total
-      let stockDisponible = 0;
+
+      // 1. Decrementar stock PRIMERO con CAS (atómico)
+      let stockResult;
       if (producto_variante_id) {
-        const { data: variante } = await supabaseClient
-          .from('producto_variantes')
-          .select('cantidad_disponible')
-          .eq('id', producto_variante_id)
-          .single();
-        stockDisponible = (variante?.cantidad_disponible || 0) + existente.cantidad; // Sumar de vuelta lo que ya estaba reservado
+        stockResult = await decrementarStockVariante(producto_variante_id, cantidad);
       } else {
-        const { data: producto } = await supabaseClient
-          .from('productos')
-          .select('stock')
-          .eq('id', producto_id)
-          .single();
-        stockDisponible = (producto?.stock || 0) + existente.cantidad; // Sumar de vuelta lo que ya estaba reservado
+        stockResult = await decrementarStockProducto(producto_id, cantidad);
       }
 
-      if (nuevaCantidad > stockDisponible) {
-        console.log('❌ Stock insuficiente para incremento:', { solicitado: nuevaCantidad, disponible: stockDisponible });
+      if (!stockResult.success) {
+        console.log('❌ Stock insuficiente (CAS):', stockResult.error);
         return new Response(
-          JSON.stringify({ error: 'No hay suficiente stock', success: false }),
+          JSON.stringify({ error: stockResult.error || 'No hay suficiente stock', success: false }),
           { status: 400 }
         );
       }
 
+      // 2. Stock decrementado OK → actualizar cantidad en carrito
       const { data: actualizado, error: updateError } = await supabaseClient
         .from('carrito_items')
         .update({
           cantidad: nuevaCantidad
-          // NO actualizar fecha_agregado - mantener la original
         })
         .eq('id', existente.id)
         .select()
         .single();
 
       if (updateError) {
-        console.log('❌ Error actualizando item:', updateError);
+        // Rollback: devolver stock que ya decrementamos
+        console.log('❌ Error actualizando item, devolviendo stock:', updateError);
+        if (producto_variante_id) {
+          await incrementarStockVariante(producto_variante_id, cantidad);
+        } else {
+          await incrementarStockProducto(producto_id, cantidad);
+        }
         return new Response(
           JSON.stringify({ error: 'Error actualizando item', success: false }),
           { status: 500 }
         );
       }
 
-      // Decrementar stock por la cantidad adicional añadida - operación atómica CAS
-      let stockRestante = null;
-      
-      if (producto_variante_id) {
-        const result = await decrementarStockVariante(producto_variante_id, cantidad);
-        stockRestante = result.stockRestante;
-      } else {
-        const result = await decrementarStockProducto(producto_id, cantidad);
-        stockRestante = result.stockRestante;
-      }
-
       console.log('✅ Item actualizado:', actualizado);
       return new Response(
-        JSON.stringify({ success: true, item: actualizado, stockRestante }),
+        JSON.stringify({ success: true, item: actualizado, stockRestante: stockResult.stockRestante }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
     } else {
-      // Crear nuevo item
+      // Crear nuevo item - PRIMERO decrementar stock atómicamente, LUEGO insertar
       console.log('➕ Creando nuevo item en carrito:', carrito.id);
+
+      // 1. Decrementar stock PRIMERO con CAS (atómico)
+      let stockResult;
+      let variantes = null;
+      
+      if (producto_variante_id) {
+        console.log('📉 Decrementando stock de variante:', producto_variante_id, 'cantidad:', cantidad);
+        stockResult = await decrementarStockVariante(producto_variante_id, cantidad);
+      } else {
+        console.log('📉 Restando stock del producto:', producto_id, 'cantidad:', cantidad);
+        stockResult = await decrementarStockProducto(producto_id, cantidad);
+      }
+
+      if (!stockResult.success) {
+        console.log('❌ Stock insuficiente (CAS):', stockResult.error);
+        return new Response(
+          JSON.stringify({ error: stockResult.error || 'No hay suficiente stock', success: false }),
+          { status: 400 }
+        );
+      }
+
+      // 2. Stock decrementado OK → insertar item en carrito
       const { data: nuevoItem, error: insertError } = await supabaseClient
         .from('carrito_items')
         .insert({
@@ -509,48 +531,39 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           precio_unitario: precioUnitario,
           producto_variante_id: producto_variante_id || null,
           peso_kg: peso_kg || null
-          // NO incluir fecha_agregado - dejar que PostgreSQL use NOW()
         })
         .select()
         .single();
 
       if (insertError) {
-        console.log('❌ Error insertando item:', insertError);
+        // Rollback: devolver stock que ya decrementamos
+        console.log('❌ Error insertando item, devolviendo stock:', insertError);
+        if (producto_variante_id) {
+          await incrementarStockVariante(producto_variante_id, cantidad);
+        } else {
+          await incrementarStockProducto(producto_id, cantidad);
+        }
         return new Response(
           JSON.stringify({ error: 'Error agregando item', success: false }),
           { status: 500 }
         );
       }
 
-      // Decrementar stock - operación atómica CAS
-      let stockRestante = null;
-      let variantes = null;
-      
-      if (producto_variante_id) {
-        console.log('📉 Decrementando stock de variante:', producto_variante_id, 'cantidad:', cantidad);
-        const result = await decrementarStockVariante(producto_variante_id, cantidad);
-        stockRestante = result.stockRestante;
+      // 3. Si es variante, obtener variantes disponibles actualizadas
+      if (producto_variante_id && stockResult.success) {
+        const { data: todasVariantes } = await supabaseClient
+          .from('producto_variantes')
+          .select('*')
+          .eq('producto_id', producto_id)
+          .eq('disponible', true)
+          .order('peso_kg', { ascending: true });
         
-        if (result.success) {
-          // Obtener todas las variantes disponibles
-          const { data: todasVariantes } = await supabaseClient
-            .from('producto_variantes')
-            .select('*')
-            .eq('producto_id', producto_id)
-            .eq('disponible', true)
-            .order('peso_kg', { ascending: true });
-          
-          variantes = todasVariantes || [];
-        }
-      } else {
-        console.log('📉 Restando stock del producto:', producto_id, 'cantidad:', cantidad);
-        const result = await decrementarStockProducto(producto_id, cantidad);
-        stockRestante = result.stockRestante;
+        variantes = todasVariantes || [];
       }
 
       console.log('✅ Item agregado:', nuevoItem);
       return new Response(
-        JSON.stringify({ success: true, item: nuevoItem, stockRestante, variantes }),
+        JSON.stringify({ success: true, item: nuevoItem, stockRestante: stockResult.stockRestante, variantes }),
         { status: 201, headers: { 'Content-Type': 'application/json' } }
       );
     }

@@ -1,11 +1,21 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import { supabaseClient } from '../../lib/supabase';
 
 export const prerender = false;
 
 const { slug } = Astro.params;
 
-const categoryInfo: Record<string, { title: string; subtitle: string; badge: string }> = {
+// Cargar info de la categoría desde BD
+const { data: categoriaDB } = await supabaseClient
+  .from('categorias')
+  .select('nombre, slug, descripcion')
+  .eq('slug', slug)
+  .eq('activa', true)
+  .maybeSingle();
+
+// Fallback estático para categorías conocidas (por si la BD no responde)
+const categoryInfoFallback: Record<string, { title: string; subtitle: string; badge: string }> = {
   jamones: { 
     title: 'Jamones Ibéricos', 
     subtitle: 'Selección exclusiva de jamones ibéricos de bellota, curados con tradición y pasión',
@@ -33,11 +43,23 @@ const categoryInfo: Record<string, { title: string; subtitle: string; badge: str
   }
 };
 
-const info = categoryInfo[slug as string] || {
-  title: 'Productos',
-  subtitle: 'Nuestros productos de calidad',
-  badge: 'PRODUCTOS'
-};
+// Prioridad: BD > fallback estático > genérico
+const info = categoriaDB 
+  ? {
+      title: categoriaDB.nombre,
+      subtitle: categoriaDB.descripcion || `Nuestros mejores productos de ${categoriaDB.nombre.toLowerCase()}`,
+      badge: categoriaDB.nombre.toUpperCase()
+    }
+  : categoryInfoFallback[slug as string] || {
+      title: 'Productos',
+      subtitle: 'Nuestros productos de calidad',
+      badge: 'PRODUCTOS'
+    };
+
+// Si la categoría no existe en BD ni en fallback, redirigir a productos
+if (!categoriaDB && !categoryInfoFallback[slug as string]) {
+  return Astro.redirect('/productos');
+}
 ---
 
 <Layout>
@@ -2105,27 +2127,106 @@ const info = categoryInfo[slug as string] || {
     }
 
     function actualizarStockVisual(productoId, nuevoStock) {
+      // Actualizar productosGlobal para que los re-renders sean correctos
+      const productoGlobal = productosGlobal.find(p => p.id === productoId);
+      if (productoGlobal) {
+        productoGlobal.stock = nuevoStock;
+      }
+      const productoOriginal = productosOriginales.find(p => p.id === productoId);
+      if (productoOriginal) {
+        productoOriginal.stock = nuevoStock;
+      }
+
       const article = document.querySelector(`article[data-id="${productoId}"]`);
       if (!article) return;
 
-      const stockSpan = article.querySelector('span[style*="border-radius: 20px"]');
-      if (stockSpan) {
-        if (nuevoStock <= 0) {
-          stockSpan.innerHTML = `
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: #999">
+      const productoAgotado = nuevoStock <= 0;
+
+      // 1. Actualizar .stock-info
+      const stockInfo = article.querySelector('.stock-info');
+      if (stockInfo) {
+        if (productoAgotado) {
+          stockInfo.classList.add('stock-agotado');
+          stockInfo.innerHTML = `
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
             </svg>
             Agotado
           `;
-          stockSpan.style.color = '#999';
-          stockSpan.style.background = '#f5f5f5';
         } else {
-          stockSpan.innerHTML = `
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: #a89968">
+          stockInfo.classList.remove('stock-agotado');
+          stockInfo.innerHTML = `
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
             </svg>
             ${nuevoStock} unidad${nuevoStock !== 1 ? 'es' : ''}
           `;
+        }
+      }
+
+      // 2. Actualizar .stock-label
+      const stockLabel = article.querySelector('.stock-label');
+      if (productoAgotado) {
+        if (stockLabel) stockLabel.remove();
+      } else {
+        let newLabelText = '';
+        let newLabelClass = 'stock-label ';
+        if (nuevoStock === 1) {
+          newLabelText = '¡ÚLTIMA UNIDAD!';
+          newLabelClass += 'stock-label-ultima';
+        } else if (nuevoStock <= 5) {
+          newLabelText = 'Agotándose';
+          newLabelClass += 'stock-label-agotandose';
+        } else {
+          newLabelText = 'Disponible';
+          newLabelClass += 'stock-label-disponible';
+        }
+        if (stockLabel) {
+          stockLabel.textContent = newLabelText;
+          stockLabel.className = newLabelClass;
+        } else if (stockInfo && stockInfo.parentElement) {
+          const newSpan = document.createElement('span');
+          newSpan.className = newLabelClass;
+          newSpan.textContent = newLabelText;
+          stockInfo.parentElement.appendChild(newSpan);
+        }
+      }
+
+      // 3. Actualizar botón
+      const button = article.querySelector('.product-btn');
+      if (button) {
+        if (productoAgotado) {
+          button.disabled = true;
+          button.classList.add('btn-agotado');
+          button.classList.remove('btn-agregar-carrito');
+          button.textContent = '✖ Agotado';
+          button.style.background = '#d0d0d0';
+          button.style.color = '#888';
+          button.style.cursor = 'not-allowed';
+          button.style.boxShadow = 'none';
+          button.style.opacity = '0.7';
+        } else {
+          button.disabled = false;
+          button.classList.remove('btn-agotado');
+          button.style.background = 'linear-gradient(135deg, #a89968 0%, #9a8a5c 100%)';
+          button.style.color = 'white';
+          button.style.cursor = 'pointer';
+          button.style.boxShadow = '0 4px 12px rgba(168, 153, 104, 0.3)';
+          button.style.opacity = '1';
+        }
+      }
+
+      // 4. Actualizar overlay de agotado en la imagen
+      const link = article.querySelector('a[href*="/productos/"]');
+      if (link) {
+        const existingOverlay = link.querySelector('div[style*="position: absolute"]');
+        if (productoAgotado && !existingOverlay) {
+          const overlay = document.createElement('div');
+          overlay.style.cssText = 'position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;';
+          overlay.innerHTML = `<span style="background: rgba(255,255,255,0.95); color: #1a1a1a; padding: 10px 24px; border-radius: 30px; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1.5px;">Agotado</span>`;
+          link.appendChild(overlay);
+        } else if (!productoAgotado && existingOverlay) {
+          existingOverlay.remove();
         }
       }
     }
@@ -2309,6 +2410,7 @@ const info = categoryInfo[slug as string] || {
 
           // Actualizar stock-label (DISPONIBLE / Agotándose / ¡ÚLTIMA UNIDAD!)
           const stockLabel = article.querySelector('.stock-label');
+          const cantDisponible = producto.es_variable ? variantesConStock.length : stockActual;
           if (productoAgotado) {
             // Si agotado, eliminar el badge
             if (stockLabel) stockLabel.remove();
@@ -2316,10 +2418,10 @@ const info = categoryInfo[slug as string] || {
             // Determinar la etiqueta correcta
             let newLabelText = '';
             let newLabelClass = 'stock-label ';
-            if (cantidadDisponible === 1) {
+            if (cantDisponible === 1) {
               newLabelText = '¡ÚLTIMA UNIDAD!';
               newLabelClass += 'stock-label-ultima';
-            } else if (cantidadDisponible <= 5) {
+            } else if (cantDisponible <= 5) {
               newLabelText = 'Agotándose';
               newLabelClass += 'stock-label-agotandose';
             } else {

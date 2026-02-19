@@ -21,6 +21,8 @@
     "stripe": "^20.1.2"
   },
   "devDependencies": {
+    "@types/nodemailer": "^7.0.10",
+    "@types/pdfkit": "^0.17.5",
     "typescript": "5.3.3"
   },
   "engines": {
