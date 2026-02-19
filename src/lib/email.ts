@@ -48,7 +48,7 @@ function generarPDFFactura(datos: EmailPedido): Promise<Buffer> {
 
       const buffers: Buffer[] = [];
 
-      doc.on('data', (buffer) => {
+      doc.on('data', (buffer: Buffer) => {
         buffers.push(buffer);
       });
 
@@ -66,7 +66,7 @@ function generarPDFFactura(datos: EmailPedido): Promise<Buffer> {
       doc.moveDown(0.2);
       doc.fontSize(9).font('Helvetica').fillColor('#555');
       doc.text('Calle de la Moda 123, Polígono Industrial, 28001 Madrid', { align: 'center' });
-      doc.text('NIF: XX-XXX-XXX  |  info@ibericosrg.com  |  +34 XXX XXX XXX', { align: 'center' });
+      doc.text('NIF: 25384756B  |  ibericosrg@gmail.com  |  +34 670 878 333', { align: 'center' });
       doc.moveDown(0.5);
       doc.rect(50, doc.y, 495, 1).fill('#e0d5c7');
       doc.moveDown(1);
@@ -170,7 +170,7 @@ function generarPDFFactura(datos: EmailPedido): Promise<Buffer> {
       const footerY = doc.page.height - 80;
       doc.rect(50, footerY, 495, 1).fill('#e0d5c7');
       doc.fontSize(8).font('Helvetica').fillColor('#999');
-      doc.text('Ibéricos Rodríguez González  |  ibericosrg.com', 50, footerY + 10, { align: 'center', width: 495 });
+      doc.text('Ibéricos Rodríguez González  |  ibericosrodriguezgonzalez.victoriafp.online', 50, footerY + 10, { align: 'center', width: 495 });
       doc.text('Gracias por confiar en nosotros', 50, footerY + 22, { align: 'center', width: 495 });
 
       doc.end();

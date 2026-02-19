@@ -6,11 +6,7 @@ export const POST: APIRoute = async ({ request }) => {
     // Obtener API key en runtime - Astro usa import.meta.env
     const GROQ_API_KEY = import.meta.env.GROQ_API_KEY;
     
-    console.log('GROQ_API_KEY existe:', !!GROQ_API_KEY);
-    console.log('Primeros caracteres:', GROQ_API_KEY?.substring(0, 10));
-    
     if (!GROQ_API_KEY) {
-      console.error('GROQ_API_KEY no está configurada');
       return new Response(
         JSON.stringify({ success: false, error: 'Configuración del servidor incompleta' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
