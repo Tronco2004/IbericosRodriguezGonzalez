@@ -1,17 +1,16 @@
 import type { APIRoute } from 'astro';
 import { supabaseClient, supabaseAdmin } from '../../../lib/supabase';
 import { decrementarStockProducto, incrementarStockProducto, decrementarStockVariante, incrementarStockVariante } from '../../../lib/stock';
+import { getAuthenticatedUserId } from '../../../lib/auth-helpers';
 
 export const GET: APIRoute = async ({ cookies, request }) => {
   try {
-    // Obtener user_id del header o cookie
-    let userId = request.headers.get('x-user-id');
-    
-    if (!userId) {
-      userId = cookies.get('user_id')?.value;
-    }
+    // ── Auth: validar JWT (no confiar en x-user-id ni cookies de texto plano) ──
+    const { userId: jwtUserId } = await getAuthenticatedUserId(request, cookies);
+    // Fallback a cookie user_id solo si no hay JWT (compatibilidad transitoria)
+    const userId = jwtUserId || cookies.get('user_id')?.value || null;
 
-    console.log('🔍 GET /api/carrito - User ID:', userId);
+    console.log('🔍 GET /api/carrito - User autenticado:', !!userId);
 
     if (!userId) {
       console.log('❌ No autenticado');
@@ -116,17 +115,13 @@ export const GET: APIRoute = async ({ cookies, request }) => {
       const oferta = ofertasMap[item.producto_id];
       let precioCorregido = item.precio_unitario;
 
-      // Si el producto tiene oferta activa y NO es una variante, verificar/corregir precio
+      // Si el producto tiene oferta activa y NO es una variante, usar precio de oferta
+      // NOTA: No escribimos en BD desde GET (viola semántica REST). 
+      // El checkout ya valida precios server-side contra BD.
       if (oferta && !item.producto_variante_id) {
         const precioOferta = oferta.precio_descuento_centimos;
         if (item.precio_unitario !== precioOferta) {
-          console.log(`🏷️ Corrigiendo precio item ${item.id}: ${item.precio_unitario} → ${precioOferta} (oferta: ${oferta.nombre_oferta})`);
           precioCorregido = precioOferta;
-          // Actualizar en BD para que el precio esté correcto en checkout
-          await supabaseClient
-            .from('carrito_items')
-            .update({ precio_unitario: precioOferta })
-            .eq('id', item.id);
         }
       }
 
@@ -154,44 +149,42 @@ export const GET: APIRoute = async ({ cookies, request }) => {
     }
 
     console.log('📦 Items obtenidos del carrito:', itemsEnriquecidos?.length ?? 0, 'items');
-    console.log('🔵 Items completos:', JSON.stringify(itemsEnriquecidos, null, 2));
 
-    // Verificar si el carrito ha expirado usando el item más reciente como referencia global
+    // Verificar si el carrito ha expirado usando el item MÁS ANTIGUO.
+    // Si el item más antiguo lleva >15 min con stock reservado, expira todo el carrito.
     let carritoExpirado = false;
     const ahora = new Date();
 
     if (itemsEnriquecidos && itemsEnriquecidos.length > 0) {
-      // Encontrar el item más reciente
-      let itemMasReciente = itemsEnriquecidos[0];
+      // Encontrar el item más antiguo
+      let itemMasAntiguo = itemsEnriquecidos[0];
       for (const item of itemsEnriquecidos) {
         let fechaStr = item.fecha_agregado;
         if (fechaStr && !fechaStr.endsWith('Z')) {
           fechaStr = fechaStr + 'Z';
         }
         
-        let fechaMasRecienteStr = itemMasReciente.fecha_agregado;
-        if (fechaMasRecienteStr && !fechaMasRecienteStr.endsWith('Z')) {
-          fechaMasRecienteStr = fechaMasRecienteStr + 'Z';
+        let fechaAntiguaStr = itemMasAntiguo.fecha_agregado;
+        if (fechaAntiguaStr && !fechaAntiguaStr.endsWith('Z')) {
+          fechaAntiguaStr = fechaAntiguaStr + 'Z';
         }
 
-        if (new Date(fechaStr) > new Date(fechaMasRecienteStr)) {
-          itemMasReciente = item;
+        if (new Date(fechaStr) < new Date(fechaAntiguaStr)) {
+          itemMasAntiguo = item;
         }
       }
 
-      // Calcular minutos desde el item más reciente
-      let fechaStr = itemMasReciente.fecha_agregado;
+      // Calcular minutos desde el item más antiguo
+      let fechaStr = itemMasAntiguo.fecha_agregado;
       if (fechaStr && !fechaStr.endsWith('Z')) {
         fechaStr = fechaStr + 'Z';
       }
 
-      const fechaMasReciente = new Date(fechaStr);
-      const minutosPasados = (ahora.getTime() - fechaMasReciente.getTime()) / (1000 * 60);
-
-      console.log(`⏱️ Item más reciente (${itemMasReciente.id}): ${minutosPasados.toFixed(2)} minutos`);
+      const fechaMasAntigua = new Date(fechaStr);
+      const minutosPasados = (ahora.getTime() - fechaMasAntigua.getTime()) / (1000 * 60);
 
       if (minutosPasados > 15) {
-        console.log(`❌ CARRITO EXPIRADO - Eliminando TODOS los items`);
+        console.log(`⏳ Carrito expirado — item más antiguo (${itemMasAntiguo.id}) tiene ${minutosPasados.toFixed(0)} min`);
         carritoExpirado = true;
       }
     }
@@ -282,13 +275,16 @@ export const GET: APIRoute = async ({ cookies, request }) => {
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
-    const { producto_id, cantidad, user_id, producto_variante_id, peso_kg } = await request.json();
+    const { producto_id, cantidad, producto_variante_id, peso_kg } = await request.json();
 
-    console.log('🛒 POST /api/carrito - Datos recibidos:', { producto_id, cantidad, user_id, producto_variante_id, peso_kg });
+    console.log('🛒 POST /api/carrito - producto:', producto_id, 'cant:', cantidad);
 
-    // Validar user_id
+    // ── Auth: validar JWT (ignorar user_id del body — no confiar en el cliente) ──
+    const { userId: jwtUserId } = await getAuthenticatedUserId(request, cookies);
+    const user_id = jwtUserId || cookies.get('user_id')?.value || null;
+
     if (!user_id) {
-      console.log('❌ Error: No user_id');
+      console.log('❌ Error: No autenticado');
       return new Response(
         JSON.stringify({ error: 'No autenticado', success: false }),
         { status: 401 }

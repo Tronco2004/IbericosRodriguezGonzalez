@@ -1,14 +1,22 @@
 ================================================================================
   INFORME DE ERRORES - IBÉRICOS RODRÍGUEZ GONZÁLEZ
   Fecha: 18 de febrero de 2026 | Última revisión: 19 de febrero de 2026
+  Auditoría completa: 19 de febrero de 2026
 ================================================================================
 
-RESUMEN:
+RESUMEN ANTERIOR (errores iniciales):
 - Críticos:   4  → ✅ 4 CORREGIDOS
 - Altos:      8  → ✅ 4 CORREGIDOS | ⏳ 4 PENDIENTES (datos del negocio)
 - Medios:     9
 - Bajos:      8
 - TOTAL:     29 errores detectados
+
+AUDITORÍA COMPLETA (19 feb 2026) — NUEVOS HALLAZGOS:
+- P0 Críticos:  9  (seguridad, pagos, auth)
+- P1 Altos:     9  (race conditions, IDOR, XSS)
+- P2 Medios:   12  (lógica, rate-limit, código muerto)
+- P3 Bajos:     5  (colisiones, validaciones menores)
+- TOTAL:       35 nuevos hallazgos
 
   ✅ CORREGIDOS: 29 correcciones aplicadas
      (protección server-side de /admin/*, /api/admin/*, /api/debug/*)
@@ -256,5 +264,347 @@ Causa raíz: Falta de casting de e.target a HTMLElement y falta de null checks.
   - ~869 console.log en producción
   - Accesibilidad: aria-labels faltantes en Layout.astro
   - Logs de email.ts (usuario Gmail)
+
+
+################################################################################
+################################################################################
+##                                                                            ##
+##   AUDITORÍA COMPLETA DEL PROYECTO — 19 de febrero de 2026                 ##
+##                                                                            ##
+################################################################################
+################################################################################
+
+
+================================================================================
+  P0 — CRÍTICOS (bloquean producción)
+================================================================================
+
+P0-1. ⏳ PENDIENTE — CHECKOUT: PRECIOS DEL CLIENTE → STRIPE
+--------------------------------------------------------------------------------
+  Archivo: src/pages/api/checkout/create-session.ts (~línea 64-72)
+  
+  El unit_amount de Stripe se construye con item.precio enviado por el
+  frontend. Un atacante puede enviar precio: 1 (= 0.01€) y pagar casi
+  nada por cualquier producto.
+  
+  FIX: Buscar cada producto_id/variante_id en la BD y usar el precio
+  real almacenado. Rechazar si los IDs no existen.
+
+
+P0-2. ⏳ PENDIENTE — PEDIDO CREADO DESDE EL NAVEGADOR (CLIENT-SIDE)
+--------------------------------------------------------------------------------
+  Archivo: src/pages/checkout/exito.astro (~línea 186-283)
+  
+  La creación del pedido se ejecuta en un <script> del navegador.
+  El session_id de Stripe se pasa por query string y el frontend decide
+  qué cartItems, userId y descuentoAplicado enviar al API.
+  Un atacante puede fabricar datos, items inventados, precios modificados,
+  o recargar la página para crear pedidos duplicados.
+  
+  FIX: Implementar webhook Stripe (checkout.session.completed) que cree
+  el pedido server-side. No depender del navegador para flujo crítico.
+
+
+P0-3. ⏳ PENDIENTE — SIN IDEMPOTENCIA EN PEDIDOS (DUPLICADOS)
+--------------------------------------------------------------------------------
+  Archivo: src/pages/api/checkout/validar-y-crear-pedido.ts
+  
+  No verifica si ya existe un pedido con el mismo stripe_session_id.
+  Al recargar la página de éxito → pedido duplicado + stock eliminado doble.
+  
+  FIX: SELECT FROM pedidos WHERE stripe_session_id = X al inicio.
+  Si ya existe, devolver el existente. Añadir UNIQUE constraint en BD.
+
+
+P0-4. ⏳ PENDIENTE — AUTH SPOOFABLE VÍA HEADER x-user-id
+--------------------------------------------------------------------------------
+  Archivos afectados (TODOS confían en x-user-id del header):
+  - src/pages/api/carrito/index.ts (GET y POST)
+  - src/pages/api/carrito/[id].ts (PUT y DELETE)
+  - src/pages/api/pedidos/index.ts
+  - src/pages/api/pedidos/cancelar.ts
+  - src/pages/api/pedidos/solicitar-devolucion.ts
+  - src/pages/api/auth/me.ts
+  - src/pages/api/auth/actualizar-perfil.ts
+  - src/pages/api/auth/cambiar-contrasena.ts
+  - src/pages/api/auth/establecer-contrasena.ts
+  
+  El header x-user-id es controlable por el cliente. Un atacante que
+  conozca un UUID puede suplantar a cualquier usuario: ver sus pedidos,
+  modificar su carrito, cambiar su contraseña, etc.
+  
+  FIX: Validar SIEMPRE el JWT (auth_token cookie) contra Supabase Auth
+  con supabase.auth.getUser(token) y extraer userId del token verificado.
+  NUNCA confiar en headers o body para identidad.
+
+
+P0-5. ⏳ PENDIENTE — ACCOUNT TAKEOVER VÍA establecer-contrasena.ts
+--------------------------------------------------------------------------------
+  Archivo: src/pages/api/auth/establecer-contrasena.ts (~línea 7, 53)
+  
+  Usa x-user-id para identificar al usuario y luego
+  supabaseAdmin.auth.admin.updateUserById() para setear una nueva
+  contraseña SIN verificación alguna. Un atacante con cualquier UUID
+  de usuario OAuth puede tomar control TOTAL de su cuenta.
+  
+  FIX: Autenticar con JWT. Verificar que el userId viene del token.
+
+
+P0-6. ⏳ PENDIENTE — ADMIN BYPASS EN DEVOLUCIONES
+--------------------------------------------------------------------------------
+  Archivos:
+  - src/pages/api/pedidos/validar-devolucion.ts (~línea 8)
+  - src/pages/api/pedidos/denegar-devolucion.ts (~línea 8)
+  
+  Confían en header x-user-role: admin. Estos endpoints NO están bajo
+  /api/admin/, así que el middleware NO los protege. Cualquier usuario
+  puede enviar x-user-role: admin y validar/denegar devoluciones,
+  procesando reembolsos en Stripe y restaurando stock.
+  
+  FIX: Mover a /api/admin/ o verificar rol contra BD dentro del handler.
+
+
+P0-7. ⏳ PENDIENTE — DESCUENTO CONTROLADO POR EL CLIENTE
+--------------------------------------------------------------------------------
+  Archivo: src/pages/api/checkout/create-session.ts (~línea 119-124)
+  
+  descuentoAplicado viene del frontend. Un atacante puede enviar
+  descuentoAplicado: 99999 y obtener un cupón de Stripe por 999.99€
+  de descuento, pagando casi nada.
+  
+  FIX: Recibir solo el codigoDescuento, validarlo en BD server-side,
+  y calcular el importe del descuento en el backend.
+
+
+P0-8. ⏳ PENDIENTE — XSS ALMACENADO EN CALLBACK OAUTH
+--------------------------------------------------------------------------------
+  Archivo: src/pages/api/auth/callback.ts (~línea 210-222)
+  
+  Los datos del usuario (nombre, email, rol) se inyectan directamente
+  en JavaScript inline sin sanitización. Un atacante puede registrar
+  una cuenta OAuth con nombre </script><script>alert(1)</script>
+  y ejecutar JS arbitrario.
+  
+  FIX: Serializar con JSON.stringify() + sanitización HTML, o comunicar
+  datos al frontend vía cookies/headers en vez de inline JS.
+
+
+P0-9. ⏳ PENDIENTE — /api/carrito/reservar SIN AUTENTICACIÓN
+--------------------------------------------------------------------------------
+  Archivo: src/pages/api/carrito/reservar.ts
+  
+  Cualquier persona puede hacer POST/DELETE para manipular stock
+  arbitrariamente sin verificar identidad. Un atacante puede agotar
+  TODO el stock del catálogo o inflarlo a voluntad.
+  
+  NOTA: Este endpoint es para invitados (localStorage cart), pero
+  necesita al menos rate-limiting o validación de sesión temporal.
+  
+  FIX: Añadir rate-limiting por IP. Considerar un token de sesión
+  temporal para invitados.
+
+
+================================================================================
+  P1 — ALTOS (arreglar antes de producción)
+================================================================================
+
+P1-1. ⏳ PENDIENTE — IDOR EN carrito/[id].ts
+--------------------------------------------------------------------------------
+  Archivo: src/pages/api/carrito/[id].ts (~línea 28-36)
+  
+  supabaseAdmin busca el item_id sin comprobar que pertenece al carrito
+  del usuario autenticado. Cualquier usuario puede modificar/eliminar
+  items de carritos ajenos.
+  
+  FIX: Añadir .eq('carrito_id', carritoDelUsuario) o JOIN que verifique
+  usuario_id.
+
+
+P1-2. ⏳ PENDIENTE — RACE CONDITIONS EN [id].ts Y vaciar.ts (SIN CAS)
+--------------------------------------------------------------------------------
+  Archivos:
+  - src/pages/api/carrito/[id].ts (~líneas 133-163, 192-232)
+  - src/pages/api/carrito/vaciar.ts (~líneas 62-99)
+  
+  Usan SELECT stock → compute → UPDATE (read-then-write) en vez de
+  las funciones CAS de stock.ts. El stock puede corromperse con
+  peticiones concurrentes. Inconsistente con index.ts POST que SÍ
+  usa CAS.
+  
+  FIX: Reemplazar por decrementarStockProducto/incrementarStockProducto
+  e incrementarStockVariante de stock.ts.
+
+
+P1-3. ⏳ PENDIENTE — RACE CONDITIONS EN cancelar.ts Y validar-devolucion.ts
+--------------------------------------------------------------------------------
+  Archivos:
+  - src/pages/api/pedidos/cancelar.ts (~líneas 82-130)
+  - src/pages/api/pedidos/validar-devolucion.ts (~líneas 75-110)
+  
+  Mismo patrón read-then-write sin CAS para restaurar stock al
+  cancelar/devolver. Dos cancelaciones concurrentes corrompen stock.
+  
+  FIX: Usar funciones atómicas CAS de stock.ts.
+
+
+P1-4. ⏳ PENDIENTE — MIDDLEWARE NO VALIDA JWT
+--------------------------------------------------------------------------------
+  Archivo: src/middleware.ts (~líneas 44-55, 72-73)
+  
+  Solo verifica que el UUID exista en tabla usuarios con rol admin.
+  No verifica que el auth_token sea un JWT válido emitido por Supabase.
+  Si un atacante conoce el UUID del admin (filtrado en logs, API...) 
+  obtiene acceso total al panel admin.
+  
+  FIX: Validar el auth_token como sesión con supabase.auth.getUser(token)
+  antes de comprobar rol.
+
+
+P1-5. ⏳ PENDIENTE — COOKIE auth_token SIN httpOnly
+--------------------------------------------------------------------------------
+  Archivo: src/pages/api/auth/login.ts (~línea 82-84)
+  
+  Cookie auth_token se setea con httpOnly: false. Un XSS puede robar
+  el JWT completo. Se repite en callback.ts y oauth-session.ts.
+  
+  FIX: Setear httpOnly: true y secure: true en todas las cookies
+  de tokens.
+
+
+P1-6. ⏳ PENDIENTE — HEURÍSTICA DE PRECIO PELIGROSA
+--------------------------------------------------------------------------------
+  Archivo: src/pages/api/checkout/create-session.ts (~línea 69-72)
+  
+  if (precioEnCentimos > 100000) precioEnCentimos = Math.round(precioEnCentimos / 100)
+  
+  Un producto legítimo de 1200€ sería cobrado como 12€. Enmascara
+  errores de datos en vez de rechazar la petición.
+  
+  FIX: Eliminar la heurística. Validar precios contra BD.
+
+
+P1-7. ⏳ PENDIENTE — HTML INJECTION EN EMAILS DE CONTACTO
+--------------------------------------------------------------------------------
+  Archivo: src/pages/api/contacto.ts (~línea 75-85)
+  
+  email, asunto y mensaje se interpolan directamente en HTML del correo
+  sin escapear. Un atacante puede inyectar <script>, <img onerror=...>
+  o enlaces de phishing que el admin verá en su bandeja.
+  
+  FIX: Escapear HTML con función escapeHtml() antes de interpolar.
+
+
+P1-8. ⏳ PENDIENTE — stripe_session_id NO VERIFICADO CONTRA STRIPE
+--------------------------------------------------------------------------------
+  Archivo: src/pages/api/pedidos/index.ts POST (~línea 134)
+  
+  El ID de sesión viene del cliente sin verificar que el pago fue
+  exitoso en Stripe. Un atacante puede enviar un session_id inventado
+  y crear pedidos sin pagar.
+  
+  FIX: Llamar a stripe.checkout.sessions.retrieve(session_id) y
+  verificar payment_status === 'paid' antes de crear pedido.
+
+
+P1-9. ⏳ PENDIENTE — SESSION CONFUSION EN supabaseClient SINGLETON
+--------------------------------------------------------------------------------
+  Archivo: src/pages/api/auth/cambiar-contrasena.ts (~línea 60-75)
+  
+  signInWithPassword() autentica al usuario en el singleton compartido
+  supabaseClient. updateUser() luego cambia la contraseña de la sesión
+  activa. Peticiones concurrentes pueden operar con la sesión de OTRO
+  usuario, cambiando la contraseña equivocada.
+  
+  FIX: Usar supabaseAdmin.auth.admin.updateUserById() directamente,
+  sin depender de la sesión del singleton.
+
+
+================================================================================
+  P2 — MEDIOS (arreglar pronto o crear seguimiento)
+================================================================================
+
+P2-1. GET con side effects en carrito
+     → src/pages/api/carrito/index.ts: GET actualiza precios en BD al
+       detectar ofertas. Viola semántica REST.
+
+P2-2. Logs de datos sensibles en producción
+     → Múltiples archivos vuelcan items, emails, IDs completos a
+       console.log. ~869 console.log/error en total.
+
+P2-3. Error en ticket promedio del dashboard
+     → src/pages/api/admin/dashboard-stats.ts (~línea 131):
+       ticketPromedio = ingresosTotal / pedidosPendientes (debería ser
+       entre total de pedidos del mes, no solo pendientes).
+
+P2-4. parseFloat() ?? 21 no atrapa NaN
+     → src/pages/api/admin/productos.ts (~línea 212):
+       parseFloat("abc") = NaN, y NaN ?? 21 = NaN. Usar || 21.
+
+P2-5. Sin rate-limiting
+     → Login, register, contacto, chat — susceptibles a fuerza bruta,
+       spam y abuso de API (Groq credits).
+
+P2-6. Prompt injection en chat
+     → src/pages/api/chat.ts: conversationHistory no se filtra por
+       roles válidos. Un atacante puede inyectar mensajes "system".
+
+P2-7. Dashboard error HTTP 200
+     → src/pages/api/admin/dashboard-stats.ts: el catch devuelve
+       status: 200 con datos vacíos. Debería ser 500.
+
+P2-8. Expiración de carrito por último item
+     → Si item A tiene 20 min y B tiene 2 min, A lleva 20 min con
+       stock reservado pero el carrito no expira. Debería expirar por
+       el item MÁS ANTIGUO o individualmente.
+
+P2-9. carrito.ts es código muerto
+     → src/lib/carrito.ts: 5 funciones que ningún endpoint usa. Cada
+       API reimplementa la lógica con diferencias. Eliminar o migrar.
+
+P2-10. No se decrementa stock al crear pedido
+     → src/pages/api/pedidos/index.ts POST: restaura stock al cancelar
+       pero nunca lo decrementa al crear. Si la lógica de stock
+       depende solo de este endpoint, un producto podría venderse
+       infinitamente.
+
+P2-11. Unidades de precio inconsistentes
+     → descuentoAplicado se trata como euros en un endpoint y céntimos
+       en otro. precio_unitario similar. Puede causar cobros x100 o /100.
+
+P2-12. Cookies secure: false
+     → Tokens se envían en texto plano en redes no seguras. Setear
+       secure: true condicionado al entorno.
+
+
+================================================================================
+  P3 — BAJOS (mejoras opcionales)
+================================================================================
+
+P3-1. agregar.ts devuelve 410 Gone pero sigue existiendo → Eliminar.
+
+P3-2. SKUs y números de pedido con Math.random() → Colisiones probables.
+     Usar secuencia de BD o UUID.
+
+P3-3. Sin validación de complejidad de contraseña (solo mínimo Supabase
+     de 6 caracteres).
+
+P3-4. Error messages internos expuestos al cliente en múltiples endpoints
+     (stack traces, detalles de BD).
+
+P3-5. guardar-producto.ts es un endpoint no-op (devuelve success sin
+     persistir nada). Eliminar o implementar.
+
+
+================================================================================
+  TABLA DE CONSISTENCIA — ENDPOINTS DE CARRITO
+================================================================================
+
+  | Aspecto          | index.ts POST | [id].ts PUT/DEL | vaciar.ts | reservar.ts |
+  |------------------|---------------|-----------------|-----------|-------------|
+  | CAS atómico      | ✅ Sí         | ❌ No           | ❌ No     | ✅ Sí       |
+  | Auth check       | Body (spoof.) | Body+cookie     | Header    | ❌ Ninguno  |
+  | Ownership check  | ✅ Sí         | ❌ No           | ✅ Sí     | N/A         |
+  | Rollback         | ✅ Sí         | ❌ No           | ❌ No     | N/A         |
+
 
 ================================================================================

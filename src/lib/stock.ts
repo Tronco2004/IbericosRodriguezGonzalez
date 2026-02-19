@@ -9,16 +9,10 @@ import { supabaseAdmin } from './supabase';
 
 const MAX_RETRIES = 5;
 
-/** Delay exponencial entre reintentos CAS para reducir contención */
+/** Pequeño delay entre reintentos CAS para reducir contención */
 function casDelay(intento: number): Promise<void> {
   const ms = Math.min(50 * Math.pow(2, intento), 500) + Math.random() * 30;
   return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-/** Normaliza stock a 3 decimales para evitar problemas de precisión float */
-function normStock(val: number | null | undefined): number {
-  const n = Number(val) || 0;
-  return Math.round(n * 1000) / 1000;
 }
 
 interface StockResult {
@@ -44,15 +38,18 @@ export async function decrementarStockProducto(
       .single();
 
     if (getError || !producto) {
+      console.error('❌ decrementarStockProducto - producto no encontrado:', productoId, getError);
       return { success: false, stockRestante: 0, error: 'Producto no encontrado' };
     }
 
-    const stockActual = normStock(producto.stock);
+    const stockActual = producto.stock ?? 0;
+    console.log(`📦 decrementarStock: producto=${productoId}, stockActual=${stockActual}, cantidad=${cantidad}, intento=${intento}`);
+
     if (stockActual < cantidad) {
-      return { success: false, stockRestante: stockActual, error: 'Stock insuficiente' };
+      return { success: false, stockRestante: stockActual, error: `Stock insuficiente (disponible: ${stockActual}, solicitado: ${cantidad})` };
     }
 
-    const nuevoStock = normStock(stockActual - cantidad);
+    const nuevoStock = stockActual - cantidad;
 
     // CAS: solo actualiza si stock sigue siendo el mismo que leímos
     const { data: updated, error: updateError } = await supabaseAdmin
@@ -97,8 +94,8 @@ export async function incrementarStockProducto(
       return { success: false, stockRestante: 0, error: 'Producto no encontrado' };
     }
 
-    const stockActual = normStock(producto.stock);
-    const nuevoStock = normStock(stockActual + cantidad);
+    const stockActual = producto.stock ?? 0;
+    const nuevoStock = stockActual + cantidad;
 
     const { data: updated, error: updateError } = await supabaseAdmin
       .from('productos')
@@ -140,15 +137,18 @@ export async function decrementarStockVariante(
       .single();
 
     if (getError || !variante) {
+      console.error('❌ decrementarStockVariante - variante no encontrada:', varianteId, getError);
       return { success: false, stockRestante: 0, error: 'Variante no encontrada', disponible: false };
     }
 
-    const stockActual = normStock(variante.cantidad_disponible);
+    const stockActual = variante.cantidad_disponible ?? 0;
+    console.log(`📦 decrementarStockVariante: variante=${varianteId}, stockActual=${stockActual}, cantidad=${cantidad}, intento=${intento}`);
+
     if (stockActual < cantidad) {
-      return { success: false, stockRestante: stockActual, error: 'Stock insuficiente', disponible: stockActual > 0 };
+      return { success: false, stockRestante: stockActual, error: `Stock insuficiente (disponible: ${stockActual}, solicitado: ${cantidad})`, disponible: stockActual > 0 };
     }
 
-    const nuevoStock = normStock(stockActual - cantidad);
+    const nuevoStock = stockActual - cantidad;
     const nuevoDisponible = nuevoStock > 0;
 
     // CAS: solo actualiza si cantidad_disponible sigue siendo la misma
@@ -193,8 +193,8 @@ export async function incrementarStockVariante(
       return { success: false, stockRestante: 0, error: 'Variante no encontrada', disponible: false };
     }
 
-    const stockActual = normStock(variante.cantidad_disponible);
-    const nuevoStock = normStock(stockActual + cantidad);
+    const stockActual = variante.cantidad_disponible ?? 0;
+    const nuevoStock = stockActual + cantidad;
     const nuevoDisponible = nuevoStock > 0;
 
     const { data: updated, error: updateError } = await supabaseAdmin

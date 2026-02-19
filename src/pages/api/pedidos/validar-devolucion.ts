@@ -2,18 +2,17 @@ import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { notificarDevolucionValidada } from '../../../lib/email';
 import { procesarReembolsoStripe } from '../../../lib/stripe';
+import { requireAdmin } from '../../../lib/auth-helpers';
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, cookies }) => {
   try {
-    const userRole = request.headers.get('x-user-role');
-    const { pedido_id } = await request.json();
+    // ═══════════════════════════════════════════════════════════
+    // FIX P0-5: Verificar admin con JWT+BD en vez de header spoofable
+    // ═══════════════════════════════════════════════════════════
+    const adminResult = await requireAdmin(request, cookies);
+    if (adminResult instanceof Response) return adminResult;
 
-    if (userRole !== 'admin') {
-      return new Response(
-        JSON.stringify({ success: false, error: 'No autorizado' }),
-        { status: 403 }
-      );
-    }
+    const { pedido_id } = await request.json();
 
     if (!pedido_id) {
       return new Response(
@@ -52,68 +51,8 @@ export const POST: APIRoute = async ({ request }) => {
 
     console.log('🔵 Actualizando estado del pedido a devolucion_recibida...');
 
-    // ✅ RESTAURAR STOCK DE LOS PRODUCTOS DEL PEDIDO
-    console.log('🔵 Restaurando stock de productos...');
-    
-    // Obtener los items del pedido
-    const { data: pedidoItems, error: itemsError } = await supabaseAdmin
-      .from('pedido_items')
-      .select('producto_id, producto_variante_id, cantidad, precio_unitario, peso_kg, nombre_producto')
-      .eq('pedido_id', pedido.id);
-
-    if (itemsError) {
-      console.error('❌ Error obteniendo items del pedido:', itemsError);
-    } else if (pedidoItems && pedidoItems.length > 0) {
-      for (const item of pedidoItems) {
-        if (item.producto_variante_id || item.peso_kg) {
-          // Era una variante de peso variable: recrearla en la BD
-          console.log('🔵 Recreando variante para producto:', item.producto_id, 'peso:', item.peso_kg, 'kg');
-          
-          // precio_unitario está en euros, convertir a céntimos para precio_total
-          const precioTotalCentimos = Math.round((item.precio_unitario || 0) * 100);
-          
-          const { error: varianteError } = await supabaseAdmin
-            .from('producto_variantes')
-            .insert({
-              producto_id: item.producto_id,
-              peso_kg: item.peso_kg,
-              precio_total: precioTotalCentimos,
-              disponible: true,
-              cantidad_disponible: 1
-            });
-          
-          if (varianteError) {
-            console.error('❌ Error recreando variante:', varianteError);
-          } else {
-            console.log('✅ Variante recreada para producto:', item.producto_id, 'peso:', item.peso_kg, 'kg, precio:', precioTotalCentimos, 'céntimos');
-          }
-        } else {
-          // Producto normal: incrementar stock
-          console.log('🔵 Incrementando stock para producto:', item.producto_id, 'cantidad:', item.cantidad);
-          
-          // Obtener stock actual
-          const { data: producto, error: getError } = await supabaseAdmin
-            .from('productos')
-            .select('stock')
-            .eq('id', item.producto_id)
-            .single();
-          
-          if (!getError && producto) {
-            const nuevoStock = (producto.stock || 0) + (item.cantidad || 1);
-            const { error: stockError } = await supabaseAdmin
-              .from('productos')
-              .update({ stock: nuevoStock })
-              .eq('id', item.producto_id);
-            
-            if (stockError) {
-              console.error('❌ Error incrementando stock:', stockError);
-            } else {
-              console.log('✅ Stock incrementado para producto:', item.producto_id, 'nuevo stock:', nuevoStock);
-            }
-          }
-        }
-      }
-    }
+    // ℹ️ El stock NO se restaura en devoluciones — el producto devuelto
+    // puede no estar en condiciones de venta. El admin lo repondrá manualmente si procede.
 
     // ✅ PROCESAR REEMBOLSO REAL EN STRIPE
     let reembolsoInfo = { procesado: false, refundId: '', error: '' };
@@ -170,7 +109,7 @@ export const POST: APIRoute = async ({ request }) => {
       const nombreCliente = pedido.nombre_cliente;
       
       if (emailCliente) {
-        console.log('📧 Enviando correo de validación de devolución a:', emailCliente);
+        console.log('📧 Enviando correo de validación de devolución');
         
         await notificarDevolucionValidada(
           emailCliente,

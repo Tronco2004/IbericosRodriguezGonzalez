@@ -909,11 +909,17 @@ import Layout from '../layouts/Layout.astro';
                   ${(precioUnitario / 100).toFixed(2)}€ x ${item.cantidad}
                 </p>
                 <div class="cart-item-controls">
+                  ${!item.peso_kg ? `
                   <div class="cart-cantidad-wrap">
                     <button class="btn-cantidad" data-item-id="${item.id}" data-action="decrease">−</button>
                     <span class="cart-cantidad-num">${item.cantidad}</span>
                     <button class="btn-cantidad" data-item-id="${item.id}" data-action="increase" ${item.stock_maximo !== null && item.stock_maximo !== undefined ? `data-max-stock="${item.stock_maximo}"` : ''}${item.stock_maximo !== null && item.stock_maximo !== undefined && item.cantidad >= item.stock_maximo ? ' disabled style="opacity:0.4;cursor:not-allowed;"' : ''}>+</button>
                   </div>
+                  ` : `
+                  <div class="cart-cantidad-wrap">
+                    <span class="cart-cantidad-num">${item.cantidad}</span>
+                  </div>
+                  `}
                   ${categoria === 'Jamones' && item.productos ? `
                     <label class="cart-cortado-label">
                       <input type="checkbox" class="cortado-checkbox" data-item-id="${item.id}" ${item.cortado ? 'checked' : ''} style="width: 16px; height: 16px; cursor: pointer;">

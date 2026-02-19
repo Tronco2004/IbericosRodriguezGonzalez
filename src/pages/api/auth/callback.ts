@@ -56,9 +56,8 @@ export const GET: APIRoute = async ({ request, url, cookies }) => {
       || 'Usuario';
     const email = authUser.email || '';
 
-    console.log('🔐 OAuth callback - Usuario autenticado:', email);
+    console.log('🔐 OAuth callback - Usuario autenticado');
     console.log('   Provider:', authUser.app_metadata?.provider);
-    console.log('   Nombre:', nombre);
 
     // Crear o actualizar el usuario en la tabla "usuarios"
     let usuarioData: { id: string; nombre: string; email: string; rol: string } | null = null;
@@ -73,7 +72,7 @@ export const GET: APIRoute = async ({ request, url, cookies }) => {
     if (existingUser) {
       // Usuario ya existe - verificar que esté activo
       if (!existingUser.activo) {
-        console.log('❌ Usuario inactivo:', email);
+        console.log('❌ Usuario inactivo');
         return new Response(
           `<html><body>
             <h1>Cuenta desactivada</h1>
@@ -87,7 +86,7 @@ export const GET: APIRoute = async ({ request, url, cookies }) => {
       console.log('✅ Usuario existente encontrado:', existingUser.nombre, '- Rol:', existingUser.rol);
     } else {
       // Usuario nuevo - crear registro en tabla usuarios
-      console.log('🆕 Creando nuevo usuario en tabla usuarios:', email);
+      console.log('🆕 Creando nuevo usuario en tabla usuarios');
       const { data: newUser, error: insertError } = await supabaseAdmin
         .from('usuarios')
         .insert({
@@ -148,18 +147,18 @@ export const GET: APIRoute = async ({ request, url, cookies }) => {
       path: '/',
     });
 
-    // Guardar las mismas cookies que usa el login normal
+    // FIX P1-5: auth_token y user_id son httpOnly para prevenir robo por XSS
     cookies.set('auth_token', access_token, {
-      httpOnly: false,
-      secure: false,
+      httpOnly: true,
+      secure: true,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
     });
 
     cookies.set('user_id', usuarioData.id, {
-      httpOnly: false,
-      secure: false,
+      httpOnly: true,
+      secure: true,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
@@ -167,7 +166,7 @@ export const GET: APIRoute = async ({ request, url, cookies }) => {
 
     cookies.set('user_role', usuarioData.rol, {
       httpOnly: false,
-      secure: false,
+      secure: true,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
@@ -175,7 +174,7 @@ export const GET: APIRoute = async ({ request, url, cookies }) => {
 
     cookies.set('user_name', usuarioData.nombre, {
       httpOnly: false,
-      secure: false,
+      secure: true,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
@@ -205,18 +204,27 @@ export const GET: APIRoute = async ({ request, url, cookies }) => {
     }
 
     // Usar una página intermedia para guardar datos en localStorage (como hace el login normal)
+    // FIX P0-7: Sanitizar datos con JSON.stringify para prevenir XSS
+    const safeData = JSON.stringify({
+      id: usuarioData.id,
+      rol: usuarioData.rol,
+      nombre: usuarioData.nombre,
+      email: usuarioData.email
+    });
+
     return new Response(
       `<html>
         <head><title>Iniciando sesión...</title></head>
         <body>
           <p>Redirigiendo...</p>
           <script>
-            localStorage.setItem('auth_token', '${usuarioData.id}');
-            localStorage.setItem('user_role', '${usuarioData.rol}');
-            localStorage.setItem('user_id', '${usuarioData.id}');
-            localStorage.setItem('user_name', '${usuarioData.nombre.replace(/'/g, "\\'")}');
-            localStorage.setItem('user_email', '${usuarioData.email}');
-            window.location.href = '${finalRedirect}';
+            var d = ${safeData};
+            localStorage.setItem('auth_token', d.id);
+            localStorage.setItem('user_role', d.rol);
+            localStorage.setItem('user_id', d.id);
+            localStorage.setItem('user_name', d.nombre);
+            localStorage.setItem('user_email', d.email);
+            window.location.href = ${JSON.stringify(finalRedirect)};
           </script>
         </body>
       </html>`,
@@ -227,7 +235,7 @@ export const GET: APIRoute = async ({ request, url, cookies }) => {
     return new Response(
       `<html><body>
         <h1>Error en el callback de autenticación</h1>
-        <p>${error instanceof Error ? error.message : 'Error desconocido'}</p>
+        <p>Se ha producido un error. Inténtalo de nuevo.</p>
         <p><a href="/login">Volver al login</a></p>
       </body></html>`,
       { status: 500, headers: { 'Content-Type': 'text/html' } }

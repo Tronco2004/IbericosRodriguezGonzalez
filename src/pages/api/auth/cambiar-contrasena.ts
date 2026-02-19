@@ -1,17 +1,17 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient } from '../../../lib/supabase';
+import { supabaseAdmin } from '../../../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+import { requireAuth } from '../../../lib/auth-helpers';
+
+const SUPABASE_URL = import.meta.env.PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
-    // Obtener userId del header
-    const userId = request.headers.get('x-user-id');
-    
-    if (!userId) {
-      return new Response(
-        JSON.stringify({ success: false, message: 'No autenticado' }),
-        { status: 401 }
-      );
-    }
+    // FIX P1-9 + P0-3: Autenticación via JWT, no x-user-id
+    const authResult = await requireAuth(request, cookies);
+    if (authResult instanceof Response) return authResult;
+    const userId = authResult.userId;
 
     const { contrasenaActual, contrasenaNueva, contrasenaConfirm } = await request.json();
 
@@ -40,7 +40,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     // Obtener email del usuario
-    const { data: usuario, error: usuarioError } = await supabaseClient
+    const { data: usuario, error: usuarioError } = await supabaseAdmin
       .from('usuarios')
       .select('email')
       .eq('id', userId)
@@ -54,8 +54,13 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    // Verificar contraseña actual intentando re-autenticar
-    const { error: authError } = await supabaseClient.auth.signInWithPassword({
+    // FIX P1-9: Crear cliente Supabase temporal para verificar contraseña actual
+    // Evita contaminar la sesión del singleton global
+    const tempClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+
+    const { error: authError } = await tempClient.auth.signInWithPassword({
       email: usuario.email,
       password: contrasenaActual,
     });
@@ -68,8 +73,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    // Cambiar contraseña en Supabase Auth
-    const { error: updateError } = await supabaseClient.auth.updateUser({
+    // Cambiar contraseña usando admin API (no afecta sesiones)
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
       password: contrasenaNueva,
     });
 

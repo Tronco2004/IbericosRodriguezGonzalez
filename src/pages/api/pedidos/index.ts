@@ -1,24 +1,28 @@
 import type { APIRoute } from 'astro';
+import Stripe from 'stripe';
 import { supabaseClient, supabaseAdmin } from '../../../lib/supabase';
 import { enviarConfirmacionPedido } from '../../../lib/email';
+import { getAuthenticatedUserId } from '../../../lib/auth-helpers';
+
+const STRIPE_SECRET_KEY = import.meta.env.STRIPE_SECRET_KEY;
+const stripe = new Stripe(STRIPE_SECRET_KEY || '');
 
 export const prerender = false;
 
 // GET - Obtener todos los pedidos del usuario autenticado o por email
 export const GET: APIRoute = async ({ request, cookies }) => {
   try {
-    const userId = request.headers.get('x-user-id');
+    // FIX: Auth via JWT
+    const { userId } = await getAuthenticatedUserId(request, cookies);
     const userEmail = request.headers.get('x-user-email');
 
-    console.log('🔍 GET /api/pedidos');
-    console.log('🔍 userId:', userId);
-    console.log('🔍 userEmail:', userEmail);
+    console.log('🔍 GET /api/pedidos - autenticado:', !!userId);
 
     // Determinar el email para buscar pedidos
     let emailBusqueda = userEmail;
 
     // Si hay userId pero no email, obtener el email del usuario desde la BD
-    if ((!emailBusqueda || emailBusqueda === 'null') && userId && userId !== 'null') {
+    if ((!emailBusqueda || emailBusqueda === 'null') && userId) {
       console.log('🔍 Obteniendo email del usuario desde BD...');
       const { data: usuario, error: userError } = await supabaseAdmin
         .from('usuarios')
@@ -28,7 +32,7 @@ export const GET: APIRoute = async ({ request, cookies }) => {
 
       if (usuario?.email) {
         emailBusqueda = usuario.email;
-        console.log('✅ Email obtenido de BD:', emailBusqueda);
+        console.log('✅ Email obtenido de BD');
       } else {
         console.warn('⚠️ No se pudo obtener email del usuario:', userError?.message);
       }
@@ -42,7 +46,7 @@ export const GET: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    console.log('🔍 Buscando pedidos por email:', emailBusqueda);
+    console.log('🔍 Buscando pedidos del usuario');
 
     // Buscar TODOS los pedidos por email (tanto logueado como invitado)
     const { data: pedidos, error } = await supabaseAdmin
@@ -105,11 +109,8 @@ export const GET: APIRoute = async ({ request, cookies }) => {
 // Soporta tanto usuarios logueados como invitados
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
-    // Obtener userId de header o cookie
-    let userId = request.headers.get('x-user-id');
-    if (!userId) {
-      userId = cookies.get('user_id')?.value;
-    }
+    // FIX: Auth via JWT
+    const { userId: jwtUserId } = await getAuthenticatedUserId(request, cookies);
     
     const {
       stripe_session_id,
@@ -126,14 +127,50 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       telefono_cliente
     } = await request.json();
 
-    console.log('📦 POST /api/pedidos - Creando pedido...');
-    console.log('Es invitado:', es_invitado);
-    console.log('UserId:', userId);
+    const userId = jwtUserId;
+
+    console.log('📦 POST /api/pedidos - Creando pedido...', { esInvitado: es_invitado });
 
     if (!stripe_session_id || !cartItems || !total) {
       return new Response(
         JSON.stringify({ error: 'Datos incompletos' }),
         { status: 400 }
+      );
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // FIX P1-8: Verificar stripe_session_id contra Stripe API
+    // ═══════════════════════════════════════════════════════════
+    try {
+      const session = await stripe.checkout.sessions.retrieve(stripe_session_id);
+      if (session.payment_status !== 'paid') {
+        console.error('❌ Sesión Stripe no pagada:', session.payment_status);
+        return new Response(
+          JSON.stringify({ error: 'El pago no fue completado' }),
+          { status: 400 }
+        );
+      }
+      console.log('✅ Sesión Stripe verificada: payment_status =', session.payment_status);
+    } catch (stripeError: any) {
+      console.error('❌ Sesión Stripe inválida:', stripeError.message);
+      return new Response(
+        JSON.stringify({ error: 'Sesión de pago inválida' }),
+        { status: 400 }
+      );
+    }
+
+    // Idempotencia: verificar si ya existe pedido con este session_id
+    const { data: pedidoExistente } = await supabaseAdmin
+      .from('pedidos')
+      .select('id, numero_pedido')
+      .eq('stripe_session_id', stripe_session_id)
+      .maybeSingle();
+
+    if (pedidoExistente) {
+      console.log('⚠️ Pedido ya existente para session_id:', stripe_session_id);
+      return new Response(
+        JSON.stringify({ success: true, pedido_id: pedidoExistente.id, numero_pedido: pedidoExistente.numero_pedido }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
@@ -182,7 +219,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         emailFinal = usuario.email || '';
         telefonoFinal = usuario.telefono || telefono || '';
         nombreFinal = usuario.nombre || '';
-        console.log('✅ Usuario encontrado:', { emailFinal, nombreFinal });
+        console.log('✅ Usuario encontrado:', { nombre: nombreFinal });
       } else {
         console.warn('⚠️  Usuario no encontrado en BD');
         emailFinal = `usuario-${userId}@tienda.local`;
@@ -232,10 +269,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     const pedido_id = pedidoInsertado.pedido_id;
-    console.log('✅ Pedido creado via SQL function:', pedido_id, numero_pedido);
+    console.log('✅ Pedido creado:', numero_pedido);
 
     // Crear items del pedido
-    console.log('🔵 cartItems recibidos:', JSON.stringify(cartItems, null, 2));
+    console.log('🔵 Insertando', cartItems?.length, 'items');
     
     const itemsData = cartItems.map((item: any) => ({
       pedido_id: pedido_id,
@@ -248,14 +285,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       peso_kg: item.peso_kg || null
     }));
 
-    console.log('🔵 itemsData a insertar:', JSON.stringify(itemsData, null, 2));
-
     const { error: errorItems } = await supabaseAdmin
       .from('pedido_items')
       .insert(itemsData);
 
     if (errorItems) {
-      console.error('🔴 ERROR COMPLETO insertando items:', JSON.stringify(errorItems, null, 2));
+      console.error('🔴 Error insertando items:', errorItems.message);
       return new Response(
         JSON.stringify({ error: 'Error creando items del pedido: ' + errorItems.message }),
         { status: 500 }
@@ -299,7 +334,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     // Enviar correo de confirmación
     try {
       console.log('📧 Enviando correo de confirmación...');
-      console.log('📧 Email del cliente:', emailFinal);
       console.log('📧 Items a enviar:', cartItems.length);
       
       await enviarConfirmacionPedido({

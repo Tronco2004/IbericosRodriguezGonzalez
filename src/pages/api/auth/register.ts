@@ -1,8 +1,15 @@
 import type { APIRoute } from 'astro';
 import { supabaseClient } from '../../../lib/supabase';
 import { enviarEmailBienvenida } from '../../../lib/email';
+import { createRateLimiter, getClientIp, rateLimitResponse } from '../../../lib/rate-limit';
+
+// Limitar registro a 5 por minuto por IP (anti spam)
+const registerLimiter = createRateLimiter({ maxRequests: 5, windowMs: 60_000 });
 
 export const POST: APIRoute = async ({ request, cookies }) => {
+  const clientIp = getClientIp(request);
+  if (!registerLimiter.check(clientIp)) return rateLimitResponse();
+
   const { email, password, nombre, telefono, direccion } = await request.json();
 
   if (!email || !password || !nombre) {
@@ -48,7 +55,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     const userId = authData.user.id;
-    console.log('✅ Usuario registrado en auth.users:', userId);
+    console.log('✅ Usuario registrado en auth.users');
 
     // 2. Crear registro en tabla usuarios con rol 'cliente' por defecto
     const { data: insertData, error: dbError } = await supabaseClient
@@ -163,7 +170,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     // Enviar email de bienvenida con código de descuento
     try {
       await enviarEmailBienvenida(email, nombre, 'BIENVENIDA');
-      console.log('✉️ Email de bienvenida enviado a:', email);
+      console.log('✉️ Email de bienvenida enviado');
     } catch (emailError) {
       console.error('⚠️ Error enviando email de bienvenida (no bloquea registro):', emailError);
     }

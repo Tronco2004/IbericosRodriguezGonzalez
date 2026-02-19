@@ -1,7 +1,15 @@
 import type { APIRoute } from 'astro';
 import nodemailer from 'nodemailer';
+import { escapeHtml } from '../../lib/auth-helpers';
+import { createRateLimiter, getClientIp, rateLimitResponse } from '../../lib/rate-limit';
+
+// Limitar formulario de contacto a 5 por minuto por IP (anti spam)
+const contactoLimiter = createRateLimiter({ maxRequests: 5, windowMs: 60_000 });
 
 export const POST: APIRoute = async ({ request }) => {
+  const clientIp = getClientIp(request);
+  if (!contactoLimiter.check(clientIp)) return rateLimitResponse();
+
   try {
     const { email, asunto, mensaje } = await request.json();
 
@@ -21,6 +29,11 @@ export const POST: APIRoute = async ({ request }) => {
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
+
+    // FIX P1-7: Sanitizar inputs para prevenir HTML injection en emails
+    const emailSafe = escapeHtml(email);
+    const asuntoSafe = escapeHtml(asunto);
+    const mensajeSafe = escapeHtml(mensaje);
 
     // Configurar transporte de email
     const transporter = nodemailer.createTransport({
@@ -70,18 +83,18 @@ export const POST: APIRoute = async ({ request }) => {
             <div class="field">
               <span class="label">De:</span>
               <div class="value">
-                <a href="mailto:${email}" style="color: #a89968; text-decoration: none; font-weight: 600;">${email}</a>
+                <a href="mailto:${emailSafe}" style="color: #a89968; text-decoration: none; font-weight: 600;">${emailSafe}</a>
               </div>
             </div>
             
             <div class="field">
               <span class="label">Asunto:</span>
-              <div class="value">${asunto}</div>
+              <div class="value">${asuntoSafe}</div>
             </div>
             
             <div class="field">
               <span class="label">Mensaje:</span>
-              <div class="mensaje-box">${mensaje.replace(/\n/g, '<br>')}</div>
+              <div class="mensaje-box">${mensajeSafe.replace(/\n/g, '<br>')}</div>
             </div>
             
             <div class="field">
@@ -90,7 +103,7 @@ export const POST: APIRoute = async ({ request }) => {
             </div>
 
             <div style="text-align: center; margin-top: 2rem;">
-              <a href="mailto:${email}?subject=Re: ${encodeURIComponent(asunto)}" class="responder-btn">
+              <a href="mailto:${emailSafe}?subject=Re: ${encodeURIComponent(asunto)}" class="responder-btn">
                 Responder al cliente
               </a>
             </div>
@@ -114,7 +127,7 @@ export const POST: APIRoute = async ({ request }) => {
       html: htmlContent
     });
 
-    console.log('✅ Email de contacto enviado desde:', email);
+    console.log('✅ Email de contacto enviado');
 
     return new Response(
       JSON.stringify({ success: true, message: 'Mensaje enviado correctamente' }),

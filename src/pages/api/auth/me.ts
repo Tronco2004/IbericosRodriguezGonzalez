@@ -1,15 +1,13 @@
 import type { APIRoute } from 'astro';
 import { supabaseClient, supabaseAdmin } from '../../../lib/supabase';
+import { getAuthenticatedUserId } from '../../../lib/auth-helpers';
 
 export const GET: APIRoute = async ({ cookies, request }) => {
   try {
-    // Intentar obtener userId del header x-user-id primero
-    let userId = request.headers.get('x-user-id');
-    
-    // Si no viene en header, intentar desde la cookie user_id directamente
-    if (!userId) {
-      userId = cookies.get('user_id')?.value;
-    }
+    // ── Auth: validar JWT (no confiar en x-user-id ni cookies de texto plano) ──
+    const { userId: jwtUserId } = await getAuthenticatedUserId(request, cookies);
+    // Fallback a cookie user_id para compatibilidad transitoria
+    const userId = jwtUserId || cookies.get('user_id')?.value || null;
 
     if (!userId) {
       return new Response(
