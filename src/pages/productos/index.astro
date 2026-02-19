@@ -2087,7 +2087,7 @@ import Layout from '../../layouts/Layout.astro';
     }
 
     // Agregar al carrito local para invitados (productos simples sin variantes)
-    function agregarAlCarritoLocalSimple(productoId, cantidad = 1, cortado = false) {
+    async function agregarAlCarritoLocalSimple(productoId, cantidad = 1, cortado = false) {
       try {
         // Buscar el producto en el array de productos cargados
         const producto = productosGlobal.find(p => p.id === parseInt(productoId));
@@ -2097,24 +2097,28 @@ import Layout from '../../layouts/Layout.astro';
           return;
         }
 
-        // Reservar stock en la base de datos (para invitados)
-        fetch('/api/carrito/reservar', {
+        // Validar stock antes de intentar
+        if (!producto.es_variable && producto.stock <= 0) {
+          mostrarNotificacion('Este producto está agotado', 'error');
+          return;
+        }
+
+        // Reservar stock en la base de datos (para invitados) - ESPERAR respuesta
+        const reservaRes = await fetch('/api/carrito/reservar', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             producto_id: parseInt(productoId),
             cantidad: cantidad
           })
-        })
-          .then(res => res.json())
-          .then(data => {
-            if (!data.success) {
-              console.error('❌ Error reservando stock:', data.error);
-              mostrarNotificacion(data.error || 'Error al reservar stock', 'error');
-              return;
-            }
-          })
-          .catch(err => console.error('❌ Error en fetch reservar:', err));
+        });
+        const reservaData = await reservaRes.json();
+        
+        if (!reservaData.success) {
+          console.error('❌ Error reservando stock:', reservaData.error);
+          mostrarNotificacion(reservaData.error || 'No hay suficiente stock disponible', 'error');
+          return;
+        }
 
         // Obtener carrito actual de localStorage
         let carrito = JSON.parse(localStorage.getItem('carrito_invitado') || '[]');
@@ -2181,6 +2185,7 @@ import Layout from '../../layouts/Layout.astro';
               button.style.background = '#d0d0d0';
               button.style.color = '#888';
               button.style.cursor = 'not-allowed';
+              button.textContent = '✖ Agotado';
             }
           }
         }
@@ -2206,7 +2211,13 @@ import Layout from '../../layouts/Layout.astro';
       
       // Obtener stock del producto
       const producto = productosGlobal.find(p => p.id === parseInt(productoId));
-      stockMaximoModal = producto?.stock || 1;
+      stockMaximoModal = producto?.stock ?? 0;
+      
+      // No abrir el modal si no hay stock
+      if (stockMaximoModal <= 0) {
+        mostrarNotificacion('Este producto está agotado', 'error');
+        return;
+      }
       
       input.value = '1';
       input.max = stockMaximoModal;

@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { supabaseClient, supabaseAdmin } from '../../../lib/supabase';
+import { decrementarStockProducto, incrementarStockProducto, decrementarStockVariante, incrementarStockVariante } from '../../../lib/stock';
 
 export const GET: APIRoute = async ({ cookies, request }) => {
   try {
@@ -197,49 +198,15 @@ export const GET: APIRoute = async ({ cookies, request }) => {
 
     // Si el carrito expiró, eliminar TODOS los items y devolver stock
     if (carritoExpirado && itemsEnriquecidos && itemsEnriquecidos.length > 0) {
-      // Devolver stock de TODOS los items (simples y variantes)
+      // Devolver stock de TODOS los items (simples y variantes) - operaciones atómicas CAS
       for (const item of itemsEnriquecidos) {
-        // Productos simples
         if (!item.producto_variante_id) {
           console.log('➕ Devolviendo stock del producto simple:', item.producto_id, 'cantidad:', item.cantidad);
-          const { data: producto } = await supabaseAdmin
-            .from('productos')
-            .select('stock')
-            .eq('id', item.producto_id)
-            .single();
-          
-          if (producto) {
-            const nuevoStock = producto.stock + item.cantidad;
-            await supabaseAdmin
-              .from('productos')
-              .update({ stock: nuevoStock })
-              .eq('id', item.producto_id);
-            console.log('✅ Stock devuelto (simple):', { producto_id: item.producto_id, nuevoStock });
-          }
+          await incrementarStockProducto(item.producto_id, item.cantidad);
         }
-        
-        // Productos variables (variantes)
         if (item.producto_variante_id) {
           console.log('➕ Devolviendo stock de variante:', item.producto_variante_id, 'cantidad:', item.cantidad);
-          const { data: variante } = await supabaseAdmin
-            .from('producto_variantes')
-            .select('cantidad_disponible')
-            .eq('id', item.producto_variante_id)
-            .single();
-          
-          if (variante) {
-            const stockAnterior = variante.cantidad_disponible || 0;
-            const nuevoStock = stockAnterior + item.cantidad;
-            const nuevoDisponible = nuevoStock > 0;
-            await supabaseAdmin
-              .from('producto_variantes')
-              .update({ 
-                cantidad_disponible: nuevoStock,
-                disponible: nuevoDisponible
-              })
-              .eq('id', item.producto_variante_id);
-            console.log('✅ Stock devuelto (variante):', { variante_id: item.producto_variante_id, stockAnterior, nuevoStock, ahora_disponible: nuevoDisponible });
-          }
+          await incrementarStockVariante(item.producto_variante_id, item.cantidad);
         }
       }
 
@@ -514,46 +481,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         );
       }
 
-      // Decrementar stock por la cantidad adicional añadida
+      // Decrementar stock por la cantidad adicional añadida - operación atómica CAS
       let stockRestante = null;
       
       if (producto_variante_id) {
-        // Decrementar stock de variante
-        const { data: variante } = await supabaseClient
-          .from('producto_variantes')
-          .select('cantidad_disponible')
-          .eq('id', producto_variante_id)
-          .single();
-        
-        if (variante) {
-          const nuevoStock = Math.max(0, (variante.cantidad_disponible || 0) - cantidad);
-          stockRestante = nuevoStock; // Devolver stock de variante
-          await supabaseAdmin
-            .from('producto_variantes')
-            .update({ 
-              cantidad_disponible: nuevoStock,
-              disponible: nuevoStock > 0
-            })
-            .eq('id', producto_variante_id);
-          console.log('✅ Stock variante decrementado:', { variante_id: producto_variante_id, nuevoStock });
-        }
+        const result = await decrementarStockVariante(producto_variante_id, cantidad);
+        stockRestante = result.stockRestante;
       } else {
-        // Decrementar stock de producto simple
-        const { data: producto } = await supabaseAdmin
-          .from('productos')
-          .select('stock')
-          .eq('id', producto_id)
-          .single();
-        
-        if (producto) {
-          const nuevoStock = Math.max(0, (producto.stock || 0) - cantidad);
-          stockRestante = nuevoStock;
-          await supabaseAdmin
-            .from('productos')
-            .update({ stock: nuevoStock })
-            .eq('id', producto_id);
-          console.log('✅ Stock producto decrementado:', { producto_id, nuevoStock });
-        }
+        const result = await decrementarStockProducto(producto_id, cantidad);
+        stockRestante = result.stockRestante;
       }
 
       console.log('✅ Item actualizado:', actualizado);
@@ -586,39 +522,16 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         );
       }
 
-      // Si es un producto variable (con variante), decrementar stock de la variante
+      // Decrementar stock - operación atómica CAS
       let stockRestante = null;
       let variantes = null;
       
       if (producto_variante_id) {
         console.log('📉 Decrementando stock de variante:', producto_variante_id, 'cantidad:', cantidad);
+        const result = await decrementarStockVariante(producto_variante_id, cantidad);
+        stockRestante = result.stockRestante;
         
-        const { data: variante, error: getError } = await supabaseClient
-          .from('producto_variantes')
-          .select('cantidad_disponible')
-          .eq('id', producto_variante_id)
-          .single();
-        
-        if (!getError && variante) {
-          const nuevoStock = Math.max(0, (variante.cantidad_disponible || 0) - cantidad);
-          stockRestante = nuevoStock;
-          const nuevoDisponible = nuevoStock > 0;
-          
-          await supabaseAdmin
-            .from('producto_variantes')
-            .update({ 
-              cantidad_disponible: nuevoStock,
-              disponible: nuevoDisponible
-            })
-            .eq('id', producto_variante_id);
-          
-          console.log('✅ Stock variante actualizado:', { 
-            variante_id: producto_variante_id, 
-            stockAnterior: variante.cantidad_disponible,
-            nuevoStock,
-            ahora_disponible: nuevoDisponible
-          });
-          
+        if (result.success) {
           // Obtener todas las variantes disponibles
           const { data: todasVariantes } = await supabaseClient
             .from('producto_variantes')
@@ -630,30 +543,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           variantes = todasVariantes || [];
         }
       } else {
-        // Si es un producto simple (no tiene variante), restar stock
         console.log('📉 Restando stock del producto:', producto_id, 'cantidad:', cantidad);
-        
-        const { data: producto, error: getError } = await supabaseAdmin
-          .from('productos')
-          .select('stock')
-          .eq('id', producto_id)
-          .single();
-        
-        if (!getError && producto) {
-          const nuevoStock = Math.max(0, producto.stock - cantidad);
-          stockRestante = nuevoStock;
-          const { error: updateError } = await supabaseAdmin
-            .from('productos')
-            .update({ stock: nuevoStock })
-            .eq('id', producto_id);
-          if (updateError) {
-            console.log('❌ Error actualizando stock:', updateError);
-          } else {
-            console.log('✅ Stock actualizado:', { producto_id, stockAnterior: producto.stock, nuevoStock });
-          }
-        } else {
-          console.log('❌ Error obteniendo stock:', getError);
-        }
+        const result = await decrementarStockProducto(producto_id, cantidad);
+        stockRestante = result.stockRestante;
       }
 
       console.log('✅ Item agregado:', nuevoItem);
