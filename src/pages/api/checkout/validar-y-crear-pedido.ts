@@ -21,6 +21,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       return new Response(JSON.stringify({ error: 'No hay sessionId' }), { status: 400 });
     }
 
+    // Validar que cartItems exista y no esté vacío
+    if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
+      console.error('❌ cartItems vacío o inválido:', cartItems);
+      return new Response(
+        JSON.stringify({ error: 'cartItems es obligatorio y no puede estar vacío' }),
+        { status: 400 }
+      );
+    }
+
     // ═══════════════════════════════════════════════════════════
     // IDEMPOTENCIA: verificar si ya existe un pedido con este session_id
     // ═══════════════════════════════════════════════════════════
@@ -31,18 +40,32 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       .maybeSingle();
 
     if (pedidoExistente) {
-      console.log('⚠️ Pedido ya existente para session_id:', sessionId, '→', pedidoExistente.numero_pedido);
-      return new Response(
-        JSON.stringify({
-          success: true,
-          pedidoId: pedidoExistente.id,
-          numeroPedido: pedidoExistente.numero_pedido,
-          codigoSeguimiento: pedidoExistente.codigo_seguimiento,
-          total: pedidoExistente.total,
-          message: 'Pedido ya existente (idempotente)'
-        }),
-        { status: 200 }
-      );
+      // Verificar si es un pedido fantasma (creado sin items por un fallo previo)
+      const { count: itemCount } = await supabaseAdmin
+        .from('pedido_items')
+        .select('id', { count: 'exact', head: true })
+        .eq('pedido_id', pedidoExistente.id);
+
+      if ((itemCount ?? 0) === 0 && pedidoExistente.total <= SHIPPING_COST) {
+        // Pedido fantasma detectado: eliminar y re-crear
+        console.log('🗑️ Pedido fantasma detectado (0 items, total<=envío). Eliminando:', pedidoExistente.id);
+        await supabaseAdmin.from('pedidos').delete().eq('id', pedidoExistente.id);
+        // Continuar con la creación normal del pedido
+      } else {
+        // Pedido real — devolver sin crear duplicado
+        console.log('⚠️ Pedido ya existente para session_id:', sessionId, '→', pedidoExistente.numero_pedido);
+        return new Response(
+          JSON.stringify({
+            success: true,
+            pedidoId: pedidoExistente.id,
+            numeroPedido: pedidoExistente.numero_pedido,
+            codigoSeguimiento: pedidoExistente.codigo_seguimiento,
+            total: pedidoExistente.total,
+            message: 'Pedido ya existente (idempotente)'
+          }),
+          { status: 200 }
+        );
+      }
     }
 
     // ── Auth: obtener userId desde JWT (no de header) ──
@@ -319,6 +342,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     if (itemsError) {
       console.error('❌ Error creando items:', itemsError);
+      // ROLLBACK: eliminar el pedido fantasma creado sin items
+      console.log('🗑️ Rollback: eliminando pedido fantasma', pedidoId);
+      await supabaseAdmin.from('pedidos').delete().eq('id', pedidoId);
       return new Response(
         JSON.stringify({ error: 'Error al crear items del pedido', details: itemsError }),
         { status: 500 }
@@ -327,25 +353,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     console.log(`✅ ${itemsCreated?.length || 0} items creados`);
 
-    // ✅ ELIMINAR VARIANTES VENDIDAS DE LA BD
-    // El stock de productos normales ya se restó al añadir al carrito
-    for (const item of cartItems) {
-      if (item.producto_variante_id) {
-        // Producto con variante: eliminar la variante de la BD
-        console.log('🗑️ Eliminando variante vendida:', item.producto_variante_id);
-        const { error: deleteError } = await supabaseAdmin
-          .from('producto_variantes')
-          .delete()
-          .eq('id', item.producto_variante_id);
-        
-        if (deleteError) {
-          console.warn('⚠️ Error eliminando variante:', item.producto_variante_id, deleteError);
-        } else {
-          console.log('✅ Variante eliminada:', item.producto_variante_id);
-        }
-      }
-      // Productos normales: el stock ya se descontó al añadir al carrito
-    }
+    // ✅ VARIANTES VENDIDAS: Ya se eliminan automáticamente por el
+    // trigger 'trigger_eliminar_variante_vendida' en pedido_items (AFTER INSERT).
+    // No hace falta eliminarlas manualmente aquí.
 
     // ✅ VACIAR EL CARRITO DEL USUARIO (si tiene cuenta)
     if (finalUserId) {
