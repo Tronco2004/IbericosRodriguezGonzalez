@@ -123,6 +123,14 @@ Causa raíz: Falta de casting de e.target a HTMLElement y falta de null checks.
   ✅ Race condition en stock: Se usa ahora patrón Compare-And-Swap (CAS)
      con reintentos en src/lib/stock.ts. El UPDATE solo se aplica si el
      stock no ha cambiado desde la lectura (WHERE stock = valor_leído).
+  
+  ✅ CAS mejorado (junio 2026):
+     - MAX_RETRIES aumentado de 3 a 5
+     - Delay exponencial entre reintentos (50ms * 2^intento + jitter)
+     - Normalización de stock con normStock() (3 decimales) para evitar
+       fallos de comparación con valores decimales en PostgreSQL
+     - Variantes ahora usan supabaseAdmin (antes usaban supabaseClient
+       que podía ser bloqueado por RLS)
 
   ✅ Fallback ?? 999 ELIMINADO: Cambiado a ?? 0.
      Si cantidad_disponible es null, se rechaza la petición.
