@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient } from '../../../lib/supabase';
+import { supabaseAdmin } from '../../../lib/supabase';
 
 export const prerender = false;
 
@@ -9,7 +9,7 @@ export const GET: APIRoute = async ({ request, cookies }) => {
     const url = new URL(request.url);
     const filtro = url.searchParams.get('filtro') || 'todos'; // todos, dia, semana, mes
 
-    let query = supabaseClient
+    let query = supabaseAdmin
       .from('pedidos')
       .select(`
         id,

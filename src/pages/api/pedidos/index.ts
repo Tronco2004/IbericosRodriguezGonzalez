@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient } from '../../../lib/supabase';
+import { supabaseClient, supabaseAdmin } from '../../../lib/supabase';
 import { enviarConfirmacionPedido } from '../../../lib/email';
 
 export const prerender = false;
@@ -20,7 +20,7 @@ export const GET: APIRoute = async ({ request, cookies }) => {
     // Si hay userId pero no email, obtener el email del usuario desde la BD
     if ((!emailBusqueda || emailBusqueda === 'null') && userId && userId !== 'null') {
       console.log('🔍 Obteniendo email del usuario desde BD...');
-      const { data: usuario, error: userError } = await supabaseClient
+      const { data: usuario, error: userError } = await supabaseAdmin
         .from('usuarios')
         .select('email')
         .eq('id', userId)
@@ -45,7 +45,7 @@ export const GET: APIRoute = async ({ request, cookies }) => {
     console.log('🔍 Buscando pedidos por email:', emailBusqueda);
 
     // Buscar TODOS los pedidos por email (tanto logueado como invitado)
-    const { data: pedidos, error } = await supabaseClient
+    const { data: pedidos, error } = await supabaseAdmin
       .from('pedidos')
       .select(`
         id,
@@ -198,8 +198,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     console.log('📋 Creando pedido con función SQL:', { numero_pedido, usuario_id: userId, es_invitado });
 
-    // Usar función SQL para crear el pedido (bypasea RLS)
-    const { data: pedidoResult, error: errorPedido } = await supabaseClient
+    // Usar función SQL para crear el pedido (con supabaseAdmin para bypasear RLS)
+    const { data: pedidoResult, error: errorPedido } = await supabaseAdmin
       .rpc('crear_pedido', {
         p_stripe_session_id: stripe_session_id,
         p_numero_pedido: numero_pedido,
@@ -250,7 +250,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     console.log('🔵 itemsData a insertar:', JSON.stringify(itemsData, null, 2));
 
-    const { error: errorItems } = await supabaseClient
+    const { error: errorItems } = await supabaseAdmin
       .from('pedido_items')
       .insert(itemsData);
 
@@ -269,7 +269,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       console.log('🧹 Limpiando carrito para usuario:', userId);
       try {
         // Obtener carrito actual
-        const { data: cartData, error: cartError } = await supabaseClient
+        const { data: cartData, error: cartError } = await supabaseAdmin
           .from('carritos')
           .select('id')
           .eq('usuario_id', userId)
@@ -279,7 +279,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           console.warn('⚠️  No se encontró carrito para limpiar:', cartError.message);
         } else if (cartData?.id) {
           console.log('🧹 Borrando items del carrito ID:', cartData.id);
-          const { error: deleteError } = await supabaseClient
+          const { error: deleteError } = await supabaseAdmin
             .from('carrito_items')
             .delete()
             .eq('carrito_id', cartData.id);

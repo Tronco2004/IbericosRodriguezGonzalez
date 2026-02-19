@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient } from '../../../lib/supabase';
+import { supabaseAdmin } from '../../../lib/supabase';
 import { enviarEmailCancelacion, notificarCancelacionAlAdmin } from '../../../lib/email';
 import { procesarReembolsoStripe } from '../../../lib/stripe';
 
@@ -19,7 +19,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Obtener email del usuario para poder verificar propiedad por email también
     let userEmail: string | null = null;
-    const { data: usuario } = await supabaseClient
+    const { data: usuario } = await supabaseAdmin
       .from('usuarios')
       .select('email')
       .eq('id', userId)
@@ -27,7 +27,7 @@ export const POST: APIRoute = async ({ request }) => {
     if (usuario?.email) userEmail = usuario.email;
 
     // Buscar pedido por ID (sin filtrar por usuario_id, ya que puede ser null en pedidos de invitado)
-    const { data: pedido, error: errorPedido } = await supabaseClient
+    const { data: pedido, error: errorPedido } = await supabaseAdmin
       .from('pedidos')
       .select('id, estado, usuario_id, stripe_session_id, email_cliente')
       .eq('id', parseInt(pedido_id))
@@ -67,7 +67,7 @@ export const POST: APIRoute = async ({ request }) => {
     console.log('🔵 Restaurando stock de los productos del pedido...');
 
     // Obtener todos los items del pedido con más información
-    const { data: items, error: errorItems } = await supabaseClient
+    const { data: items, error: errorItems } = await supabaseAdmin
       .from('pedido_items')
       .select('producto_id, producto_variante_id, cantidad, precio_unitario, peso_kg')
       .eq('pedido_id', pedido.id);
@@ -94,7 +94,7 @@ export const POST: APIRoute = async ({ request }) => {
           // precio_unitario está en euros, convertir a céntimos para precio_total
           const precioTotalCentimos = Math.round((item.precio_unitario || 0) * 100);
           
-          const { data: nuevaVariante, error: insertError } = await supabaseClient
+          const { data: nuevaVariante, error: insertError } = await supabaseAdmin
             .from('producto_variantes')
             .insert({
               producto_id: item.producto_id,
@@ -116,7 +116,7 @@ export const POST: APIRoute = async ({ request }) => {
           // Producto normal: incrementar stock
           console.log('🔵 Producto normal, incrementando stock...');
           
-          const { data: producto, error: errorGetProducto } = await supabaseClient
+          const { data: producto, error: errorGetProducto } = await supabaseAdmin
             .from('productos')
             .select('stock')
             .eq('id', item.producto_id)
@@ -130,7 +130,7 @@ export const POST: APIRoute = async ({ request }) => {
           const nuevoStock = (producto.stock || 0) + (item.cantidad || 1);
           console.log('🔵 Actualizando producto', item.producto_id, 'stock de', producto.stock, 'a', nuevoStock);
           
-          const { error: errorRestore } = await supabaseClient
+          const { error: errorRestore } = await supabaseAdmin
             .from('productos')
             .update({ stock: nuevoStock })
             .eq('id', item.producto_id);
@@ -181,7 +181,7 @@ export const POST: APIRoute = async ({ request }) => {
     console.log('🔵 Actualizando estado del pedido a cancelado...');
 
     // Cambiar estado a cancelado
-    const { error: errorUpdate } = await supabaseClient
+    const { error: errorUpdate } = await supabaseAdmin
       .from('pedidos')
       .update({ 
         estado: 'cancelado',
@@ -202,7 +202,7 @@ export const POST: APIRoute = async ({ request }) => {
     // Enviar correos de cancelación (sin bloquear la respuesta)
     try {
       // Obtener datos completos del pedido (email_cliente y nombre_cliente ya están en la tabla pedidos)
-      const { data: pedidoCompleto } = await supabaseClient
+      const { data: pedidoCompleto } = await supabaseAdmin
         .from('pedidos')
         .select('numero_pedido, total, fecha_pago, email_cliente, nombre_cliente')
         .eq('id', pedido.id)

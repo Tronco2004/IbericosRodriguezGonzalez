@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient } from '../../../lib/supabase';
+import { supabaseAdmin } from '../../../lib/supabase';
 
 export const GET: APIRoute = async () => {
   try {
@@ -7,7 +7,7 @@ export const GET: APIRoute = async () => {
     const ahora = new Date();
     const primerDiaDelMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1).toISOString();
     
-    const { data: pedidos } = await supabaseClient
+    const { data: pedidos } = await supabaseAdmin
       .from('pedidos')
       .select(`
         id,

@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient } from '../../../lib/supabase';
+import { supabaseAdmin } from '../../../lib/supabase';
 
 // Este endpoint ejecuta la migración de stock para variantes
 export const POST: APIRoute = async ({ request, cookies }) => {
@@ -7,7 +7,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     console.log('🔧 Iniciando setup de stock en variantes...');
 
     // Ejecutar la migración SQL directamente
-    const { data, error } = await supabaseClient.rpc('exec_sql', {
+    const { data, error } = await supabaseAdmin.rpc('exec_sql', {
       sql: `
         ALTER TABLE producto_variantes
         ADD COLUMN IF NOT EXISTS cantidad_disponible INT DEFAULT 10;
