@@ -1,5 +1,9 @@
 import { defineMiddleware } from 'astro:middleware';
 import { supabaseAdmin } from './lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 
 /**
  * Extrae y valida el JWT del request (cookie o header Authorization).
@@ -16,6 +20,36 @@ async function validateAuthToken(token: string | undefined): Promise<string | nu
   return null;
 }
 
+/**
+ * Intenta renovar la sesión usando el refresh token.
+ */
+async function tryRefreshInMiddleware(refreshToken: string, cookies: any): Promise<string | null> {
+  try {
+    const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+    const { data, error } = await tempClient.auth.refreshSession({ refresh_token: refreshToken });
+    if (error || !data.session || !data.user) return null;
+
+    // Actualizar cookies con nuevos tokens
+    cookies.set('auth_token', data.session.access_token, {
+      httpOnly: true, secure: true, sameSite: 'lax', maxAge: 60 * 60 * 24 * 7, path: '/',
+    });
+    cookies.set('sb-access-token', data.session.access_token, {
+      httpOnly: true, secure: true, sameSite: 'lax', maxAge: 60 * 60 * 24 * 365, path: '/',
+    });
+    if (data.session.refresh_token) {
+      cookies.set('sb-refresh-token', data.session.refresh_token, {
+        httpOnly: true, secure: true, sameSite: 'lax', maxAge: 60 * 60 * 24 * 365, path: '/',
+      });
+    }
+    console.log('🔄 [Middleware] Token renovado para usuario:', data.user.id);
+    return data.user.id;
+  } catch {
+    return null;
+  }
+}
+
 export const onRequest = defineMiddleware(async (context, next) => {
   const token = context.cookies.get('auth_token')?.value;
   const path = context.url.pathname;
@@ -30,7 +64,16 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // ═══════════════════════════════════════════════════════════
   if (path.startsWith('/admin')) {
     // FIX P1-4: Validar JWT real, no cookies de texto plano
-    const validatedUserId = await validateAuthToken(effectiveToken);
+    let validatedUserId = await validateAuthToken(effectiveToken);
+    
+    // Si el token expiró, intentar renovar
+    if (!validatedUserId) {
+      const refreshToken = context.cookies.get('sb-refresh-token')?.value;
+      if (refreshToken) {
+        validatedUserId = await tryRefreshInMiddleware(refreshToken, context.cookies);
+      }
+    }
+    
     if (!validatedUserId) {
       return context.redirect('/login?redirect=' + encodeURIComponent(path));
     }
@@ -56,7 +99,15 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // ═══════════════════════════════════════════════════════════
   if (path.startsWith('/api/admin')) {
     // FIX P1-4: Validar JWT real
-    const validatedUserId = await validateAuthToken(effectiveToken);
+    let validatedUserId = await validateAuthToken(effectiveToken);
+
+    // Si el token expiró, intentar renovar
+    if (!validatedUserId) {
+      const refreshToken = context.cookies.get('sb-refresh-token')?.value;
+      if (refreshToken) {
+        validatedUserId = await tryRefreshInMiddleware(refreshToken, context.cookies);
+      }
+    }
 
     if (!validatedUserId) {
       return new Response(

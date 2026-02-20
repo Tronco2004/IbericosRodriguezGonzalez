@@ -6,8 +6,9 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
   <style>
     .perfil-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
       gap: 2rem;
+      max-width: 500px;
     }
     
     @media (max-width: 768px) {
@@ -34,7 +35,7 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
     </div>
 
     <div class="perfil-grid">
-      <!-- Columna izquierda: Información Personal -->
+      <!-- Información Personal -->
       <div>
         <!-- Tarjeta de Información Personal -->
         <div class="perfil-card" style="background: var(--bg-card); border-radius: 12px; padding: 2rem; border: 1px solid var(--border-color); box-shadow: 0 4px 12px var(--shadow-color, rgba(0,0,0,0.05));">
@@ -91,76 +92,6 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
               style="width: 100%; padding: 0.85rem; background: linear-gradient(135deg, var(--color-accent), var(--color-accent-dark)); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 1rem; transition: all 0.3s; text-transform: uppercase; letter-spacing: 1px; margin-top: 1rem; box-shadow: 0 4px 12px rgba(168, 153, 104, 0.2);"
             >
               Guardar Cambios
-            </button>
-          </form>
-        </div>
-      </div>
-
-      <!-- Columna derecha: Contraseña -->
-      <div>
-        <!-- Tarjeta de Seguridad -->
-        <div class="perfil-card" style="background: var(--bg-card); border-radius: 12px; padding: 2rem; border: 1px solid var(--border-color); box-shadow: 0 4px 12px var(--shadow-color, rgba(0,0,0,0.05));">
-          <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
-            <div style="width: 32px; height: 32px; background: linear-gradient(135deg, var(--color-accent), var(--color-accent-light)); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-              <span style="color: white; font-weight: 700; font-size: 1.2rem;">S</span>
-            </div>
-            <h2 style="margin: 0; font-size: 1.2rem; color: var(--text-primary); font-weight: 700;">Seguridad</h2>
-          </div>
-
-          <!-- Info provider (visible para usuarios OAuth) -->
-          <div id="providerInfo" style="display: none; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
-            <p style="margin: 0; font-size: 0.9rem; color: var(--text-secondary);">
-              <strong>🔗 Cuenta vinculada con <span id="providerName">Google</span></strong><br>
-              <span style="font-size: 0.85rem; color: var(--text-muted);">Puedes establecer una contraseña para también iniciar sesión con email y contraseña.</span>
-            </p>
-          </div>
-
-          <!-- Formulario CAMBIAR contraseña (para usuarios con password) -->
-          <form id="cambiarContrasenaForm" style="display: grid; gap: 1rem;">
-            <!-- Contraseña Actual -->
-            <div id="campoContrasenaActual" style="background: var(--bg-input); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
-              <label for="contrasenaActual" style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Contraseña Actual</label>
-              <input 
-                id="contrasenaActual"
-                type="password" 
-                placeholder="Ingresa tu contraseña actual"
-                style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem; box-sizing: border-box; transition: all 0.3s; background: var(--bg-input); color: var(--text-primary);"
-              />
-            </div>
-            
-            <!-- Contraseña Nueva -->
-            <div style="background: var(--bg-input); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
-              <label for="contrasenaNueva" style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Contraseña Nueva</label>
-              <input 
-                id="contrasenaNueva"
-                type="password" 
-                required
-                placeholder="Mínimo 6 caracteres"
-                style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem; box-sizing: border-box; transition: all 0.3s; background: var(--bg-input); color: var(--text-primary);"
-              />
-              <p style="margin: 0.5rem 0 0 0; font-size: 0.8rem; color: var(--text-muted);">Mínimo 6 caracteres</p>
-            </div>
-            
-            <!-- Confirmar Contraseña -->
-            <div style="background: var(--bg-input); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
-              <label for="contrasenaConfirm" style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Confirmar Contraseña</label>
-              <input 
-                id="contrasenaConfirm"
-                type="password" 
-                required
-                placeholder="Confirma tu nueva contraseña"
-                style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem; box-sizing: border-box; transition: all 0.3s; background: var(--bg-input); color: var(--text-primary);"
-              />
-            </div>
-
-            <div id="mensajeEstado" style="display: none; padding: 1rem; border-radius: 8px; font-size: 0.95rem; margin-top: 0.5rem; border-left: 4px solid var(--color-accent);"></div>
-            
-            <button 
-              id="btnContrasena"
-              type="submit"
-              style="width: 100%; padding: 0.85rem; background: linear-gradient(135deg, var(--color-accent), var(--color-accent-dark)); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 1rem; transition: all 0.3s; text-transform: uppercase; letter-spacing: 1px; margin-top: 1rem; box-shadow: 0 4px 12px rgba(168, 153, 104, 0.2);"
-            >
-              Cambiar Contraseña
             </button>
           </form>
         </div>
@@ -234,24 +165,9 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
           document.getElementById('telefonoInput').value = data.usuario.telefono || '';
           document.getElementById('direccionInput').value = data.usuario.direccion || '';
           
-          // Detectar si el usuario viene de OAuth (sin contraseña)
-          if (!data.usuario.tienePassword) {
-            // Mostrar info del provider
-            const providerInfo = document.getElementById('providerInfo');
-            const providerName = document.getElementById('providerName');
-            providerInfo.style.display = 'block';
-            
-            const providerLabels = { google: 'Google', apple: 'Apple', facebook: 'Facebook' };
-            providerName.textContent = providerLabels[data.usuario.provider] || data.usuario.provider;
-            
-            // Ocultar campo de contraseña actual (no tiene)
-            document.getElementById('campoContrasenaActual').style.display = 'none';
-            
-            // Cambiar texto del botón
-            document.getElementById('btnContrasena').textContent = 'Establecer Contraseña';
-            
-            // Marcar formulario como "establecer" en vez de "cambiar"
-            document.getElementById('cambiarContrasenaForm').dataset.modo = 'establecer';
+          // Detectar si el usuario viene de OAuth
+          if (!data.usuario.tienePassword && data.usuario.provider !== 'email') {
+            console.log('Usuario OAuth sin contraseña local');
           }
           
           console.log('✅ Datos cargados correctamente');
@@ -289,9 +205,9 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
 
         const response = await fetch('/api/auth/actualizar-perfil', {
           method: 'POST',
+          credentials: 'include',
           headers: {
-            'Content-Type': 'application/json',
-            'x-user-id': localStorage.getItem('user_id') || ''
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             nombre: nombre.trim(),
@@ -319,96 +235,6 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
       }
     }
 
-    async function cambiarContrasena(e) {
-      e.preventDefault();
-      
-      const form = document.getElementById('cambiarContrasenaForm');
-      const modo = form.dataset.modo || 'cambiar'; // 'cambiar' o 'establecer'
-      const contrasenaActual = document.getElementById('contrasenaActual').value;
-      const contrasenaNueva = document.getElementById('contrasenaNueva').value;
-      const contrasenaConfirm = document.getElementById('contrasenaConfirm').value;
-      const mensajeEstado = document.getElementById('mensajeEstado');
-      const boton = document.getElementById('btnContrasena');
-
-      // Limpiar mensaje anterior
-      mensajeEstado.style.display = 'none';
-
-      // Validaciones del lado del cliente
-      if (modo === 'cambiar' && contrasenaActual.length === 0) {
-        mostrarMensaje('Por favor ingresa tu contraseña actual', 'error', mensajeEstado);
-        return;
-      }
-
-      if (contrasenaNueva.length < 6) {
-        mostrarMensaje('La contraseña debe tener al menos 6 caracteres', 'error', mensajeEstado);
-        return;
-      }
-
-      if (contrasenaNueva !== contrasenaConfirm) {
-        mostrarMensaje('Las contraseñas no coinciden', 'error', mensajeEstado);
-        return;
-      }
-
-      try {
-        boton.disabled = true;
-        boton.textContent = modo === 'establecer' ? 'Estableciendo...' : 'Cambiando contraseña...';
-
-        // Elegir endpoint según el modo
-        const endpoint = modo === 'establecer' 
-          ? '/api/auth/establecer-contrasena' 
-          : '/api/auth/cambiar-contrasena';
-        
-        const bodyData = modo === 'establecer'
-          ? { contrasenaNueva, contrasenaConfirm }
-          : { contrasenaActual, contrasenaNueva, contrasenaConfirm };
-
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-user-id': localStorage.getItem('user_id') || ''
-          },
-          body: JSON.stringify(bodyData)
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-          mostrarMensaje('✅ ' + data.message, 'exito', mensajeEstado);
-          form.reset();
-          
-          // Si estableció contraseña, mostrar ahora el campo de contraseña actual
-          if (modo === 'establecer') {
-            document.getElementById('campoContrasenaActual').style.display = 'block';
-            boton.textContent = 'Cambiar Contraseña';
-            form.dataset.modo = 'cambiar';
-            // Actualizar el info
-            document.getElementById('providerInfo').innerHTML = `
-              <p style="margin: 0; font-size: 0.9rem; color: #065f46;">
-                <strong>✅ ¡Contraseña establecida!</strong><br>
-                <span style="font-size: 0.85rem;">Ahora puedes iniciar sesión con email y contraseña o con tu cuenta social.</span>
-              </p>
-            `;
-            document.getElementById('providerInfo').style.background = '#d1fae5';
-            document.getElementById('providerInfo').style.borderColor = '#6ee7b7';
-          }
-          
-          setTimeout(() => {
-            mensajeEstado.style.display = 'none';
-          }, 5000);
-        } else {
-          mostrarMensaje('❌ ' + (data.message || 'Error'), 'error', mensajeEstado);
-        }
-      } catch (error) {
-        console.error('Error:', error);
-        mostrarMensaje('❌ Error de conexión', 'error', mensajeEstado);
-      } finally {
-        boton.disabled = false;
-        if (form.dataset.modo !== 'cambiar' || modo === 'establecer') return;
-        boton.textContent = 'Cambiar Contraseña';
-      }
-    }
-
     function mostrarMensaje(texto, tipo, elemento, separado = false) {
       elemento.textContent = texto;
       elemento.style.display = 'block';
@@ -421,7 +247,6 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
     document.addEventListener('DOMContentLoaded', () => {
       cargarDatosUsuario();
       document.getElementById('formularioPerfil').addEventListener('submit', guardarPerfil);
-      document.getElementById('cambiarContrasenaForm').addEventListener('submit', cambiarContrasena);
     });
   </script>
 </ProtectedLayout>
