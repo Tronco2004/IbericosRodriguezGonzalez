@@ -1687,6 +1687,14 @@ import Layout from '../../layouts/Layout.astro';
         const userId = localStorage.getItem('user_id');
         console.log('👤 User ID:', userId);
         
+        // Obtener el producto del array global para acceder a su nombre e imagen
+        const producto = productosGlobal.find(p => p.id === parseInt(productoId));
+        if (!producto) {
+          console.error('❌ Producto no encontrado en productosGlobal:', productoId);
+          mostrarNotificacion('Error: Producto no encontrado', 'error');
+          return;
+        }
+        
         // Si es invitado, guardar en localStorage
         if (!userId) {
           console.log('👻 Invitado detectado - guardando en localStorage');
