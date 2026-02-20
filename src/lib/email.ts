@@ -172,6 +172,19 @@ function generarPDFFactura(datos: EmailPedido): Promise<Buffer> {
       doc.text('Envío:', col3, yPosition, { width: 80, align: 'right' });
       doc.text(`${(datos.envio / 100).toFixed(2)} €`, col4, yPosition, { width: 75, align: 'center' });
 
+      // === DESGLOSE IVA ===
+      yPosition += 18;
+      const totalConEnvio = datos.total;
+      const baseImponible = totalConEnvio / 1.10;
+      const ivaAmount = totalConEnvio - baseImponible;
+
+      doc.text('Base imponible:', col3, yPosition, { width: 80, align: 'right' });
+      doc.text(`${(baseImponible / 100).toFixed(2)} €`, col4, yPosition, { width: 75, align: 'center' });
+
+      yPosition += 18;
+      doc.text('IVA (10%):', col3, yPosition, { width: 80, align: 'right' });
+      doc.text(`${(ivaAmount / 100).toFixed(2)} €`, col4, yPosition, { width: 75, align: 'center' });
+
       yPosition += 8;
       doc.moveTo(col3, yPosition).lineTo(545, yPosition).lineWidth(0.5).strokeColor('#ccc').stroke();
       yPosition += 10;
@@ -332,6 +345,21 @@ function generarPDFFacturaRectificativa(datos: EmailDevolucion): Promise<Buffer>
       doc.text('Envío:', col3, yPosition, { width: 80, align: 'right' });
       doc.fillColor('#dc3545').font('Helvetica-Bold');
       doc.text(`-${(datos.envio / 100).toFixed(2)} €`, col4, yPosition, { width: 75, align: 'center' });
+
+      // Desglose IVA
+      yPosition += 18;
+      const totalDevolucion = datos.total / 100;
+      const baseImponibleRect = totalDevolucion / 1.10;
+      const ivaAmountRect = totalDevolucion - baseImponibleRect;
+      doc.font('Helvetica').fillColor('#555');
+      doc.text('Base imponible:', col3, yPosition, { width: 80, align: 'right' });
+      doc.fillColor('#dc3545').font('Helvetica-Bold');
+      doc.text(`-${baseImponibleRect.toFixed(2)} €`, col4, yPosition, { width: 75, align: 'center' });
+      yPosition += 16;
+      doc.font('Helvetica').fillColor('#555');
+      doc.text('IVA (10%):', col3, yPosition, { width: 80, align: 'right' });
+      doc.fillColor('#dc3545').font('Helvetica-Bold');
+      doc.text(`-${ivaAmountRect.toFixed(2)} €`, col4, yPosition, { width: 75, align: 'center' });
 
       yPosition += 8;
       doc.moveTo(col3, yPosition).lineTo(545, yPosition).lineWidth(0.5).strokeColor('#ccc').stroke();

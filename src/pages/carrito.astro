@@ -448,6 +448,29 @@ import Layout from '../layouts/Layout.astro';
       font-size: 1.1rem;
     }
 
+    /* ===== DESGLOSE IVA ===== */
+    :global(.resumen-iva-desglose) {
+      background: rgba(168, 153, 104, 0.06);
+      border: 1px solid rgba(168, 153, 104, 0.15);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1rem;
+    }
+
+    :global(.resumen-iva-titulo) {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--color-accent);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.5rem;
+    }
+
+    :global(.resumen-linea-iva) {
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+    }
+
     /* ===== TOTAL ===== */
     :global(.resumen-total-wrap) {
       padding: 1rem 0;
@@ -1046,9 +1069,18 @@ import Layout from '../layouts/Layout.astro';
                   <span>Envío</span>
                   <span class="resumen-valor-accent">${(envio / 100).toFixed(2)}€</span>
                 </div>
-                <div class="resumen-linea">
-                  <span>Impuestos</span>
-                  <span class="resumen-valor-accent">Incluidos</span>
+              </div>
+
+              <!-- Desglose IVA -->
+              <div class="resumen-iva-desglose">
+                <div class="resumen-iva-titulo">Desglose IVA (10%)</div>
+                <div class="resumen-linea resumen-linea-iva">
+                  <span>Base imponible</span>
+                  <span id="baseImponible">${(total / 110 * 100 / 100).toFixed(2)}€</span>
+                </div>
+                <div class="resumen-linea resumen-linea-iva">
+                  <span>IVA (10%)</span>
+                  <span id="ivaAmount">${(total / 110 * 10 / 100).toFixed(2)}€</span>
                 </div>
               </div>
 
@@ -1438,6 +1470,7 @@ import Layout from '../layouts/Layout.astro';
               const nuevoTotal = nuevoSubtotal + envio;
               console.log(`💰 Total nuevo: ${(nuevoTotal / 100).toFixed(2)}€`);
               totalElement.textContent = (nuevoTotal / 100).toFixed(2) + '€';
+              actualizarIVA(nuevoTotal / 100);
             }
             
             // Si es usuario logueado, actualizar en servidor
@@ -1603,6 +1636,15 @@ import Layout from '../layouts/Layout.astro';
       }
     }
 
+    function actualizarIVA(totalEuros: number) {
+      const baseEl = document.getElementById('baseImponible');
+      const ivaEl = document.getElementById('ivaAmount');
+      const base = totalEuros / 1.10;
+      const iva = totalEuros - base;
+      if (baseEl) baseEl.textContent = base.toFixed(2) + '€';
+      if (ivaEl) ivaEl.textContent = iva.toFixed(2) + '€';
+    }
+
     function actualizarDescuentoUI() {
       const descuentoInfo = document.getElementById('descuentoInfo') as HTMLDivElement | null;
       const descuentoAmount = document.getElementById('descuentoAmount') as HTMLDivElement | null;
@@ -1643,6 +1685,7 @@ import Layout from '../layouts/Layout.astro';
 
         const totalPrecio = document.getElementById('totalPrecio') as HTMLElement | null;
         if (totalPrecio) totalPrecio.textContent = `${totalConDescuento.toFixed(2)}€`;
+        actualizarIVA(totalConDescuento);
       } else {
         const descuentoInfoEl = document.getElementById('descuentoInfo') as HTMLElement | null;
         if (descuentoInfoEl) descuentoInfoEl.style.display = 'none';
@@ -1661,6 +1704,7 @@ import Layout from '../layouts/Layout.astro';
         
         const totalDisplay = document.getElementById('totalPrecio') as HTMLElement | null;
         if (totalDisplay) totalDisplay.textContent = `${total.toFixed(2)}€`;
+        actualizarIVA(total);
       }
     }
 
