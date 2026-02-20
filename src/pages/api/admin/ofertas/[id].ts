@@ -1,9 +1,19 @@
 import type { APIRoute } from 'astro';
-import { supabaseAdmin } from '../../../../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+
+function getAuthClient(token: string) {
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { autoRefreshToken: false, persistSession: false }
+  });
+}
 
 export const prerender = false;
 
-export const PUT: APIRoute = async ({ request, params }) => {
+export const PUT: APIRoute = async ({ request, params, cookies }) => {
   try {
     const id = params.id ? parseInt(params.id) : null;
     if (!id) {
@@ -12,6 +22,15 @@ export const PUT: APIRoute = async ({ request, params }) => {
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
+
+    const token = cookies.get('auth_token')?.value;
+    if (!token) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'No autenticado' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    const supabase = getAuthClient(token);
 
     const body = await request.json();
     const {
@@ -51,7 +70,7 @@ export const PUT: APIRoute = async ({ request, params }) => {
     if (orden !== undefined) updates.orden = orden;
     if (activa !== undefined) updates.activa = activa;
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from('ofertas')
       .update(updates)
       .eq('id', id)
@@ -78,7 +97,7 @@ export const PUT: APIRoute = async ({ request, params }) => {
   }
 };
 
-export const DELETE: APIRoute = async ({ request, params }) => {
+export const DELETE: APIRoute = async ({ request, params, cookies }) => {
   try {
     const id = params.id ? parseInt(params.id) : null;
     if (!id) {
@@ -88,7 +107,16 @@ export const DELETE: APIRoute = async ({ request, params }) => {
       );
     }
 
-    const { error } = await supabaseAdmin
+    const token = cookies.get('auth_token')?.value;
+    if (!token) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'No autenticado' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    const supabase = getAuthClient(token);
+
+    const { error } = await supabase
       .from('ofertas')
       .delete()
       .eq('id', id);

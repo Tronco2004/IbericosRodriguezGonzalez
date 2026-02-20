@@ -1,10 +1,29 @@
 import type { APIRoute } from 'astro';
-import { supabaseAdmin } from '../../../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
-export const GET: APIRoute = async ({ request }) => {
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+
+function getAuthClient(token: string) {
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { autoRefreshToken: false, persistSession: false }
+  });
+}
+
+export const GET: APIRoute = async ({ request, cookies }) => {
   try {
+    const token = cookies.get('auth_token')?.value;
+    if (!token) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'No autenticado' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    const supabase = getAuthClient(token);
+
     // Obtener todas las ofertas (incluyendo inactivas)
-    const { data: ofertas, error } = await supabaseAdmin
+    const { data: ofertas, error } = await supabase
       .from('ofertas')
       .select(`
         id,
@@ -48,8 +67,17 @@ export const GET: APIRoute = async ({ request }) => {
   }
 };
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, cookies }) => {
   try {
+    const token = cookies.get('auth_token')?.value;
+    if (!token) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'No autenticado' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    const supabase = getAuthClient(token);
+
     const body = await request.json();
     const {
       producto_id,
@@ -78,7 +106,7 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from('ofertas')
       .insert([{
         producto_id,
