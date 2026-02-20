@@ -1,11 +1,7 @@
 import type { APIRoute } from 'astro';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '../../../../lib/supabase';
 
 export const prerender = false;
-
-const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const PUT: APIRoute = async ({ request, params }) => {
   try {
@@ -55,8 +51,7 @@ export const PUT: APIRoute = async ({ request, params }) => {
     if (orden !== undefined) updates.orden = orden;
     if (activa !== undefined) updates.activa = activa;
 
-    // Usar cliente anónimo - RLS validará que sea admin
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('ofertas')
       .update(updates)
       .eq('id', id)
@@ -93,8 +88,7 @@ export const DELETE: APIRoute = async ({ request, params }) => {
       );
     }
 
-    // Usar cliente anónimo - RLS validará que sea admin
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('ofertas')
       .delete()
       .eq('id', id);
