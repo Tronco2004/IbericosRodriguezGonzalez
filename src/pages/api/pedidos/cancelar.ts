@@ -98,8 +98,30 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           // Producto de peso variable: recrear la variante en la BD
           console.log('🔵 Recreando variante para producto:', item.producto_id, 'peso:', item.peso_kg, 'kg');
           
-          // precio_unitario está en euros, convertir a céntimos para precio_total
-          const precioTotalCentimos = Math.round((item.precio_unitario || 0) * 100);
+          // FIX: Recalcular precio original desde precio_por_kg del producto
+          // para evitar doble aplicación de oferta (precio_unitario ya tiene descuento).
+          let precioTotalCentimos: number;
+          
+          const { data: productoData } = await supabaseAdmin
+            .from('productos')
+            .select('precio_por_kg, precio_centimos')
+            .eq('id', item.producto_id)
+            .single();
+          
+          if (productoData && item.peso_kg) {
+            // Usar precio_por_kg para calcular el precio original de la variante
+            let precioPorKg = productoData.precio_por_kg || 0;
+            // Si precio_por_kg > 100 probablemente está en céntimos, convertir a euros
+            if (precioPorKg > 100) {
+              precioPorKg = precioPorKg / 100;
+            }
+            precioTotalCentimos = Math.round(item.peso_kg * precioPorKg * 100);
+            console.log('🔵 Precio recalculado desde precio_por_kg:', precioPorKg, '€/kg → total:', precioTotalCentimos, 'céntimos');
+          } else {
+            // Fallback: usar precio_unitario del pedido (puede tener descuento, pero mejor que nada)
+            precioTotalCentimos = Math.round((item.precio_unitario || 0) * 100);
+            console.warn('⚠️ No se pudo obtener precio_por_kg, usando precio_unitario del pedido:', precioTotalCentimos);
+          }
           
           const { data: nuevaVariante, error: insertError } = await supabaseAdmin
             .from('producto_variantes')

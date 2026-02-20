@@ -257,12 +257,39 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       total: total.toFixed(2)
     });
 
-    // Generar número de pedido único
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-    const numeroPedido = `PED-${timestamp}-${random}`;
+    // Generar número de pedido correlativo con formato PED-XXXXXL (5 dígitos + letra)
+    // Rango: PED-00001A → PED-99999A → PED-00001B → ... → PED-99999Z (2.599.974 pedidos)
+    async function generarNumeroPedido(): Promise<string> {
+      // Buscar solo pedidos con formato nuevo (PED-XXXXXL, 5 dígitos + 1 letra)
+      const { data: pedidosRecientes } = await supabaseAdmin
+        .from('pedidos')
+        .select('numero_pedido')
+        .like('numero_pedido', 'PED-______')
+        .order('id', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-    console.log('📝 Número de pedido generado:', numeroPedido);
+      let siguienteNumero = 1;
+      let letraActual = 'A';
+      if (pedidosRecientes?.numero_pedido) {
+        const match = pedidosRecientes.numero_pedido.match(/^PED-(\d{5})([A-Z])$/);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          letraActual = match[2];
+          if (num >= 99999) {
+            // Saltar a la siguiente letra
+            siguienteNumero = 1;
+            letraActual = String.fromCharCode(letraActual.charCodeAt(0) + 1);
+            if (letraActual > 'Z') letraActual = 'A'; // Fallback seguro
+          } else {
+            siguienteNumero = num + 1;
+          }
+        }
+      }
+      return `PED-${siguienteNumero.toString().padStart(5, '0')}${letraActual}`;
+    }
+
+    console.log('📝 Generando número de pedido...');
 
     // Construir dirección de envío desde Stripe o datos del usuario
     let direccionEnvio: string | null = null;
@@ -277,26 +304,53 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       direccionEnvio = datosInvitado?.direccion || usuarioDatos?.direccion || null;
     }
 
-    // ✅ CREAR PEDIDO DIRECTAMENTE con subtotal inicial en 0
-    // Usar supabaseAdmin para bypasear RLS (endpoint server-side)
-    const { data: pedidoCreado, error: pedidoError } = await supabaseAdmin
-      .from('pedidos')
-      .insert({
-        usuario_id: finalUserId || null,
-        stripe_session_id: sessionId,
-        numero_pedido: numeroPedido,
-        estado: 'pagado',
-        subtotal: 0,
-        envio: envio,
-        impuestos: 0,
-        total: envio,
-        email_cliente: customerEmail,
-        telefono_cliente: datosInvitado?.telefono || usuarioDatos?.telefono || null,
-        direccion_envio: direccionEnvio,
-        fecha_pago: new Date().toISOString(),
-        es_invitado: esInvitado
-      })
-      .select('id');
+    // ✅ CREAR PEDIDO con retry si hay colisión de numero_pedido (UNIQUE constraint)
+    const MAX_REINTENTOS = 3;
+    let pedidoCreado: any = null;
+    let pedidoError: any = null;
+    let numeroPedido = '';
+
+    for (let intento = 0; intento < MAX_REINTENTOS; intento++) {
+      numeroPedido = await generarNumeroPedido();
+      console.log(`📝 Intento ${intento + 1}: numero_pedido = ${numeroPedido}`);
+
+      const { data, error } = await supabaseAdmin
+        .from('pedidos')
+        .insert({
+          usuario_id: finalUserId || null,
+          stripe_session_id: sessionId,
+          numero_pedido: numeroPedido,
+          estado: 'pagado',
+          subtotal: 0,
+          envio: envio,
+          impuestos: 0,
+          total: envio,
+          email_cliente: customerEmail,
+          telefono_cliente: datosInvitado?.telefono || usuarioDatos?.telefono || null,
+          direccion_envio: direccionEnvio,
+          fecha_pago: new Date().toISOString(),
+          es_invitado: esInvitado
+        })
+        .select('id');
+
+      if (!error && data && data.length > 0) {
+        pedidoCreado = data;
+        pedidoError = null;
+        console.log('✅ Pedido creado con número:', numeroPedido);
+        break;
+      }
+
+      // Si el error es por duplicado (código 23505 = unique_violation), reintentar
+      if (error?.code === '23505') {
+        console.warn(`⚠️ Colisión en numero_pedido (intento ${intento + 1}), reintentando...`);
+        pedidoError = error;
+        continue;
+      }
+
+      // Otro tipo de error: no reintentar
+      pedidoError = error;
+      break;
+    }
 
     if (pedidoError || !pedidoCreado || pedidoCreado.length === 0) {
       console.error('❌ Error creando pedido:', pedidoError);
