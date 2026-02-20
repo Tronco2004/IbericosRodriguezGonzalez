@@ -653,12 +653,34 @@ import Layout from '../layouts/Layout.astro';
         </div>
 
         <div>
-          <label class="form-label">Dirección de envío *</label>
+          <label class="form-label">Dirección *</label>
           <input 
             type="text" 
             id="guestDireccion" 
             required 
-            placeholder="Calle, número, piso"
+            placeholder="Ej: Calle Mayor 12"
+            class="form-input"
+          />
+        </div>
+
+        <div>
+          <label class="form-label">Código Postal *</label>
+          <input 
+            type="text" 
+            id="guestCodigoPostal" 
+            required 
+            placeholder="Ej: 28001"
+            class="form-input"
+          />
+        </div>
+
+        <div>
+          <label class="form-label">Piso / Puerta *</label>
+          <input 
+            type="text" 
+            id="guestPiso" 
+            required 
+            placeholder="Ej: 2ºB"
             class="form-input"
           />
           <p class="form-hint">Tu dirección de casa para recibir el pedido</p>
@@ -1934,13 +1956,17 @@ import Layout from '../layouts/Layout.astro';
           const emailEl = document.getElementById('guestEmail') as HTMLInputElement | null;
           const telefonoEl = document.getElementById('guestTelefono') as HTMLInputElement | null;
           const direccionEl = document.getElementById('guestDireccion') as HTMLInputElement | null;
+          const codigoPostalEl = document.getElementById('guestCodigoPostal') as HTMLInputElement | null;
+          const pisoEl = document.getElementById('guestPiso') as HTMLInputElement | null;
           
           const nombre = nombreEl?.value.trim() || '';
           const email = emailEl?.value.trim() || '';
           const telefono = telefonoEl?.value.trim() || '';
           const direccion = direccionEl?.value.trim() || '';
+          const codigoPostal = codigoPostalEl?.value.trim() || '';
+          const piso = pisoEl?.value.trim() || '';
 
-          if (!nombre || !email || !telefono || !direccion) {
+          if (!nombre || !email || !telefono || !direccion || !codigoPostal || !piso) {
             alert('Por favor completa todos los campos');
             return;
           }
@@ -1952,10 +1978,13 @@ import Layout from '../layouts/Layout.astro';
             return;
           }
 
+          // Concatenar dirección en formato "Dirección | Código Postal | Piso"
+          const direccionConcatenada = `${direccion} | ${codigoPostal} | ${piso}`;
+
           cerrarModalInvitado();
 
           // Procesar checkout como invitado
-          await procesarCheckout(null, { nombre, email, telefono, direccion });
+          await procesarCheckout(null, { nombre, email, telefono, direccion: direccionConcatenada });
         });
       }
 
