@@ -1,14 +1,10 @@
 import type { APIRoute } from 'astro';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabaseAdmin } from '../../../lib/supabase';
 
 export const GET: APIRoute = async ({ request }) => {
   try {
     // Obtener todas las ofertas (incluyendo inactivas)
-    const { data: ofertas, error } = await supabase
+    const { data: ofertas, error } = await supabaseAdmin
       .from('ofertas')
       .select(`
         id,
@@ -82,8 +78,7 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Usar cliente anónimo - RLS validará que sea admin
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('ofertas')
       .insert([{
         producto_id,
