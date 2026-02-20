@@ -10,7 +10,11 @@ export const POST: APIRoute = async ({ cookies, request }) => {
   }
 
   // Detectar si estamos en producción (HTTPS)
-  const isSecure = request.url.startsWith('https');
+  // En Coolify/Docker con proxy reverso, usar X-Forwarded-Proto
+  const forwardedProto = request.headers.get('x-forwarded-proto');
+  const isSecure = forwardedProto === 'https' || request.url.startsWith('https');
+  
+  console.log('Logout - isSecure:', isSecure, 'forwardedProto:', forwardedProto, 'url:', request.url);
 
   // Cookies httpOnly (auth_token, user_id, sb-access-token, sb-refresh-token)
   const cookiesHttpOnly = ['auth_token', 'user_id', 'sb-access-token', 'sb-refresh-token'];
@@ -23,19 +27,27 @@ export const POST: APIRoute = async ({ cookies, request }) => {
   headers.set('Content-Type', 'application/json');
 
   const paths = ['/', '/api', '/api/auth'];
-  const secureFlag = isSecure ? ' Secure;' : '';
-
-  // Cookies httpOnly: necesitan HttpOnly y Secure para coincidir con las originales
+  
+  // Borrar cookies TANTO con Secure como sin él para cubrir ambos casos
+  // (las cookies pueden haberse creado con secure:false por error)
+  
+  // Cookies httpOnly
   for (const nombre of cookiesHttpOnly) {
     for (const path of paths) {
-      headers.append('Set-Cookie', `${nombre}=; Path=${path}; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; SameSite=Lax;${secureFlag} HttpOnly`);
+      // Sin Secure
+      headers.append('Set-Cookie', `${nombre}=; Path=${path}; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; SameSite=Lax; HttpOnly`);
+      // Con Secure
+      headers.append('Set-Cookie', `${nombre}=; Path=${path}; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; SameSite=Lax; Secure; HttpOnly`);
     }
   }
 
-  // Cookies públicas: necesitan Secure pero NO HttpOnly
+  // Cookies públicas
   for (const nombre of cookiesPublicas) {
     for (const path of paths) {
-      headers.append('Set-Cookie', `${nombre}=; Path=${path}; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; SameSite=Lax;${secureFlag}`);
+      // Sin Secure
+      headers.append('Set-Cookie', `${nombre}=; Path=${path}; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; SameSite=Lax`);
+      // Con Secure
+      headers.append('Set-Cookie', `${nombre}=; Path=${path}; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; SameSite=Lax; Secure`);
     }
   }
 
