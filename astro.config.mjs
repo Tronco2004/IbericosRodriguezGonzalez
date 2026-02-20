@@ -10,6 +10,9 @@ export default defineConfig({
   site: 'https://ibericosrodriguezgonzalez.victoriafp.online',
   trailingSlash: 'never',
   output: 'server',
+  security: {
+    checkOrigin: false
+  },
   adapter: node({
     mode: 'standalone'
   }),
