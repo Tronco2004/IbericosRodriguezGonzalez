@@ -174,9 +174,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     // Determinar redirección según rol
     const redirect_url = usuarioData.rol === 'admin' ? '/admin/dashboard' : '/productos';
 
-    // Verificar si el perfil está incompleto (sin teléfono, dirección o contraseña)
-    const tieneEmailIdentity = authUser.identities?.some(i => i.provider === 'email') ?? false;
-    const perfilIncompleto = esNuevo || !usuarioData.telefono || !usuarioData.direccion || !tieneEmailIdentity;
+    // Verificar si el perfil está incompleto (sin teléfono o dirección)
+    // NO verificar tieneEmailIdentity: los usuarios de Google no tienen identidad email
+    // y eso no significa que su perfil esté incompleto
+    const perfilIncompleto = esNuevo || !usuarioData.telefono || !usuarioData.direccion;
 
     return new Response(
       JSON.stringify({

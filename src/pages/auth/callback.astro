@@ -68,7 +68,13 @@ import Layout from '../../layouts/Layout.astro';
 
     const supabase = createClient(
       import.meta.env.PUBLIC_SUPABASE_URL,
-      import.meta.env.PUBLIC_SUPABASE_ANON_KEY
+      import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        }
+      }
     );
 
     async function handleCallback() {
@@ -105,42 +111,28 @@ import Layout from '../../layouts/Layout.astro';
         if (sessionError) throw sessionError;
         if (!session) throw new Error('No se pudo obtener la sesión. Inténtalo de nuevo.');
 
-        // Enviar al servidor para crear usuario y guardar cookies
-        const response = await fetch('/api/auth/oauth-session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            access_token: session.access_token,
-            refresh_token: session.refresh_token,
-          }),
-          credentials: 'include',
-        });
+        // Enviar al servidor via form POST (no fetch) para garantizar que las cookies se establezcan
+        // fetch() puede fallar al procesar Set-Cookie headers en algunos navegadores
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/auth/complete';
+        form.style.display = 'none';
 
-        const result = await response.json();
+        const atInput = document.createElement('input');
+        atInput.type = 'hidden';
+        atInput.name = 'access_token';
+        atInput.value = session.access_token;
+        form.appendChild(atInput);
 
-        if (result.success && result.usuario) {
-          // Guardar en localStorage (igual que el login normal)
-          localStorage.setItem('auth_token', result.usuario.id);
-          localStorage.setItem('user_role', result.usuario.rol);
-          localStorage.setItem('user_id', result.usuario.id);
-          localStorage.setItem('user_name', result.usuario.nombre);
-          localStorage.setItem('user_email', result.usuario.email);
+        const rtInput = document.createElement('input');
+        rtInput.type = 'hidden';
+        rtInput.name = 'refresh_token';
+        rtInput.value = session.refresh_token || '';
+        form.appendChild(rtInput);
 
-          // Si el perfil está incompleto o es nuevo usuario, marcar flag persistente
-          if (result.perfilIncompleto || result.esNuevo) {
-            localStorage.setItem('perfil_incompleto', 'true');
-          } else {
-            localStorage.removeItem('perfil_incompleto');
-          }
-
-          // Limpiar flag de logout para permitir re-autenticación normal
-          sessionStorage.removeItem('just_logged_out');
-
-          // Redirigir
-          window.location.href = result.redirect_url || '/';
-        } else {
-          throw new Error(result.error || 'Error al completar el inicio de sesión');
-        }
+        document.body.appendChild(form);
+        form.submit();
+        return; // El form POST redirige, no seguir ejecutando
       } catch (err) {
         console.error('Error en callback OAuth:', err);
         loadingEl.style.display = 'none';

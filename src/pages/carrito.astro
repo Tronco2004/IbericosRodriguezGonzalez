@@ -2157,9 +2157,9 @@ import Layout from '../layouts/Layout.astro';
           console.log('🔄 Enviando solicitud para vaciar carrito...');
           const response = await fetch('/api/carrito/vaciar', {
             method: 'DELETE',
+            credentials: 'include',
             headers: {
               'Content-Type': 'application/json',
-              'x-user-id': userId
             }
           });
           
