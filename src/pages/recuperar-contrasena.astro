@@ -1,8 +1,10 @@
 ---
 import Layout from '../layouts/Layout.astro';
+const siteUrl = import.meta.env.PUBLIC_SITE_URL || 'https://ibericosrodriguezgonzalez.victoriafp.online';
 ---
 
 <Layout>
+  <div id="siteConfig" data-site-url={siteUrl} style="display:none;"></div>
   <style>
     .reset-page {
       min-height: 80vh;
@@ -167,7 +169,7 @@ import Layout from '../layouts/Layout.astro';
 
       try {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: (import.meta.env.PUBLIC_SITE_URL || window.location.origin) + '/restablecer-contrasena',
+          redirectTo: (document.getElementById('siteConfig')?.dataset.siteUrl || 'https://ibericosrodriguezgonzalez.victoriafp.online') + '/restablecer-contrasena',
         });
 
         if (error) throw error;
