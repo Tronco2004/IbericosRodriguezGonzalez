@@ -37,10 +37,16 @@ export const GET: APIRoute = async ({ cookies, request }) => {
       const { data: authData } = await supabaseAdmin.auth.admin.getUserById(userId);
       if (authData?.user) {
         provider = authData.user.app_metadata?.provider || 'email';
-        // Un usuario tiene password si su provider es 'email' o tiene identities con provider 'email'
         const identities = authData.user.identities || [];
         const tieneEmailIdentity = identities.some((i: any) => i.provider === 'email');
-        tienePassword = provider === 'email' || tieneEmailIdentity;
+        // Un usuario tiene password si:
+        // 1. Su provider es 'email' (registro normal)
+        // 2. Tiene una identity de tipo 'email'
+        // 3. Tiene encrypted_password (estableció contraseña desde OAuth)
+        const tieneEncryptedPassword = !!(authData.user as any).encrypted_password && 
+          (authData.user as any).encrypted_password !== '' &&
+          (authData.user as any).encrypted_password !== '$2a$10$' ; // hash vacío
+        tienePassword = provider === 'email' || tieneEmailIdentity || tieneEncryptedPassword;
       }
     } catch (e) {
       console.warn('No se pudo obtener provider del usuario:', e);

@@ -1,0 +1,240 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout>
+  <style>
+    .reset-page {
+      min-height: 80vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .reset-container {
+      max-width: 450px;
+      width: 100%;
+    }
+    .reset-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .reset-title {
+      color: var(--text-primary);
+      font-size: 1.8rem;
+      margin-bottom: 0.5rem;
+    }
+    .reset-subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .reset-form {
+      background: var(--bg-tertiary);
+      padding: 2rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+    }
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    .form-label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    .form-input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-size: 1rem;
+      box-sizing: border-box;
+      background: var(--bg-input);
+      color: var(--text-primary);
+    }
+    .form-input::placeholder {
+      color: var(--text-muted);
+    }
+    .submit-btn {
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--gradient-cta);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.3s;
+    }
+    .submit-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px var(--shadow-medium);
+    }
+    .submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .message {
+      display: none;
+      padding: 1rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      margin-top: 1rem;
+    }
+    .message-success {
+      background: #d1fae5;
+      color: #065f46;
+      border: 1px solid #6ee7b7;
+    }
+    .message-error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+    }
+    .hint {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin: 0.25rem 0 0 0;
+    }
+  </style>
+
+  <div class="reset-page">
+    <div class="reset-container">
+      <div class="reset-header">
+        <h1 class="reset-title">Nueva Contraseña</h1>
+        <p class="reset-subtitle">Introduce tu nueva contraseña</p>
+      </div>
+
+      <form id="newPasswordForm" class="reset-form">
+        <div class="form-group">
+          <label class="form-label">Nueva contraseña</label>
+          <input 
+            type="password" 
+            name="password" 
+            required 
+            placeholder="Mínimo 6 caracteres"
+            class="form-input"
+            id="passwordInput"
+            minlength="6"
+          />
+          <p class="hint">Mínimo 6 caracteres</p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Confirmar contraseña</label>
+          <input 
+            type="password" 
+            name="confirmPassword" 
+            required 
+            placeholder="Repite tu nueva contraseña"
+            class="form-input"
+            id="confirmPasswordInput"
+            minlength="6"
+          />
+        </div>
+
+        <button type="submit" class="submit-btn" id="submitBtn">
+          Restablecer contraseña
+        </button>
+
+        <div id="successMessage" class="message message-success"></div>
+        <div id="errorMessage" class="message message-error"></div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    import { createClient } from '@supabase/supabase-js';
+
+    const supabase = createClient(
+      import.meta.env.PUBLIC_SUPABASE_URL,
+      import.meta.env.PUBLIC_SUPABASE_ANON_KEY
+    );
+
+    const form = document.getElementById('newPasswordForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const successMsg = document.getElementById('successMessage');
+    const errorMsg = document.getElementById('errorMessage');
+
+    // Recuperar la sesión del hash fragment que Supabase pone en la URL
+    async function init() {
+      // Supabase pone los tokens en el hash: #access_token=...&type=recovery
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      const type = hashParams.get('type');
+
+      if (type === 'recovery' && accessToken) {
+        try {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || '',
+          });
+          if (error) {
+            console.error('Error estableciendo sesión de recovery:', error);
+            errorMsg.textContent = 'El enlace ha expirado o no es válido. Solicita uno nuevo.';
+            errorMsg.style.display = 'block';
+            submitBtn.disabled = true;
+          }
+        } catch (e) {
+          console.error('Error en init:', e);
+          errorMsg.textContent = 'Error al procesar el enlace. Solicita uno nuevo.';
+          errorMsg.style.display = 'block';
+          submitBtn.disabled = true;
+        }
+      }
+    }
+
+    init();
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const password = document.getElementById('passwordInput').value;
+      const confirmPassword = document.getElementById('confirmPasswordInput').value;
+
+      successMsg.style.display = 'none';
+      errorMsg.style.display = 'none';
+
+      if (password.length < 6) {
+        errorMsg.textContent = 'La contraseña debe tener al menos 6 caracteres';
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        errorMsg.textContent = 'Las contraseñas no coinciden';
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Restableciendo...';
+
+      try {
+        const { error } = await supabase.auth.updateUser({
+          password: password,
+        });
+
+        if (error) throw error;
+
+        successMsg.textContent = 'Contraseña restablecida correctamente. Redirigiendo al login...';
+        successMsg.style.display = 'block';
+        form.reset();
+
+        // Cerrar sesión y redirigir al login
+        setTimeout(async () => {
+          await supabase.auth.signOut();
+          window.location.href = '/login';
+        }, 2500);
+      } catch (err) {
+        errorMsg.textContent = err instanceof Error ? err.message : 'Error al restablecer la contraseña. El enlace puede haber expirado.';
+        errorMsg.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Restablecer contraseña';
+      }
+    });
+  </script>
+</Layout>

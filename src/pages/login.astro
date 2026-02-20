@@ -182,7 +182,7 @@ const redirect = Astro.url.searchParams.get('redirect') || '/';
           />
         </div>
 
-        <div class="form-group" style="margin-bottom: 2rem;">
+        <div class="form-group" style="margin-bottom: 0.75rem;">
           <label class="form-label">Contraseña</label>
           <input 
             type="password" 
@@ -191,6 +191,10 @@ const redirect = Astro.url.searchParams.get('redirect') || '/';
             placeholder="••••••••"
             class="form-input"
           />
+        </div>
+
+        <div style="text-align: right; margin-bottom: 1.5rem;">
+          <a href="/recuperar-contrasena" style="color: var(--color-accent); font-size: 0.85rem; text-decoration: none; font-weight: 500;">¿Olvidaste tu contraseña?</a>
         </div>
 
         <button type="submit" class="submit-btn">

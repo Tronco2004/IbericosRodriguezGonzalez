@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient } from '../../../lib/supabase';
+import { supabaseAdmin } from '../../../lib/supabase';
 import { getAuthenticatedUserId } from '../../../lib/auth-helpers';
 
 export const POST: APIRoute = async ({ request, cookies }) => {
@@ -25,7 +25,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     // Actualizar usuario en la BD
-    const { data: usuarioActualizado, error: updateError } = await supabaseClient
+    const { data: usuarioActualizado, error: updateError } = await supabaseAdmin
       .from('usuarios')
       .update({
         nombre: nombre.trim(),

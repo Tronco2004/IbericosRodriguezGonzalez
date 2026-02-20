@@ -1,12 +1,75 @@
 /**
  * Helpers de autenticación server-side.
  * Valida JWT reales de Supabase Auth en lugar de confiar en headers/cookies manipulables.
+ * Incluye renovación automática de tokens expirados via refresh token.
  */
 import { supabaseAdmin } from './supabase';
+import { createClient } from '@supabase/supabase-js';
 import type { AstroCookies } from 'astro';
+
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+
+/**
+ * Intenta renovar la sesión usando el refresh token.
+ * Devuelve el nuevo access_token o null si falla.
+ */
+async function tryRefreshSession(
+  refreshToken: string,
+  cookies: AstroCookies
+): Promise<{ userId: string; newAccessToken: string } | null> {
+  try {
+    const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+
+    const { data, error } = await tempClient.auth.refreshSession({ refresh_token: refreshToken });
+
+    if (error || !data.session || !data.user) {
+      return null;
+    }
+
+    const newAccessToken = data.session.access_token;
+    const newRefreshToken = data.session.refresh_token;
+
+    // Actualizar las cookies con los nuevos tokens
+    cookies.set('auth_token', newAccessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    });
+
+    cookies.set('sb-access-token', newAccessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 365,
+      path: '/',
+    });
+
+    if (newRefreshToken) {
+      cookies.set('sb-refresh-token', newRefreshToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 365,
+        path: '/',
+      });
+    }
+
+    console.log('🔄 Token renovado exitosamente para usuario:', data.user.id);
+    return { userId: data.user.id, newAccessToken };
+  } catch (e) {
+    console.error('Error renovando token:', e);
+    return null;
+  }
+}
 
 /**
  * Extrae y valida el userId autenticado desde JWT (cookie o header Authorization).
+ * Si el token ha expirado, intenta renovarlo automáticamente con el refresh token.
  * NO confía en x-user-id ni en cookies de texto plano.
  */
 export async function getAuthenticatedUserId(
@@ -37,6 +100,15 @@ export async function getAuthenticatedUserId(
       }
     } catch {
       // Token inválido
+    }
+  }
+
+  // 3. Token expirado — intentar renovar con refresh token
+  const refreshToken = cookies.get('sb-refresh-token')?.value;
+  if (refreshToken) {
+    const refreshResult = await tryRefreshSession(refreshToken, cookies);
+    if (refreshResult) {
+      return { userId: refreshResult.userId };
     }
   }
 
