@@ -119,9 +119,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     // Establecer cookies (igual que el login normal)
+    const isSecure = new URL(request.url).protocol === 'https:';
+
     cookies.set('sb-access-token', access_token, {
       httpOnly: true,
-      secure: false,
+      secure: isSecure,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 365,
       path: '/',
@@ -130,7 +132,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     if (refresh_token) {
       cookies.set('sb-refresh-token', refresh_token, {
         httpOnly: true,
-        secure: false,
+        secure: isSecure,
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 365,
         path: '/',
@@ -139,7 +141,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     cookies.set('auth_token', access_token, {
       httpOnly: true,
-      secure: false,
+      secure: isSecure,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
@@ -147,7 +149,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     cookies.set('user_id', usuarioData.id, {
       httpOnly: false,
-      secure: false,
+      secure: isSecure,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
@@ -155,7 +157,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     cookies.set('user_role', usuarioData.rol, {
       httpOnly: false,
-      secure: false,
+      secure: isSecure,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
@@ -163,7 +165,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     cookies.set('user_name', usuarioData.nombre, {
       httpOnly: false,
-      secure: false,
+      secure: isSecure,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',

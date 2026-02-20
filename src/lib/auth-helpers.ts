@@ -16,7 +16,8 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
  */
 async function tryRefreshSession(
   refreshToken: string,
-  cookies: AstroCookies
+  cookies: AstroCookies,
+  request: Request
 ): Promise<{ userId: string; newAccessToken: string } | null> {
   try {
     const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -32,11 +33,13 @@ async function tryRefreshSession(
     const newAccessToken = data.session.access_token;
     const newRefreshToken = data.session.refresh_token;
 
+    // Detectar HTTPS para el flag secure
+    const isSecure = new URL(request.url).protocol === 'https:';
+
     // Actualizar las cookies con los nuevos tokens
-    // secure: false para que funcione en HTTP (localhost) y HTTPS (producción)
     cookies.set('auth_token', newAccessToken, {
       httpOnly: true,
-      secure: false,
+      secure: isSecure,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
@@ -44,7 +47,7 @@ async function tryRefreshSession(
 
     cookies.set('sb-access-token', newAccessToken, {
       httpOnly: true,
-      secure: false,
+      secure: isSecure,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 365,
       path: '/',
@@ -53,7 +56,7 @@ async function tryRefreshSession(
     if (newRefreshToken) {
       cookies.set('sb-refresh-token', newRefreshToken, {
         httpOnly: true,
-        secure: false,
+        secure: isSecure,
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 365,
         path: '/',
@@ -107,7 +110,7 @@ export async function getAuthenticatedUserId(
   // 3. Token expirado — intentar renovar con refresh token
   const refreshToken = cookies.get('sb-refresh-token')?.value;
   if (refreshToken) {
-    const refreshResult = await tryRefreshSession(refreshToken, cookies);
+    const refreshResult = await tryRefreshSession(refreshToken, cookies, request);
     if (refreshResult) {
       return { userId: refreshResult.userId };
     }
