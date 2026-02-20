@@ -12,19 +12,17 @@ const { requireAuth = false, requireAdmin = false } = Astro.props;
 <Layout>
   <script>
     const userRole = localStorage.getItem('user_role');
+    const authToken = document.cookie.includes('auth_token');
     const currentPath = window.location.pathname;
 
-    console.log('Validando acceso:');
-    console.log('  Path:', currentPath);
-    console.log('  Rol desde localStorage:', userRole);
-
-    // Si es una ruta admin y no tiene rol admin, redirigir
+    // Si es una ruta admin
     if (currentPath.startsWith('/admin')) {
-      if (userRole !== 'admin') {
-        console.log('⛔ No es admin, redirigiendo');
+      if (!authToken && userRole !== 'admin') {
+        // No está logueado → al login
+        window.location.href = '/login?redirect=' + encodeURIComponent(currentPath);
+      } else if (userRole !== 'admin') {
+        // Está logueado pero no es admin → sin acceso
         window.location.href = '/sin-acceso';
-      } else {
-        console.log('✅ Es admin, permitiendo acceso');
       }
     }
   </script>
