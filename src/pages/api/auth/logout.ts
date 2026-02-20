@@ -1,12 +1,32 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient } from '../../../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 
 export const POST: APIRoute = async ({ cookies, request }) => {
-  // Cerrar sesión en Supabase
-  try {
-    await supabaseClient.auth.signOut();
-  } catch (e) {
-    console.error('Error cerrando sesión en Supabase:', e);
+  // Cerrar sesión en Supabase usando los tokens reales del usuario
+  // (el cliente compartido no tiene la sesión cargada, no sirve para revocar)
+  const accessToken = cookies.get('auth_token')?.value || cookies.get('sb-access-token')?.value;
+  const refreshToken = cookies.get('sb-refresh-token')?.value;
+
+  if (accessToken && refreshToken) {
+    try {
+      const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: { autoRefreshToken: false, persistSession: false }
+      });
+      await tempClient.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken
+      });
+      await tempClient.auth.signOut();
+      console.log('Sesión Supabase revocada correctamente');
+    } catch (e) {
+      console.error('Error revocando sesión Supabase:', e);
+      // Continuar con borrado de cookies aunque falle
+    }
+  } else {
+    console.log('Logout: no se encontraron tokens para revocar');
   }
 
   // Detectar si estamos en producción (HTTPS)
