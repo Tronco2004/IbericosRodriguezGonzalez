@@ -2095,22 +2095,22 @@ const { data: categorias } = await supabaseClient
     
     <script>
       // ========== LOGOUT GLOBAL ==========
-      // Función global para cerrar sesión (accesible desde onclick)
+      // Guard para evitar múltiples invocaciones simultáneas
+      let _logoutEnCurso = false;
       (window as any).handleLogout = async function() {
+        if (_logoutEnCurso) return;
+        _logoutEnCurso = true;
         console.log('Cerrando sesión...');
         try {
           await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
         } catch (e) {
           console.error('Error en logout:', e);
         }
-        // Limpiar cookies accesibles desde JS (con y sin dominio)
+        // Limpiar cookies accesibles desde JS
         const cookies = ['user_role', 'user_name', 'user_id', 'auth_token', 'sb-access-token', 'sb-refresh-token'];
-        const paths = ['/', '/api', '/api/auth'];
         cookies.forEach(c => {
-          paths.forEach(p => {
-            document.cookie = c + '=; Path=' + p + '; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; SameSite=Lax';
-            document.cookie = c + '=; Path=' + p + '; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; SameSite=Lax; Secure';
-          });
+          document.cookie = c + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; SameSite=Lax';
+          document.cookie = c + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; SameSite=Lax; Secure';
         });
         const tema = localStorage.getItem('theme');
         localStorage.clear();
