@@ -691,6 +691,54 @@ import Layout from '../layouts/Layout.astro';
     </div>
   </div>
 
+  <!-- Modal para completar perfil de usuario registrado -->
+  <div id="modalCompletarPerfil" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <h2 class="modal-title">Completa tus datos de envío</h2>
+      <p class="modal-subtitle">Necesitamos estos datos para poder enviarte tu pedido</p>
+
+      <form id="formCompletarPerfilCheckout" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div id="campoPerfilTelefono" style="display: none;">
+          <label class="form-label">Teléfono *</label>
+          <input
+            type="tel"
+            id="perfilTelefono"
+            placeholder="612 345 678"
+            class="form-input"
+          />
+        </div>
+
+        <div id="campoPerfilDireccion" style="display: none;">
+          <label class="form-label">Dirección de envío *</label>
+          <input
+            type="text"
+            id="perfilDireccion"
+            placeholder="Ej: Calle Mayor 12, 2ºB, 28001 Madrid"
+            class="form-input"
+          />
+        </div>
+
+        <div id="perfilMensajeError" style="display: none; padding: 0.75rem; background: #fee2e2; color: #991b1b; border-radius: 8px; font-size: 0.9rem; border-left: 4px solid #ef4444;"></div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+          <button
+            type="button"
+            id="btnCancelarPerfilCheckout"
+            class="btn-cancel"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="btn-submit"
+          >
+            Guardar y continuar al pago
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Modal de confirmación para eliminar producto -->
   <div id="eliminarModal" class="modal-overlay" style="display: none;">
     <div class="modal-content" style="max-width: 400px; text-align: center;">
@@ -1644,20 +1692,58 @@ import Layout from '../layouts/Layout.astro';
     async function irAStripe() {
       try {
         const userId = localStorage.getItem('user_id');
-        
+
         // Si no hay usuario logueado, mostrar modal para datos de invitado
         if (!userId) {
           mostrarModalInvitado();
           return;
         }
 
-        // Usuario logueado: flujo normal
+        // Usuario logueado: verificar que tiene datos completos antes de ir a Stripe
+        try {
+          const res = await fetch('/api/auth/me', { credentials: 'include' });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.usuario) {
+              const faltaTelefono = !data.usuario.telefono;
+              const faltaDireccion = !data.usuario.direccion;
+              if (faltaTelefono || faltaDireccion) {
+                mostrarModalCompletarPerfil(data.usuario);
+                return;
+              }
+            }
+          }
+        } catch (_) {}
+
         await procesarCheckout(userId, null);
 
       } catch (error) {
         console.error('Error en Stripe:', error);
         alert('Error al procesar el pago. Por favor intenta de nuevo.');
       }
+    }
+
+    // Mostrar modal para completar perfil de usuario registrado
+    function mostrarModalCompletarPerfil(usuario: any) {
+      const modal = document.getElementById('modalCompletarPerfil') as HTMLDivElement | null;
+      if (!modal) return;
+
+      const campoTelefono = document.getElementById('campoPerfilTelefono');
+      const campoDireccion = document.getElementById('campoPerfilDireccion');
+      const inputTelefono = document.getElementById('perfilTelefono') as HTMLInputElement;
+      const inputDireccion = document.getElementById('perfilDireccion') as HTMLInputElement;
+
+      // Mostrar solo los campos que faltan
+      if (!usuario.telefono && campoTelefono) {
+        campoTelefono.style.display = 'block';
+        inputTelefono.required = true;
+      }
+      if (!usuario.direccion && campoDireccion) {
+        campoDireccion.style.display = 'block';
+        inputDireccion.required = true;
+      }
+
+      modal.style.display = 'flex';
     }
 
     // Mostrar modal para datos de invitado
@@ -1813,9 +1899,79 @@ import Layout from '../layouts/Layout.astro';
           }
 
           cerrarModalInvitado();
-          
+
           // Procesar checkout como invitado
           await procesarCheckout(null, { nombre, email, telefono, direccion });
+        });
+      }
+
+      // ── Event listeners del modal de completar perfil (usuario registrado) ──
+      const btnCancelarPerfil = document.getElementById('btnCancelarPerfilCheckout');
+      const formPerfil = document.getElementById('formCompletarPerfilCheckout');
+      const modalPerfil = document.getElementById('modalCompletarPerfil');
+
+      if (btnCancelarPerfil) {
+        btnCancelarPerfil.addEventListener('click', () => {
+          if (modalPerfil) (modalPerfil as HTMLDivElement).style.display = 'none';
+        });
+      }
+
+      if (modalPerfil) {
+        modalPerfil.addEventListener('click', (e: Event) => {
+          if (e.target === modalPerfil) {
+            (modalPerfil as HTMLDivElement).style.display = 'none';
+          }
+        });
+      }
+
+      if (formPerfil) {
+        formPerfil.addEventListener('submit', async (e: Event) => {
+          e.preventDefault();
+          const telefonoEl = document.getElementById('perfilTelefono') as HTMLInputElement | null;
+          const direccionEl = document.getElementById('perfilDireccion') as HTMLInputElement | null;
+          const errorEl = document.getElementById('perfilMensajeError');
+          const telefono = telefonoEl?.value.trim() || '';
+          const direccion = direccionEl?.value.trim() || '';
+
+          // Validar campos visibles
+          if (telefonoEl?.required && !telefono) {
+            if (errorEl) { errorEl.textContent = 'El teléfono es obligatorio.'; errorEl.style.display = 'block'; }
+            return;
+          }
+          if (direccionEl?.required && !direccion) {
+            if (errorEl) { errorEl.textContent = 'La dirección es obligatoria.'; errorEl.style.display = 'block'; }
+            return;
+          }
+
+          if (errorEl) errorEl.style.display = 'none';
+
+          try {
+            const nombreActual = localStorage.getItem('user_name') || 'Usuario';
+            const res = await fetch('/api/auth/actualizar-perfil', {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                nombre: nombreActual,
+                telefono: telefono || undefined,
+                direccion: direccion || undefined,
+              })
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+              throw new Error(data.message || 'Error al guardar');
+            }
+
+            // Cerrar modal y proceder al checkout
+            if (modalPerfil) (modalPerfil as HTMLDivElement).style.display = 'none';
+            const userId = localStorage.getItem('user_id');
+            if (userId) await procesarCheckout(userId, null);
+          } catch (err: any) {
+            if (errorEl) {
+              errorEl.textContent = err.message || 'Error al guardar los datos.';
+              errorEl.style.display = 'block';
+            }
+          }
         });
       }
     });
