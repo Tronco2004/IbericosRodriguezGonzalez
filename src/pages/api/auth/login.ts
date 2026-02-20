@@ -47,6 +47,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     const userId = authData.user.id;
     const token = authData.session?.access_token;
+    const refreshToken = authData.session?.refresh_token;
     const userEmail = authData.user.email;
 
     console.log('✅ Autenticación en auth exitosa');
@@ -91,6 +92,25 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
     });
+
+    // Guardar tokens de Supabase para poder revocar sesión en logout
+    cookies.set('sb-access-token', token || '', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 365,
+      path: '/',
+    });
+
+    if (refreshToken) {
+      cookies.set('sb-refresh-token', refreshToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 365,
+        path: '/',
+      });
+    }
 
     cookies.set('user_id', usuarioData.id, {
       httpOnly: true,
