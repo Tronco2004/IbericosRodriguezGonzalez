@@ -51,7 +51,6 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 
   <!-- Toast notificación -->
   <div id="toastUsuarios" style="display: none; position: fixed; top: 2rem; right: 2rem; z-index: 9999; min-width: 300px; padding: 1rem 1.5rem; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.25); align-items: center; gap: 0.75rem; animation: toastIn 0.4s ease;">
-    <span id="toastUsuariosIcon" style="font-size: 1.4rem;"></span>
     <div style="flex: 1;">
       <div id="toastUsuariosTitulo" style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.1rem;"></div>
       <div id="toastUsuariosMsg" style="font-size: 0.85rem; opacity: 0.85;"></div>
@@ -69,15 +68,13 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 
     function mostrarToast(tipo, titulo, mensaje) {
       const toast = document.getElementById('toastUsuarios');
-      const icon = document.getElementById('toastUsuariosIcon');
       const titleEl = document.getElementById('toastUsuariosTitulo');
       const msgEl = document.getElementById('toastUsuariosMsg');
       const estilos = {
-        success: { icon: '✓', bg: '#ecfdf5', color: '#065f46', border: '#10b981' },
-        error: { icon: '✕', bg: '#fef2f2', color: '#991b1b', border: '#ef4444' }
+        success: { bg: '#ecfdf5', color: '#065f46', border: '#10b981' },
+        error: { bg: '#fef2f2', color: '#991b1b', border: '#ef4444' }
       };
       const s = estilos[tipo] || estilos.success;
-      icon.textContent = s.icon; icon.style.color = s.color;
       titleEl.textContent = titulo; titleEl.style.color = s.color;
       msgEl.textContent = mensaje; msgEl.style.color = s.color;
       toast.style.display = 'flex'; toast.style.background = s.bg; toast.style.borderLeft = '4px solid ' + s.border;

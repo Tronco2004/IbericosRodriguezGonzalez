@@ -228,10 +228,32 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
     }
 
-    // Generar número de pedido único
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 10000);
-    const numero_pedido = `PED-${timestamp}-${random}`;
+    // Generar número de pedido correlativo con formato PED-XXXXXL (5 dígitos + letra)
+    const { data: ultimoPedidoDB } = await supabaseAdmin
+      .from('pedidos')
+      .select('numero_pedido')
+      .like('numero_pedido', 'PED-______')
+      .order('id', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let siguienteNum = 1;
+    let letraNum = 'A';
+    if (ultimoPedidoDB?.numero_pedido) {
+      const matchNum = ultimoPedidoDB.numero_pedido.match(/^PED-(\d{5})([A-Z])$/);
+      if (matchNum) {
+        const num = parseInt(matchNum[1], 10);
+        letraNum = matchNum[2];
+        if (num >= 99999) {
+          siguienteNum = 1;
+          letraNum = String.fromCharCode(letraNum.charCodeAt(0) + 1);
+          if (letraNum > 'Z') letraNum = 'A';
+        } else {
+          siguienteNum = num + 1;
+        }
+      }
+    }
+    const numero_pedido = `PED-${siguienteNum.toString().padStart(5, '0')}${letraNum}`;
 
     console.log('📋 Creando pedido con función SQL:', { numero_pedido, usuario_id: userId, es_invitado });
 
