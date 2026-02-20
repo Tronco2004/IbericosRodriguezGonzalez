@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { enviarEmailCancelacion, notificarCancelacionAlAdmin } from '../../../lib/email';
+import type { EmailDevolucion } from '../../../lib/email';
 import { procesarReembolsoStripe } from '../../../lib/stripe';
 import { requireAuth } from '../../../lib/auth-helpers';
 import { incrementarStockProducto } from '../../../lib/stock';
@@ -199,6 +200,36 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
       if (pedidoCompleto && pedidoCompleto.email_cliente) {
         console.log('📧 Enviando correos de cancelación');
+
+        // Obtener items del pedido para la factura rectificativa
+        let datosDevolucion: EmailDevolucion | undefined;
+        try {
+          const { data: pedidoItems } = await supabaseAdmin
+            .from('pedido_items')
+            .select('nombre_producto, cantidad, precio_unitario, peso_kg')
+            .eq('pedido_id', pedido.id);
+
+          if (pedidoItems && pedidoItems.length > 0) {
+            datosDevolucion = {
+              email_cliente: pedidoCompleto.email_cliente,
+              numero_pedido: pedidoCompleto.numero_pedido,
+              fecha_pedido: pedidoCompleto.fecha_pago || new Date().toISOString(),
+              nombre_cliente: pedidoCompleto.nombre_cliente || undefined,
+              items: pedidoItems.map((item: any) => ({
+                nombre: item.nombre_producto,
+                cantidad: item.cantidad,
+                precio: Math.round(item.precio_unitario * 100),
+                peso_kg: item.peso_kg || undefined
+              })),
+              subtotal: Math.round((pedidoCompleto.total - 5) * 100), // total menos envío
+              envio: 500, // 5€ en céntimos
+              total: Math.round((pedidoCompleto.total || 0) * 100)
+            };
+            console.log('📄 Datos preparados para factura rectificativa de cancelación');
+          }
+        } catch (itemsError) {
+          console.error('⚠️ Error obteniendo items para factura rectificativa:', itemsError);
+        }
         
         // Enviar ambos correos en paralelo para que el fallo de uno no bloquee al otro
         const resultados = await Promise.allSettled([
@@ -206,13 +237,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             pedidoCompleto.email_cliente,
             pedidoCompleto.numero_pedido,
             pedidoCompleto.nombre_cliente,
-            pedidoCompleto.total
+            pedidoCompleto.total,
+            datosDevolucion
           ),
           notificarCancelacionAlAdmin(
             pedidoCompleto.numero_pedido,
             pedidoCompleto.email_cliente,
             pedidoCompleto.nombre_cliente,
-            pedidoCompleto.total
+            pedidoCompleto.total,
+            datosDevolucion
           )
         ]);
         

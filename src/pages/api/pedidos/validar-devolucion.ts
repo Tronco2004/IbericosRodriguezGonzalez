@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { notificarDevolucionValidada } from '../../../lib/email';
+import type { EmailDevolucion } from '../../../lib/email';
 import { procesarReembolsoStripe } from '../../../lib/stripe';
 import { requireAdmin } from '../../../lib/auth-helpers';
 
@@ -103,19 +104,56 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     console.log('✅ Pedido marcado como devolucion_recibida');
 
-    // Enviar correo de validación de devolución (sin bloquear la respuesta)
+    // Enviar correo de validación de devolución con factura rectificativa
     try {
       const emailCliente = pedido.email_cliente;
       const nombreCliente = pedido.nombre_cliente;
       
       if (emailCliente) {
         console.log('📧 Enviando correo de validación de devolución');
+
+        // Obtener items del pedido para la factura rectificativa
+        let datosDevolucion: EmailDevolucion | undefined;
+        try {
+          const { data: pedidoItems } = await supabaseAdmin
+            .from('pedido_items')
+            .select('nombre_producto, cantidad, precio_unitario, peso_kg')
+            .eq('pedido_id', pedido.id);
+
+          const { data: pedidoDatos } = await supabaseAdmin
+            .from('pedidos')
+            .select('subtotal, envio, total, fecha_creacion')
+            .eq('id', pedido.id)
+            .single();
+
+          if (pedidoDatos && pedidoItems && pedidoItems.length > 0) {
+            datosDevolucion = {
+              email_cliente: emailCliente,
+              numero_pedido: pedido.numero_pedido,
+              fecha_pedido: pedidoDatos.fecha_creacion,
+              nombre_cliente: nombreCliente || undefined,
+              items: pedidoItems.map((item: any) => ({
+                nombre: item.nombre_producto,
+                cantidad: item.cantidad,
+                precio: Math.round(item.precio_unitario * 100),
+                peso_kg: item.peso_kg || undefined
+              })),
+              subtotal: Math.round((pedidoDatos.subtotal || 0) * 100),
+              envio: Math.round((pedidoDatos.envio || 0) * 100),
+              total: Math.round((pedidoDatos.total || 0) * 100)
+            };
+            console.log('📄 Datos de devolución preparados para factura rectificativa');
+          }
+        } catch (itemsError) {
+          console.error('⚠️ Error obteniendo items para factura rectificativa:', itemsError);
+        }
         
         await notificarDevolucionValidada(
           emailCliente,
           pedido.numero_pedido,
           nombreCliente,
-          pedido.total
+          pedido.total,
+          datosDevolucion
         );
         
         console.log('✅ Correo de validación enviado exitosamente');
