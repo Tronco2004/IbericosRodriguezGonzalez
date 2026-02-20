@@ -383,8 +383,9 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       const inputFechaInicio = document.getElementById('fechaInicio') as HTMLInputElement;
       const inputFechaFin = document.getElementById('fechaFin') as HTMLInputElement;
 
-      // Asignar valores
-      selectProducto.value = oferta.producto_id.toString();
+      // Asignar valores - producto_id viene como oferta.producto.id por el join
+      const productoId = oferta.producto?.id || oferta.producto_id;
+      if (productoId) selectProducto.value = productoId.toString();
       inputNombre.value = oferta.nombre_oferta;
       inputDescripcion.value = oferta.descripcion || '';
       inputPrecioOriginal.value = (oferta.precio_original_centimos / 100).toString();
