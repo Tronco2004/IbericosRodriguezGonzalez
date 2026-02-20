@@ -257,10 +257,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       total: total.toFixed(2)
     });
 
-    // Generar número de pedido correlativo con formato PED-XXXXXL (5 dígitos + letra)
-    // Rango: PED-00001A → PED-99999A → PED-00001B → ... → PED-99999Z (2.599.974 pedidos)
+    // Generar número de pedido correlativo con formato PED-LXXXXX (letra + 5 dígitos)
+    // Rango: PED-A00001 → PED-A99999 → PED-B00001 → ... → PED-Z99999 (2.599.974 pedidos)
     async function generarNumeroPedido(): Promise<string> {
-      // Buscar solo pedidos con formato nuevo (PED-XXXXXL, 5 dígitos + 1 letra)
+      // Buscar solo pedidos con formato nuevo (PED-LXXXXX, 1 letra + 5 dígitos)
       const { data: pedidosRecientes } = await supabaseAdmin
         .from('pedidos')
         .select('numero_pedido')
@@ -272,21 +272,20 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       let siguienteNumero = 1;
       let letraActual = 'A';
       if (pedidosRecientes?.numero_pedido) {
-        const match = pedidosRecientes.numero_pedido.match(/^PED-(\d{5})([A-Z])$/);
+        const match = pedidosRecientes.numero_pedido.match(/^PED-([A-Z])(\d{5})$/);
         if (match) {
-          const num = parseInt(match[1], 10);
-          letraActual = match[2];
+          letraActual = match[1];
+          const num = parseInt(match[2], 10);
           if (num >= 99999) {
-            // Saltar a la siguiente letra
             siguienteNumero = 1;
             letraActual = String.fromCharCode(letraActual.charCodeAt(0) + 1);
-            if (letraActual > 'Z') letraActual = 'A'; // Fallback seguro
+            if (letraActual > 'Z') letraActual = 'A';
           } else {
             siguienteNumero = num + 1;
           }
         }
       }
-      return `PED-${siguienteNumero.toString().padStart(5, '0')}${letraActual}`;
+      return `PED-${letraActual}${siguienteNumero.toString().padStart(5, '0')}`;
     }
 
     console.log('📝 Generando número de pedido...');
