@@ -199,21 +199,12 @@ import Layout from '../layouts/Layout.astro';
   </div>
 
   <script>
-    import { createClient } from '@supabase/supabase-js';
-
-    const supabase = createClient(
-      import.meta.env.PUBLIC_SUPABASE_URL,
-      import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
-      { auth: { flowType: 'implicit' } }
-    );
-
     const form = document.getElementById('newPasswordForm') as HTMLFormElement | null;
     const submitBtn = document.getElementById('submitBtn') as HTMLButtonElement | null;
     const successMsg = document.getElementById('successMessage');
     const errorMsg = document.getElementById('errorMessage');
     const resendBtn = document.getElementById('resendBtn') as HTMLButtonElement | null;
 
-    // Obtener email de la página anterior
     const recoveryEmail = sessionStorage.getItem('recovery_email') || '';
 
     if (!recoveryEmail) {
@@ -233,7 +224,11 @@ import Layout from '../layouts/Layout.astro';
       }
 
       try {
-        await supabase.auth.resetPasswordForEmail(recoveryEmail);
+        await fetch('/api/auth/solicitar-recovery', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: recoveryEmail }),
+        });
         if (successMsg) {
           successMsg.textContent = 'Código reenviado. Revisa tu bandeja de entrada.';
           successMsg.style.display = 'block';
@@ -242,7 +237,6 @@ import Layout from '../layouts/Layout.astro';
         // Silenciar por seguridad
       }
 
-      // Cooldown de 60 segundos
       let seconds = 60;
       const interval = setInterval(() => {
         seconds--;
@@ -271,7 +265,6 @@ import Layout from '../layouts/Layout.astro';
       if (successMsg) successMsg.style.display = 'none';
       if (errorMsg) errorMsg.style.display = 'none';
 
-      // Validaciones
       if (!otpCode || otpCode.length !== 6) {
         if (errorMsg) {
           errorMsg.textContent = 'Introduce el código de 6 dígitos que recibiste por email';
@@ -302,27 +295,22 @@ import Layout from '../layouts/Layout.astro';
       }
 
       try {
-        // 1) Verificar el código OTP de Supabase
-        const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
-          email: recoveryEmail,
-          token: otpCode,
-          type: 'recovery',
+        const res = await fetch('/api/auth/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: recoveryEmail,
+            code: otpCode,
+            password: password,
+          }),
         });
 
-        if (verifyError) {
-          throw new Error(verifyError.message === 'Token has expired or is invalid' 
-            ? 'El código ha expirado o no es válido. Solicita uno nuevo.'
-            : verifyError.message);
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || 'Código incorrecto o expirado.');
         }
 
-        // 2) Con la sesión de recovery activa, actualizar la contraseña
-        const { error: updateError } = await supabase.auth.updateUser({
-          password: password,
-        });
-
-        if (updateError) throw updateError;
-
-        // Limpiar
         sessionStorage.removeItem('recovery_email');
 
         if (successMsg) {
@@ -331,9 +319,7 @@ import Layout from '../layouts/Layout.astro';
         }
         form?.reset();
 
-        // Cerrar sesión de recovery y redirigir al login
-        setTimeout(async () => {
-          await supabase.auth.signOut();
+        setTimeout(() => {
           window.location.href = '/login';
         }, 2500);
       } catch (err) {

@@ -4,7 +4,7 @@ import PDFDocument from 'pdfkit';
 // Configuración del transporte de email (lazy para asegurar que env vars estén disponibles)
 let _transporter: ReturnType<typeof nodemailer.createTransport> | null = null;
 
-function getTransporter() {
+export function getTransporter() {
   if (!_transporter) {
     const user = import.meta.env.GMAIL_USER;
     const pass = import.meta.env.GMAIL_PASSWORD;

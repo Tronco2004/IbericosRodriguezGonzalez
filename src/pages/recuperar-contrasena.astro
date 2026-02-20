@@ -141,14 +141,6 @@ import Layout from '../layouts/Layout.astro';
   </div>
 
   <script>
-    import { createClient } from '@supabase/supabase-js';
-
-    const supabase = createClient(
-      import.meta.env.PUBLIC_SUPABASE_URL,
-      import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
-      { auth: { flowType: 'implicit' } }
-    );
-
     const form = document.getElementById('resetForm') as HTMLFormElement | null;
     const submitBtn = document.getElementById('submitBtn') as HTMLButtonElement | null;
     const successMsg = document.getElementById('successMessage');
@@ -170,11 +162,15 @@ import Layout from '../layouts/Layout.astro';
       if (errorMsg) errorMsg.style.display = 'none';
 
       try {
-        const { error } = await supabase.auth.resetPasswordForEmail(email);
+        const res = await fetch('/api/auth/solicitar-recovery', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        });
 
-        if (error) throw error;
+        const data = await res.json();
+        if (!res.ok && res.status !== 200) throw new Error(data.message);
 
-        // Guardar email para la siguiente página
         sessionStorage.setItem('recovery_email', email);
 
         if (successMsg) {
@@ -183,12 +179,10 @@ import Layout from '../layouts/Layout.astro';
         }
         form?.reset();
 
-        // Redirigir a la página de código + nueva contraseña
         setTimeout(() => {
           window.location.href = '/restablecer-contrasena';
         }, 2000);
       } catch (err) {
-        // No revelar si el email existe o no por seguridad
         sessionStorage.setItem('recovery_email', email);
         if (successMsg) {
           successMsg.textContent = 'Si existe una cuenta con ese email, recibirás un código de recuperación. Revisa tu bandeja de entrada y la carpeta de spam. Redirigiendo...';
