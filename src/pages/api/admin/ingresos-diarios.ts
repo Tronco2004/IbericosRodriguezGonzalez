@@ -10,7 +10,10 @@ export const GET: APIRoute = async () => {
     const primerDiaDelMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1).toISOString();
     const ultimoDiaDelMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0).toISOString();
 
-    // Obtener todos los pedidos pagados del mes (calcula subtotal desde items)
+    // Obtener todos los pedidos con pago completado del mes
+    // Incluir todos los estados que representan pago exitoso (no solo 'pagado')
+    const estadosPagados = ['pagado', 'preparando', 'enviado', 'entregado', 'devolucion_solicitada', 'devolucion_denegada'];
+
     const { data: pedidosMes, error: errorPedidos } = await supabaseAdmin
       .from('pedidos')
       .select(`
@@ -20,7 +23,7 @@ export const GET: APIRoute = async () => {
           subtotal
         )
       `)
-      .eq('estado', 'pagado')
+      .in('estado', estadosPagados)
       .gte('fecha_creacion', primerDiaDelMes)
       .lte('fecha_creacion', ultimoDiaDelMes);
 

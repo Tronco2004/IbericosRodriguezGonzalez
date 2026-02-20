@@ -299,9 +299,26 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       direccionEnvio = partes.join(', ');
       if (shipping.name) direccionEnvio = shipping.name + ' - ' + direccionEnvio;
     }
+    // Fallback: dirección guardada en metadata de la sesión Stripe
+    if (!direccionEnvio && session.metadata?.direccion_cliente) {
+      direccionEnvio = session.metadata.direccion_cliente;
+    }
     if (!direccionEnvio) {
       direccionEnvio = datosInvitado?.direccion || usuarioDatos?.direccion || null;
     }
+
+    // Construir nombre del cliente
+    const nombreCliente = shipping?.name
+      || session.metadata?.nombre_cliente
+      || datosInvitado?.nombre
+      || usuarioDatos?.nombre
+      || null;
+
+    // Construir teléfono del cliente
+    const telefonoCliente = session.metadata?.telefono_cliente
+      || datosInvitado?.telefono
+      || usuarioDatos?.telefono
+      || null;
 
     // ✅ CREAR PEDIDO con retry si hay colisión de numero_pedido (UNIQUE constraint)
     const MAX_REINTENTOS = 3;
@@ -324,8 +341,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           envio: envio,
           impuestos: 0,
           total: envio,
+          nombre_cliente: nombreCliente,
           email_cliente: customerEmail,
-          telefono_cliente: datosInvitado?.telefono || usuarioDatos?.telefono || null,
+          telefono_cliente: telefonoCliente,
           direccion_envio: direccionEnvio,
           fecha_pago: new Date().toISOString(),
           es_invitado: esInvitado

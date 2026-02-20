@@ -22,7 +22,9 @@ export const GET: APIRoute = async ({ request }) => {
       // 'todo' - sin filtro
     }
 
-    // Obtener pedidos pagados con items y datos de usuario
+    // Obtener pedidos con pago completado (todos los estados excepto cancelado y devolucion_recibida)
+    const estadosPagados = ['pagado', 'preparando', 'enviado', 'entregado', 'devolucion_solicitada', 'devolucion_denegada'];
+
     let query = supabaseAdmin
       .from('pedidos')
       .select(`
@@ -38,7 +40,7 @@ export const GET: APIRoute = async ({ request }) => {
           subtotal
         )
       `)
-      .eq('estado', 'pagado');
+      .in('estado', estadosPagados);
 
     if (fechaInicio) {
       query = query.gte('fecha_creacion', fechaInicio);
