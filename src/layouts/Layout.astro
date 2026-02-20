@@ -2837,34 +2837,12 @@ const { data: categorias } = await supabaseClient
 
     <script>
       // Popup OBLIGATORIO de completar perfil tras login con Google
-      async function verificarYMostrarPopupPerfil() {
-        // Verificar flag persistente en localStorage
+      function verificarYMostrarPopupPerfil() {
+        // Solo mostrar si el flag fue establecido durante el callback de OAuth
         const incompleto = localStorage.getItem('perfil_incompleto');
         if (incompleto === 'true') {
           const popup = document.getElementById('perfilPopup');
           if (popup) popup.style.display = 'flex';
-          return;
-        }
-
-        // Si hay sesión activa, verificar también contra el servidor por si recargó sin el flag
-        const token = localStorage.getItem('auth_token');
-        if (token && token !== 'null') {
-          try {
-            const res = await fetch('/api/auth/me', { credentials: 'include' });
-            if (res.ok) {
-              const data = await res.json();
-              if (data.success && data.usuario) {
-                const faltaTelefono = !data.usuario.telefono;
-                const faltaDireccion = !data.usuario.direccion;
-                const faltaPassword = !data.usuario.tienePassword;
-                if (faltaTelefono || faltaDireccion || faltaPassword) {
-                  localStorage.setItem('perfil_incompleto', 'true');
-                  const popup = document.getElementById('perfilPopup');
-                  if (popup) popup.style.display = 'flex';
-                }
-              }
-            }
-          } catch (_) {}
         }
       }
 
