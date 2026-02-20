@@ -2094,6 +2094,32 @@ const { data: categorias } = await supabaseClient
     </script>
     
     <script>
+      // ========== LOGOUT GLOBAL CON EVENT DELEGATION ==========
+      async function handleLogout() {
+        try {
+          await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+        } catch (e) {
+          console.error('Error en logout:', e);
+        }
+        // Limpiar cookies accesibles desde JS
+        ['user_role', 'user_name', 'user_id', 'auth_token', 'sb-access-token', 'sb-refresh-token'].forEach(c => {
+          document.cookie = c + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; SameSite=Lax';
+        });
+        const tema = localStorage.getItem('theme');
+        localStorage.clear();
+        if (tema) localStorage.setItem('theme', tema);
+        window.location.href = '/';
+      }
+
+      // Event delegation para botones de logout
+      document.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        if (target && (target.id === 'logoutBtn' || target.id === 'mobileLogoutBtn' || target.closest('#logoutBtn') || target.closest('#mobileLogoutBtn'))) {
+          e.preventDefault();
+          handleLogout();
+        }
+      });
+
       // ========== MENU HAMBURGUESA MOVIL ==========
       const menuToggle = document.getElementById('menuToggle');
       const mainNav = document.getElementById('mainNav');
@@ -2371,10 +2397,10 @@ const { data: categorias } = await supabaseClient
               userName = data.usuario.nombre;
               userRole = data.usuario.rol;
               // Guardar en localStorage para próximas visitas
-              localStorage.setItem('auth_token', token);
-              localStorage.setItem('user_name', userName);
-              localStorage.setItem('user_role', userRole);
-              localStorage.setItem('user_id', token);
+              if (token) localStorage.setItem('auth_token', token);
+              if (userName) localStorage.setItem('user_name', userName);
+              if (userRole) localStorage.setItem('user_role', userRole);
+              if (token) localStorage.setItem('user_id', token);
               localStorage.setItem('user_email', data.usuario.email);
               renderAuthUI();
             } else {
@@ -2801,7 +2827,8 @@ const { data: categorias } = await supabaseClient
 
       // Cerrar al hacer click fuera del popup
       document.getElementById('perfilPopup')?.addEventListener('click', (e) => {
-        if (e.target.id === 'perfilPopup') {
+        const target = e.target as HTMLElement;
+        if (target && target.id === 'perfilPopup') {
           const popup = document.getElementById('perfilPopup');
           if (popup) popup.style.display = 'none';
         }

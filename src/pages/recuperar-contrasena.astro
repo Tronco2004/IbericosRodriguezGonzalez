@@ -150,22 +150,25 @@ const siteUrl = import.meta.env.PUBLIC_SITE_URL || 'https://ibericosrodriguezgon
       import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     );
 
-    const form = document.getElementById('resetForm');
-    const submitBtn = document.getElementById('submitBtn');
+    const form = document.getElementById('resetForm') as HTMLFormElement | null;
+    const submitBtn = document.getElementById('submitBtn') as HTMLButtonElement | null;
     const successMsg = document.getElementById('successMessage');
     const errorMsg = document.getElementById('errorMessage');
 
-    form.addEventListener('submit', async (e) => {
+    form?.addEventListener('submit', async (e) => {
       e.preventDefault();
       
-      const email = document.getElementById('emailInput').value.trim();
+      const emailInput = document.getElementById('emailInput') as HTMLInputElement | null;
+      const email = emailInput?.value.trim() || '';
       
       if (!email) return;
 
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Enviando...';
-      successMsg.style.display = 'none';
-      errorMsg.style.display = 'none';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Enviando...';
+      }
+      if (successMsg) successMsg.style.display = 'none';
+      if (errorMsg) errorMsg.style.display = 'none';
 
       try {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -174,16 +177,22 @@ const siteUrl = import.meta.env.PUBLIC_SITE_URL || 'https://ibericosrodriguezgon
 
         if (error) throw error;
 
-        successMsg.textContent = 'Si existe una cuenta con ese email, recibirás un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada y la carpeta de spam.';
-        successMsg.style.display = 'block';
-        form.reset();
+        if (successMsg) {
+          successMsg.textContent = 'Si existe una cuenta con ese email, recibirás un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada y la carpeta de spam.';
+          successMsg.style.display = 'block';
+        }
+        form?.reset();
       } catch (err) {
         // No revelar si el email existe o no por seguridad
-        successMsg.textContent = 'Si existe una cuenta con ese email, recibirás un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada y la carpeta de spam.';
-        successMsg.style.display = 'block';
+        if (successMsg) {
+          successMsg.textContent = 'Si existe una cuenta con ese email, recibirás un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada y la carpeta de spam.';
+          successMsg.style.display = 'block';
+        }
       } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Enviar enlace de recuperación';
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Enviar enlace de recuperación';
+        }
       }
     });
   </script>

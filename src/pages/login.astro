@@ -252,14 +252,14 @@ const redirect = Astro.url.searchParams.get('redirect') || '/';
     const errorMessage = document.getElementById('errorMessage');
     const loadingMessage = document.getElementById('loadingMessage');
 
-    async function handleSocialLogin(provider) {
+    async function handleSocialLogin(provider: string) {
       try {
-        loadingMessage.style.display = 'block';
-        errorMessage.style.display = 'none';
+        if (loadingMessage) loadingMessage.style.display = 'block';
+        if (errorMessage) errorMessage.style.display = 'none';
 
         // Usar Supabase client-side directamente (maneja PKCE correctamente)
         const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: provider,
+          provider: provider as 'google',
           options: {
             redirectTo: window.location.origin + '/auth/callback',
           }
@@ -272,13 +272,15 @@ const redirect = Astro.url.searchParams.get('redirect') || '/';
           window.location.href = data.url;
         }
       } catch (error) {
-        loadingMessage.style.display = 'none';
-        errorMessage.style.display = 'block';
-        errorMessage.textContent = '' + (error instanceof Error ? error.message : 'Error desconocido');
+        if (loadingMessage) loadingMessage.style.display = 'none';
+        if (errorMessage) {
+          errorMessage.style.display = 'block';
+          errorMessage.textContent = '' + (error instanceof Error ? error.message : 'Error desconocido');
+        }
       }
     }
 
-    googleBtn.addEventListener('click', () => handleSocialLogin('google'));
+    googleBtn?.addEventListener('click', () => handleSocialLogin('google'));
 
     // Mostrar mensaje de sesión expirada si viene de cierre automático
     if (new URLSearchParams(window.location.search).get('expired') === '1') {

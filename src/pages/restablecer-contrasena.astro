@@ -153,8 +153,8 @@ import Layout from '../layouts/Layout.astro';
       import.meta.env.PUBLIC_SUPABASE_ANON_KEY
     );
 
-    const form = document.getElementById('newPasswordForm');
-    const submitBtn = document.getElementById('submitBtn');
+    const form = document.getElementById('newPasswordForm') as HTMLFormElement | null;
+    const submitBtn = document.getElementById('submitBtn') as HTMLButtonElement | null;
     const successMsg = document.getElementById('successMessage');
     const errorMsg = document.getElementById('errorMessage');
 
@@ -174,44 +174,56 @@ import Layout from '../layouts/Layout.astro';
           });
           if (error) {
             console.error('Error estableciendo sesión de recovery:', error);
-            errorMsg.textContent = 'El enlace ha expirado o no es válido. Solicita uno nuevo.';
-            errorMsg.style.display = 'block';
-            submitBtn.disabled = true;
+            if (errorMsg) {
+              errorMsg.textContent = 'El enlace ha expirado o no es válido. Solicita uno nuevo.';
+              errorMsg.style.display = 'block';
+            }
+            if (submitBtn) submitBtn.disabled = true;
           }
         } catch (e) {
           console.error('Error en init:', e);
-          errorMsg.textContent = 'Error al procesar el enlace. Solicita uno nuevo.';
-          errorMsg.style.display = 'block';
-          submitBtn.disabled = true;
+          if (errorMsg) {
+            errorMsg.textContent = 'Error al procesar el enlace. Solicita uno nuevo.';
+            errorMsg.style.display = 'block';
+          }
+          if (submitBtn) submitBtn.disabled = true;
         }
       }
     }
 
     init();
 
-    form.addEventListener('submit', async (e) => {
+    form?.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      const password = document.getElementById('passwordInput').value;
-      const confirmPassword = document.getElementById('confirmPasswordInput').value;
+      const passwordInput = document.getElementById('passwordInput') as HTMLInputElement | null;
+      const confirmInput = document.getElementById('confirmPasswordInput') as HTMLInputElement | null;
+      const password = passwordInput?.value || '';
+      const confirmPassword = confirmInput?.value || '';
 
-      successMsg.style.display = 'none';
-      errorMsg.style.display = 'none';
+      if (successMsg) successMsg.style.display = 'none';
+      if (errorMsg) errorMsg.style.display = 'none';
 
       if (password.length < 6) {
-        errorMsg.textContent = 'La contraseña debe tener al menos 6 caracteres';
-        errorMsg.style.display = 'block';
+        if (errorMsg) {
+          errorMsg.textContent = 'La contraseña debe tener al menos 6 caracteres';
+          errorMsg.style.display = 'block';
+        }
         return;
       }
 
       if (password !== confirmPassword) {
-        errorMsg.textContent = 'Las contraseñas no coinciden';
-        errorMsg.style.display = 'block';
+        if (errorMsg) {
+          errorMsg.textContent = 'Las contraseñas no coinciden';
+          errorMsg.style.display = 'block';
+        }
         return;
       }
 
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Restableciendo...';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Restableciendo...';
+      }
 
       try {
         const { error } = await supabase.auth.updateUser({
@@ -220,9 +232,11 @@ import Layout from '../layouts/Layout.astro';
 
         if (error) throw error;
 
-        successMsg.textContent = 'Contraseña restablecida correctamente. Redirigiendo al login...';
-        successMsg.style.display = 'block';
-        form.reset();
+        if (successMsg) {
+          successMsg.textContent = 'Contraseña restablecida correctamente. Redirigiendo al login...';
+          successMsg.style.display = 'block';
+        }
+        form?.reset();
 
         // Cerrar sesión y redirigir al login
         setTimeout(async () => {
@@ -230,10 +244,14 @@ import Layout from '../layouts/Layout.astro';
           window.location.href = '/login';
         }, 2500);
       } catch (err) {
-        errorMsg.textContent = err instanceof Error ? err.message : 'Error al restablecer la contraseña. El enlace puede haber expirado.';
-        errorMsg.style.display = 'block';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Restablecer contraseña';
+        if (errorMsg) {
+          errorMsg.textContent = err instanceof Error ? err.message : 'Error al restablecer la contraseña. El enlace puede haber expirado.';
+          errorMsg.style.display = 'block';
+        }
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Restablecer contraseña';
+        }
       }
     });
   </script>
