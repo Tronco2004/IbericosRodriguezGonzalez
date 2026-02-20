@@ -570,7 +570,31 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       mostrarVariantes();
     };
 
-    window.eliminarVariante = function(index) {
+    window.eliminarVariante = async function(index) {
+      const variante = variantesActuales[index];
+      
+      // Si la variante tiene ID (existe en la BD), eliminarla de la BD inmediatamente
+      if (variante && variante.id) {
+        try {
+          console.log('🗑️ Eliminando variante de la BD:', variante.id);
+          const response = await fetch(`/api/admin/variantes?id=${variante.id}`, {
+            method: 'DELETE'
+          });
+          const result = await response.json();
+          if (result.success) {
+            console.log('✅ Variante eliminada de la BD');
+          } else {
+            console.error('❌ Error eliminando variante:', result.error);
+            alert('Error al eliminar la variante: ' + (result.error || 'Error desconocido'));
+            return;
+          }
+        } catch (error) {
+          console.error('❌ Error en petición DELETE:', error);
+          alert('Error de conexión al eliminar la variante');
+          return;
+        }
+      }
+      
       variantesActuales.splice(index, 1);
       mostrarVariantes();
     };
@@ -876,7 +900,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         if (data.success && data.variantes && data.variantes.length > 0) {
           variantesActuales = data.variantes.map(v => ({
             peso: v.peso_kg,
-            precio_total: v.precio_total,
+            precio_total: v.precio_total / 100, // Convertir de céntimos a euros
             id: v.id // Guardar ID para poder actualizarlas después
           }));
           mostrarVariantes();

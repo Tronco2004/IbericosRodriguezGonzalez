@@ -1195,8 +1195,18 @@ if (!categoriaDB && !categoryInfoFallback[slug as string]) {
             .filter(p => p.categorias?.slug === categoria)
             .map(p => {
               const oferta = ofertasMap.get(p.id);
-              const precioCentimos = oferta ? oferta.precio_descuento_centimos : p.precio_centimos;
+              let precioCentimos;
               const precioOriginalCentimos = p.precio_centimos;
+
+              if (oferta && p.es_variable) {
+                // Para productos de peso variable, aplicar el % de descuento al precio/kg
+                const descuento = oferta.porcentaje_descuento || 0;
+                precioCentimos = Math.round(p.precio_centimos * (1 - descuento / 100));
+              } else if (oferta) {
+                precioCentimos = oferta.precio_descuento_centimos;
+              } else {
+                precioCentimos = p.precio_centimos;
+              }
 
               return {
                 id: p.id,
@@ -1855,9 +1865,17 @@ if (!categoriaDB && !categoryInfoFallback[slug as string]) {
         btn.setAttribute('data-cantidad', v.cantidad_disponible);
         
         const peso = v.peso_kg.toFixed(3);
-        const precioEnEuros = (v.precio_total / 100).toFixed(2);
+        const precioOriginalEnEuros = (v.precio_total / 100).toFixed(2);
         
-        btn.innerHTML = '<div class="variante-info"><span class="variante-peso">' + peso + ' kg</span><span class="variante-tipo">Pieza única</span></div><div class="variante-precio-wrap"><span class="variante-precio">' + precioEnEuros + '€</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="variante-arrow"><polyline points="9 18 15 12 9 6"></polyline></svg></div>';
+        // Aplicar descuento de oferta si existe
+        const descuentoPct = (productoEnModal && productoEnModal.oferta) ? (productoEnModal.oferta.porcentaje_descuento || 0) : 0;
+        const precioConDescuento = descuentoPct > 0 ? (v.precio_total * (1 - descuentoPct / 100) / 100).toFixed(2) : null;
+        
+        const precioHTML = precioConDescuento 
+          ? '<span style="text-decoration: line-through; color: #999; font-size: 0.85rem; margin-right: 6px;">' + precioOriginalEnEuros + '€</span><span class="variante-precio" style="color: #e53935; font-weight: 700;">' + precioConDescuento + '€</span>'
+          : '<span class="variante-precio">' + precioOriginalEnEuros + '€</span>';
+        
+        btn.innerHTML = '<div class="variante-info"><span class="variante-peso">' + peso + ' kg</span><span class="variante-tipo">Pieza única</span></div><div class="variante-precio-wrap">' + precioHTML + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="variante-arrow"><polyline points="9 18 15 12 9 6"></polyline></svg></div>';
         
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -1959,7 +1977,14 @@ if (!categoriaDB && !categoryInfoFallback[slug as string]) {
           nombre: productoEnModal.nombre,
           imagen: productoEnModal.imagen,
           cantidad: 1,
-          precio_unitario: parseInt(precio),
+          // Aplicar descuento de oferta si existe
+          precio_unitario: (() => {
+            let p = parseInt(precio);
+            if (productoEnModal.oferta && productoEnModal.oferta.porcentaje_descuento > 0) {
+              p = Math.round(p * (1 - productoEnModal.oferta.porcentaje_descuento / 100));
+            }
+            return p;
+          })(),
           peso_kg: parseFloat(peso),
           fecha_agregado: new Date().toISOString(),
           categoria: productoEnModal.categoria
