@@ -228,7 +228,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
     }
 
-    // Generar número de pedido correlativo con formato PED-XXXXXL (5 dígitos + letra)
+    // Generar número de pedido correlativo con formato PED-LXXXXX (letra + 5 dígitos)
     const { data: ultimoPedidoDB } = await supabaseAdmin
       .from('pedidos')
       .select('numero_pedido')
@@ -240,10 +240,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     let siguienteNum = 1;
     let letraNum = 'A';
     if (ultimoPedidoDB?.numero_pedido) {
-      const matchNum = ultimoPedidoDB.numero_pedido.match(/^PED-(\d{5})([A-Z])$/);
+      const matchNum = ultimoPedidoDB.numero_pedido.match(/^PED-([A-Z])(\d{5})$/);
       if (matchNum) {
-        const num = parseInt(matchNum[1], 10);
-        letraNum = matchNum[2];
+        letraNum = matchNum[1];
+        const num = parseInt(matchNum[2], 10);
         if (num >= 99999) {
           siguienteNum = 1;
           letraNum = String.fromCharCode(letraNum.charCodeAt(0) + 1);
@@ -253,7 +253,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         }
       }
     }
-    const numero_pedido = `PED-${siguienteNum.toString().padStart(5, '0')}${letraNum}`;
+    const numero_pedido = `PED-${letraNum}${siguienteNum.toString().padStart(5, '0')}`;
 
     console.log('📋 Creando pedido con función SQL:', { numero_pedido, usuario_id: userId, es_invitado });
 
