@@ -174,9 +174,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     // Determinar redirección según rol
     const redirect_url = usuarioData.rol === 'admin' ? '/admin/dashboard' : '/productos';
 
-    // Verificar si el perfil está incompleto (sin teléfono o sin contraseña)
+    // Verificar si el perfil está incompleto (sin teléfono, dirección o contraseña)
     const tieneEmailIdentity = authUser.identities?.some(i => i.provider === 'email') ?? false;
-    const perfilIncompleto = esNuevo || !usuarioData.telefono || !tieneEmailIdentity;
+    const perfilIncompleto = esNuevo || !usuarioData.telefono || !usuarioData.direccion || !tieneEmailIdentity;
 
     return new Response(
       JSON.stringify({
