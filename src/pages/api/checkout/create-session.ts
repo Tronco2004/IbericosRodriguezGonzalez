@@ -81,7 +81,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const ahora = new Date().toISOString();
     const { data: ofertasDB } = await supabaseAdmin
       .from('ofertas')
-      .select('producto_id, precio_descuento_centimos')
+      .select('producto_id, precio_descuento_centimos, porcentaje_descuento')
       .in('producto_id', productoIds)
       .eq('activa', true)
       .lte('fecha_inicio', ahora)
@@ -100,6 +100,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       if (varianteId && varianteMap.has(varianteId)) {
         // Variante: usar precio_total de la variante
         precioEnCentimos = varianteMap.get(varianteId).precio_total;
+        // Aplicar descuento de oferta si existe para este producto
+        const ofertaVariante = ofertaMap.get(item.producto_id);
+        if (ofertaVariante?.porcentaje_descuento > 0) {
+          precioEnCentimos = Math.round(precioEnCentimos * (1 - ofertaVariante.porcentaje_descuento / 100));
+        }
       } else {
         // Producto simple: verificar si tiene oferta activa
         const oferta = ofertaMap.get(item.producto_id);

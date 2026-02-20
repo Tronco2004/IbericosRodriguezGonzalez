@@ -1438,6 +1438,10 @@ export const prerender = false;
     function generarHTMLProducto(producto, oferta, precioOriginal, precioFinal, porcentajeDescuento, estaDisponible, textoStock, stockDisponible, colorStock, estadoStock) {
       // Precio por kg para productos variables
       const precioPorKg = producto.precio_por_kg || (producto.precio_centimos / 100);
+      // Calcular precio/kg con descuento si hay oferta
+      const precioPorKgConDescuento = (oferta && producto.es_variable) 
+        ? (precioPorKg * (1 - porcentajeDescuento / 100)).toFixed(2)
+        : null;
       
       // Generar opciones de variantes o cantidad
       let opcionesHTML = '';
@@ -1448,7 +1452,13 @@ export const prerender = false;
           <div class="js-option-group">
             <label class="js-option-label">Seleccionar peso <span class="js-required">*</span></label>
             <div class="js-radio-group" id="variantesContainer">
-              ${variantesDisponibles.map((v, index) => `
+              ${variantesDisponibles.map((v, index) => {
+                const precioOrigVariante = (Number(v.precio_total) / 100).toFixed(2);
+                const precioDescVariante = oferta 
+                  ? (Number(v.precio_total) * (1 - porcentajeDescuento / 100) / 100).toFixed(2)
+                  : null;
+                const precioMostrar = precioDescVariante || precioOrigVariante;
+                return `
                 <label class="js-radio-option">
                   <input 
                     type="radio" 
@@ -1456,13 +1466,19 @@ export const prerender = false;
                     value="${v.id}" 
                     data-peso="${v.peso_kg}"
                     data-precio="${v.precio_total}"
+                    data-descuento="${porcentajeDescuento || 0}"
                     class="js-radio-input"
                     ${index === 0 ? 'checked' : ''}
                   />
                   <span class="js-radio-label">${v.peso_kg} kg</span>
-                  <span class="js-price-extra">${(Number(v.precio_total) / 100).toFixed(2)} €</span>
+                  ${precioDescVariante ? `
+                    <span class="js-price-extra" style="text-decoration: line-through; color: #999; font-size: 0.85rem; margin-right: 4px;">${precioOrigVariante} €</span>
+                    <span class="js-price-extra" style="color: #e53935; font-weight: 700;">${precioDescVariante} €</span>
+                  ` : `
+                    <span class="js-price-extra">${precioOrigVariante} €</span>
+                  `}
                 </label>
-              `).join('')}
+              `}).join('')}
             </div>
           </div>
         `;
@@ -1547,10 +1563,17 @@ export const prerender = false;
             <!-- PRICE -->
             <div class="js-price-section">
               ${producto.es_variable ? `
-                <div class="js-price-main" style="font-size: 1.8rem;">${Number(precioPorKg).toFixed(2)} €/kg</div>
+                ${oferta ? `
+                  <div class="js-price-original" style="text-decoration: line-through; color: #999; font-size: 1.2rem;">${Number(precioPorKg).toFixed(2)} €/kg</div>
+                  <div class="js-price-main" style="font-size: 1.8rem; color: #e53935;">${precioPorKgConDescuento} €/kg <span style="font-size: 0.9rem; background: #e53935; color: white; padding: 2px 8px; border-radius: 4px; margin-left: 8px;">-${porcentajeDescuento}%</span></div>
+                ` : `
+                  <div class="js-price-main" style="font-size: 1.8rem;">${Number(precioPorKg).toFixed(2)} €/kg</div>
+                `}
                 <div id="precioDisplay" style="font-size: 1.4rem; color: var(--text-secondary); margin-top: 0.5rem;">
                   ${variantesDisponibles.length > 0 
-                    ? `Pieza seleccionada: ${(Number(variantesDisponibles[0].precio_total) / 100).toFixed(2)} €` 
+                    ? oferta
+                      ? `Pieza seleccionada: <span style="text-decoration: line-through; color: #999; margin-right: 6px;">${(Number(variantesDisponibles[0].precio_total) / 100).toFixed(2)} €</span> <span style="color: #e53935; font-weight: 700;">${(Number(variantesDisponibles[0].precio_total) * (1 - porcentajeDescuento / 100) / 100).toFixed(2)} €</span>`
+                      : `Pieza seleccionada: ${(Number(variantesDisponibles[0].precio_total) / 100).toFixed(2)} €`
                     : 'Sin piezas disponibles'}
                 </div>
               ` : `
@@ -1624,12 +1647,19 @@ export const prerender = false;
           radio.addEventListener('change', function() {
             const precioCentimos = this.getAttribute('data-precio');
             const peso = this.getAttribute('data-peso');
+            const descuento = parseFloat(this.getAttribute('data-descuento') || '0');
             varianteSeleccionada = {
               id: parseInt(this.value),
               peso_kg: parseFloat(peso),
               precio_total: parseFloat(precioCentimos) // Guardamos en céntimos
             };
-            document.getElementById('precioDisplay').textContent = `Pieza seleccionada: ${(Number(precioCentimos) / 100).toFixed(2)} €`;
+            const precioOriginal = (Number(precioCentimos) / 100).toFixed(2);
+            if (descuento > 0) {
+              const precioDesc = (Number(precioCentimos) * (1 - descuento / 100) / 100).toFixed(2);
+              document.getElementById('precioDisplay').innerHTML = `Pieza seleccionada: <span style="text-decoration: line-through; color: #999; margin-right: 6px;">${precioOriginal} €</span> <span style="color: #e53935; font-weight: 700;">${precioDesc} €</span>`;
+            } else {
+              document.getElementById('precioDisplay').textContent = `Pieza seleccionada: ${precioOriginal} €`;
+            }
             console.log('Variante seleccionada:', varianteSeleccionada);
           });
         });
@@ -1957,8 +1987,24 @@ export const prerender = false;
       // Actualizar estado del stock
       actualizarEstadoStock(variantesDisponibles.length, true);
 
+      // Obtener datos de oferta del producto actual
+      const ofertaActual = productoActual ? (() => {
+        // Buscar oferta cacheada
+        const badge = document.querySelector('.js-discount-badge');
+        if (badge) {
+          const match = badge.textContent.match(/(\d+)/);
+          return match ? parseFloat(match[1]) : 0;
+        }
+        return 0;
+      })() : 0;
+
       // Actualizar lista de variantes
-      container.innerHTML = variantesDisponibles.map((v, index) => `
+      container.innerHTML = variantesDisponibles.map((v, index) => {
+        const precioOrigVariante = (Number(v.precio_total) / 100).toFixed(2);
+        const precioDescVariante = ofertaActual > 0 
+          ? (Number(v.precio_total) * (1 - ofertaActual / 100) / 100).toFixed(2)
+          : null;
+        return `
         <label class="js-radio-option">
           <input 
             type="radio" 
@@ -1966,13 +2012,19 @@ export const prerender = false;
             value="${v.id}" 
             data-peso="${v.peso_kg}"
             data-precio="${v.precio_total}"
+            data-descuento="${ofertaActual}"
             class="js-radio-input"
             ${index === 0 ? 'checked' : ''}
           />
           <span class="js-radio-label">${v.peso_kg} kg</span>
-          <span class="js-price-extra">${(Number(v.precio_total) / 100).toFixed(2)} €</span>
+          ${precioDescVariante ? `
+            <span class="js-price-extra" style="text-decoration: line-through; color: #999; font-size: 0.85rem; margin-right: 4px;">${precioOrigVariante} €</span>
+            <span class="js-price-extra" style="color: #e53935; font-weight: 700;">${precioDescVariante} €</span>
+          ` : `
+            <span class="js-price-extra">${precioOrigVariante} €</span>
+          `}
         </label>
-      `).join('');
+      `}).join('');
 
       // Reconfigurar eventos
       const radios = container.querySelectorAll('input[name="variante"]');
@@ -1980,24 +2032,38 @@ export const prerender = false;
         radio.addEventListener('change', function() {
           const precioCentimos = this.getAttribute('data-precio');
           const peso = this.getAttribute('data-peso');
+          const descuento = parseFloat(this.getAttribute('data-descuento') || '0');
           varianteSeleccionada = {
             id: parseInt(this.value),
             peso_kg: parseFloat(peso),
             precio_total: parseFloat(precioCentimos)
           };
-          document.getElementById('precioDisplay').textContent = `Pieza seleccionada: ${(Number(precioCentimos) / 100).toFixed(2)} €`;
+          const precioOrig = (Number(precioCentimos) / 100).toFixed(2);
+          if (descuento > 0) {
+            const precioDesc = (Number(precioCentimos) * (1 - descuento / 100) / 100).toFixed(2);
+            document.getElementById('precioDisplay').innerHTML = `Pieza seleccionada: <span style="text-decoration: line-through; color: #999; margin-right: 6px;">${precioOrig} €</span> <span style="color: #e53935; font-weight: 700;">${precioDesc} €</span>`;
+          } else {
+            document.getElementById('precioDisplay').textContent = `Pieza seleccionada: ${precioOrig} €`;
+          }
         });
       });
 
       // Seleccionar primera variante
       if (radios.length > 0) {
         const primeraVariante = radios[0];
+        const descuento = parseFloat(primeraVariante.getAttribute('data-descuento') || '0');
         varianteSeleccionada = {
           id: parseInt(primeraVariante.value),
           peso_kg: parseFloat(primeraVariante.getAttribute('data-peso')),
           precio_total: parseFloat(primeraVariante.getAttribute('data-precio'))
         };
-        document.getElementById('precioDisplay').textContent = `Pieza seleccionada: ${(varianteSeleccionada.precio_total / 100).toFixed(2)} €`;
+        const precioOrig = (varianteSeleccionada.precio_total / 100).toFixed(2);
+        if (descuento > 0) {
+          const precioDesc = (varianteSeleccionada.precio_total * (1 - descuento / 100) / 100).toFixed(2);
+          document.getElementById('precioDisplay').innerHTML = `Pieza seleccionada: <span style="text-decoration: line-through; color: #999; margin-right: 6px;">${precioOrig} €</span> <span style="color: #e53935; font-weight: 700;">${precioDesc} €</span>`;
+        } else {
+          document.getElementById('precioDisplay').textContent = `Pieza seleccionada: ${precioOrig} €`;
+        }
       }
     }
 
@@ -2072,11 +2138,17 @@ export const prerender = false;
           }
           varianteId = varianteSeleccionada.id;
           pesoKg = varianteSeleccionada.peso_kg;
-          // precio_total ya está en céntimos
+          // precio_total ya está en céntimos - aplicar descuento si hay oferta
           precioUnitario = Math.round(varianteSeleccionada.precio_total);
+          if (porcentajeDescuento > 0) {
+            precioUnitario = Math.round(precioUnitario * (1 - porcentajeDescuento / 100));
+          }
         } else {
           cantidad = parseInt(document.getElementById('cantidad')?.value) || 1;
-          precioUnitario = productoActual.precio_centimos;
+          // Para producto simple, usar precio con oferta si existe
+          precioUnitario = porcentajeDescuento > 0
+            ? Math.round(productoActual.precio_centimos * (1 - porcentajeDescuento / 100))
+            : productoActual.precio_centimos;
         }
 
         // PRIMERO: Reservar stock en la base de datos

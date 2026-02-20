@@ -1362,8 +1362,18 @@ import Layout from '../../layouts/Layout.astro';
           productos = data.productos.map((p) => {
             const oferta = ofertasMap.get(p.id);
             // Los precios en BD están en centimos
-            const precioCentimos = oferta ? oferta.precio_descuento_centimos : p.precio_centimos;
-            const precioOriginalCentimos = p.precio_centimos;
+            let precioCentimos;
+            let precioOriginalCentimos = p.precio_centimos;
+            
+            if (oferta && p.es_variable) {
+              // Para productos de peso variable, aplicar el % de descuento al precio/kg
+              const descuento = oferta.porcentaje_descuento || 0;
+              precioCentimos = Math.round(p.precio_centimos * (1 - descuento / 100));
+            } else if (oferta) {
+              precioCentimos = oferta.precio_descuento_centimos;
+            } else {
+              precioCentimos = p.precio_centimos;
+            }
             
             return {
               id: p.id,
@@ -1520,9 +1530,19 @@ import Layout from '../../layouts/Layout.astro';
           btn.setAttribute('data-cantidad', v.cantidad_disponible);
           
           const peso = v.peso_kg.toFixed(3);
-          const precioEnEuros = (v.precio_total / 100).toFixed(2);
+          const precioOriginalEnEuros = (v.precio_total / 100).toFixed(2);
           
-          btn.innerHTML = '<div class="variante-info"><span class="variante-peso">' + peso + ' kg</span><span class="variante-tipo">Pieza única</span></div><div class="variante-precio-wrap"><span class="variante-precio">' + precioEnEuros + '€</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="variante-arrow"><polyline points="9 18 15 12 9 6"></polyline></svg></div>';
+          // Buscar si este producto tiene oferta para aplicar descuento a la variante
+          const productoObj = productosGlobal.find(p => p.id === parseInt(productoId));
+          const descuentoPct = (productoObj && productoObj.oferta) ? (productoObj.oferta.porcentaje_descuento || 0) : 0;
+          const precioConDescuento = descuentoPct > 0 ? (v.precio_total * (1 - descuentoPct / 100) / 100).toFixed(2) : null;
+          const precioMostrar = precioConDescuento || precioOriginalEnEuros;
+          
+          const precioHTML = precioConDescuento 
+            ? '<span class="variante-precio-original" style="text-decoration: line-through; color: #999; font-size: 0.85rem; margin-right: 6px;">' + precioOriginalEnEuros + '€</span><span class="variante-precio" style="color: #e53935; font-weight: 700;">' + precioConDescuento + '€</span>'
+            : '<span class="variante-precio">' + precioOriginalEnEuros + '€</span>';
+          
+          btn.innerHTML = '<div class="variante-info"><span class="variante-peso">' + peso + ' kg</span><span class="variante-tipo">Pieza única</span></div><div class="variante-precio-wrap">' + precioHTML + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="variante-arrow"><polyline points="9 18 15 12 9 6"></polyline></svg></div>';
           
           btn.addEventListener('click', async () => {
             const varianteId = btn.getAttribute('data-variante-id');
@@ -1775,6 +1795,11 @@ import Layout from '../../layouts/Layout.astro';
         let precioCentimos = variante.precio_total;
         if (precioCentimos < 1000) {
           precioCentimos = Math.round(precioCentimos * 100);
+        }
+
+        // Aplicar descuento de oferta si existe
+        if (producto.oferta && producto.oferta.porcentaje_descuento > 0) {
+          precioCentimos = Math.round(precioCentimos * (1 - producto.oferta.porcentaje_descuento / 100));
         }
         
         console.log('💰 Precio guardado:', {

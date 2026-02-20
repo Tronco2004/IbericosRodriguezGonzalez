@@ -115,13 +115,20 @@ export const GET: APIRoute = async ({ cookies, request }) => {
       const oferta = ofertasMap[item.producto_id];
       let precioCorregido = item.precio_unitario;
 
-      // Si el producto tiene oferta activa y NO es una variante, usar precio de oferta
+      // Corregir precio si hay oferta activa
       // NOTA: No escribimos en BD desde GET (viola semántica REST). 
       // El checkout ya valida precios server-side contra BD.
-      if (oferta && !item.producto_variante_id) {
-        const precioOferta = oferta.precio_descuento_centimos;
-        if (item.precio_unitario !== precioOferta) {
-          precioCorregido = precioOferta;
+      if (oferta) {
+        if (item.producto_variante_id) {
+          // Para variantes: el POST ya guardó el precio con descuento aplicado.
+          // No re-aplicar el descuento para evitar doble descuento.
+          // precioCorregido ya es item.precio_unitario (correcto)
+        } else {
+          // Para productos simples: usar precio fijo de oferta
+          const precioOferta = oferta.precio_descuento_centimos;
+          if (item.precio_unitario !== precioOferta) {
+            precioCorregido = precioOferta;
+          }
         }
       }
 
@@ -373,6 +380,25 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       // precio_total ya está en centimos en la BD
       precioUnitario = Math.round(variante.precio_total);
       console.log('✅ Precio variante (centimos):', precioUnitario);
+
+      // Verificar si el producto tiene una oferta activa y aplicar porcentaje de descuento
+      const ahoraVariante = new Date().toISOString();
+      const { data: ofertaVariante } = await supabaseClient
+        .from('ofertas')
+        .select('id, porcentaje_descuento, nombre_oferta')
+        .eq('producto_id', producto_id)
+        .eq('activa', true)
+        .lte('fecha_inicio', ahoraVariante)
+        .gte('fecha_fin', ahoraVariante)
+        .limit(1)
+        .maybeSingle();
+
+      if (ofertaVariante && ofertaVariante.porcentaje_descuento > 0) {
+        const precioOriginal = precioUnitario;
+        precioUnitario = Math.round(precioUnitario * (1 - ofertaVariante.porcentaje_descuento / 100));
+        console.log(`🏷️ Oferta activa para variante: "${ofertaVariante.nombre_oferta}" - ${ofertaVariante.porcentaje_descuento}% descuento`);
+        console.log(`💰 Precio variante: ${precioOriginal} → ${precioUnitario}`);
+      }
     } else {
       // Obtener precio del producto normal
       console.log('🔍 Buscando producto:', producto_id);
