@@ -2399,10 +2399,9 @@ const { data: categorias } = await supabaseClient
       let userRole = localStorage.getItem('user_role');
 
       // Si acabamos de hacer logout, NO intentar re-autenticar via /api/auth/me
-      // (las cookies httpOnly podrían seguir en el navegador si el proxy no las borró)
+      // Mantener el flag para que al navegar a /login no se re-autentique
       const justLoggedOut = sessionStorage.getItem('just_logged_out');
       if (justLoggedOut) {
-        sessionStorage.removeItem('just_logged_out');
         token = null;
         userName = null;
         userRole = null;

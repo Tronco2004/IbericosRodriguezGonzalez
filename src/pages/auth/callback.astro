@@ -133,6 +133,9 @@ import Layout from '../../layouts/Layout.astro';
             localStorage.removeItem('perfil_incompleto');
           }
 
+          // Limpiar flag de logout para permitir re-autenticación normal
+          sessionStorage.removeItem('just_logged_out');
+
           // Redirigir
           window.location.href = result.redirect_url || '/';
         } else {

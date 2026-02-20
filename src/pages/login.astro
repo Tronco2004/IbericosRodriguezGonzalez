@@ -262,6 +262,9 @@ const redirect = Astro.url.searchParams.get('redirect') || '/';
           provider: provider as 'google',
           options: {
             redirectTo: window.location.origin + '/auth/callback',
+            queryParams: {
+              prompt: 'select_account',
+            },
           }
         });
 
@@ -330,7 +333,7 @@ const redirect = Astro.url.searchParams.get('redirect') || '/';
             localStorage.setItem('user_email', data.usuario.email);
             localStorage.setItem('last_activity', String(Date.now()));
           }
-          
+          sessionStorage.removeItem('just_logged_out');
           window.location.href = data.redirect_url;
         } else {
           errorDiv.style.display = 'block';
