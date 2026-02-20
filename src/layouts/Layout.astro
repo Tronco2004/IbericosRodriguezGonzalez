@@ -2023,7 +2023,11 @@ const { data: categorias } = await supabaseClient
           if (tiempoInactivo >= INACTIVIDAD_MS) {
             // Sesión expirada por inactividad
             console.log('⏰ Sesión cerrada por inactividad (' + Math.round(tiempoInactivo / 60000) + ' min)');
-            fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+            fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
+            // Limpiar cookies accesibles desde JS como respaldo
+            ['user_role', 'user_name', 'user_id', 'auth_token', 'sb-access-token', 'sb-refresh-token'].forEach(function(c) {
+              document.cookie = c + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; SameSite=Lax';
+            });
             const tema = localStorage.getItem('theme'); // Preservar preferencia de tema
             localStorage.clear();
             if (tema) localStorage.setItem('theme', tema);
@@ -2506,6 +2510,10 @@ const { data: categorias } = await supabaseClient
               const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
               mobileLogoutBtn?.addEventListener('click', async () => {
                 await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+                // Limpiar cookies accesibles desde JS como respaldo
+                ['user_role', 'user_name', 'user_id', 'auth_token', 'sb-access-token', 'sb-refresh-token'].forEach(function(c) {
+                  document.cookie = c + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; SameSite=Lax';
+                });
                 const tema = localStorage.getItem('theme');
                 localStorage.clear();
                 if (tema) localStorage.setItem('theme', tema);
@@ -2534,6 +2542,10 @@ const { data: categorias } = await supabaseClient
 
             logoutBtn?.addEventListener('click', async () => {
               await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+              // Limpiar cookies accesibles desde JS como respaldo
+              ['user_role', 'user_name', 'user_id', 'auth_token', 'sb-access-token', 'sb-refresh-token'].forEach(function(c) {
+                document.cookie = c + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; SameSite=Lax';
+              });
               const tema = localStorage.getItem('theme');
               localStorage.clear();
               if (tema) localStorage.setItem('theme', tema);
