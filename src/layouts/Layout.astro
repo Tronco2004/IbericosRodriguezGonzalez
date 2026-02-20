@@ -2764,6 +2764,18 @@ const { data: categorias } = await supabaseClient
             />
           </div>
 
+          <!-- Dirección -->
+          <div>
+            <label for="popupDireccion" style="display: block; font-size: 0.78rem; font-weight: 700; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.4rem;">Dirección de envío *</label>
+            <input
+              id="popupDireccion"
+              type="text"
+              placeholder="Ej: Calle Mayor 12, 2ºB, 28001 Madrid"
+              required
+              style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; box-sizing: border-box; background: var(--bg-input); color: var(--text-primary); transition: border-color 0.2s;"
+            />
+          </div>
+
           <!-- Contraseña -->
           <div>
             <label for="popupContrasena" style="display: block; font-size: 0.78rem; font-weight: 700; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.4rem;">Contraseña *</label>
@@ -2843,8 +2855,9 @@ const { data: categorias } = await supabaseClient
               const data = await res.json();
               if (data.success && data.usuario) {
                 const faltaTelefono = !data.usuario.telefono;
+                const faltaDireccion = !data.usuario.direccion;
                 const faltaPassword = !data.usuario.tienePassword;
-                if (faltaTelefono || faltaPassword) {
+                if (faltaTelefono || faltaDireccion || faltaPassword) {
                   localStorage.setItem('perfil_incompleto', 'true');
                   const popup = document.getElementById('perfilPopup');
                   if (popup) popup.style.display = 'flex';
@@ -2865,6 +2878,7 @@ const { data: categorias } = await supabaseClient
         e.preventDefault();
 
         const telefono = (document.getElementById('popupTelefono') as HTMLInputElement)?.value?.trim();
+        const direccion = (document.getElementById('popupDireccion') as HTMLInputElement)?.value?.trim();
         const contrasena = (document.getElementById('popupContrasena') as HTMLInputElement)?.value;
         const contrasenaConfirm = (document.getElementById('popupContrasenaConfirm') as HTMLInputElement)?.value;
         const mensajeEl = document.getElementById('popupMensaje');
@@ -2889,6 +2903,7 @@ const { data: categorias } = await supabaseClient
         };
 
         if (!telefono) return mostrarError('El número de teléfono es obligatorio.');
+        if (!direccion) return mostrarError('La dirección de envío es obligatoria.');
         if (!contrasena) return mostrarError('La contraseña es obligatoria.');
         if (contrasena.length < 6) return mostrarError('La contraseña debe tener al menos 6 caracteres.');
         if (contrasena !== contrasenaConfirm) return mostrarError('Las contraseñas no coinciden.');
@@ -2906,7 +2921,7 @@ const { data: categorias } = await supabaseClient
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nombre: nombreActual, telefono, direccion: null })
+            body: JSON.stringify({ nombre: nombreActual, telefono, direccion })
           });
           const dataPerfil = await resPerfil.json();
           if (!resPerfil.ok || !dataPerfil.success) {
