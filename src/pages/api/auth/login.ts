@@ -84,10 +84,13 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     console.log('Rol:', usuarioData.rol);
 
     // 3. Guardar sesión en cookies
+    // Detectar si estamos en HTTPS para el flag secure
+    const isSecure = new URL(request.url).protocol === 'https:';
+
     // FIX P1-5: auth_token y user_id son httpOnly para prevenir robo por XSS
     cookies.set('auth_token', token || '', {
       httpOnly: true,
-      secure: true,
+      secure: isSecure,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
@@ -96,7 +99,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     // Guardar tokens de Supabase para poder revocar sesión en logout
     cookies.set('sb-access-token', token || '', {
       httpOnly: true,
-      secure: true,
+      secure: isSecure,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 365,
       path: '/',
@@ -105,7 +108,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     if (refreshToken) {
       cookies.set('sb-refresh-token', refreshToken, {
         httpOnly: true,
-        secure: true,
+        secure: isSecure,
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 365,
         path: '/',
@@ -114,7 +117,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     cookies.set('user_id', usuarioData.id, {
       httpOnly: true,
-      secure: true,
+      secure: isSecure,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
@@ -123,7 +126,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     // user_role y user_name accesibles al frontend para UI
     cookies.set('user_role', usuarioData.rol, {
       httpOnly: false,
-      secure: true,
+      secure: isSecure,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
@@ -131,7 +134,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     cookies.set('user_name', usuarioData.nombre, {
       httpOnly: false,
-      secure: true,
+      secure: isSecure,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
