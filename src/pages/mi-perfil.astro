@@ -140,7 +140,7 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
               if (meData.success && meData.usuario) {
                 userId = meData.usuario.id;
                 console.log('✅ Usuario obtenido del endpoint:', userId);
-                localStorage.setItem('user_id', userId);
+                if (userId) localStorage.setItem('user_id', userId);
               }
             }
           } catch (e) {
@@ -160,10 +160,11 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
         console.log('📦 Data recibida:', data);
         
         if (data.success && data.usuario) {
-          document.getElementById('nombreInput').value = data.usuario.nombre || '';
-          document.getElementById('emailDisplay').textContent = data.usuario.email || '-';
-          document.getElementById('telefonoInput').value = data.usuario.telefono || '';
-          document.getElementById('direccionInput').value = data.usuario.direccion || '';
+          (document.getElementById('nombreInput') as HTMLInputElement).value = data.usuario.nombre || '';
+          const emailDisplay = document.getElementById('emailDisplay');
+          if (emailDisplay) emailDisplay.textContent = data.usuario.email || '-';
+          (document.getElementById('telefonoInput') as HTMLInputElement).value = data.usuario.telefono || '';
+          (document.getElementById('direccionInput') as HTMLInputElement).value = data.usuario.direccion || '';
           
           // Detectar si el usuario viene de OAuth
           if (!data.usuario.tienePassword && data.usuario.provider !== 'email') {
@@ -173,25 +174,27 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
           console.log('✅ Datos cargados correctamente');
         } else {
           console.error('❌ Error en respuesta:', data.error);
-          document.getElementById('emailDisplay').textContent = 'Error: ' + (data.error || 'No autorizado');
+          const emailDisplay = document.getElementById('emailDisplay');
+          if (emailDisplay) emailDisplay.textContent = 'Error: ' + (data.error || 'No autorizado');
         }
       } catch (error) {
         console.error('❌ Error cargando datos del usuario:', error);
-        document.getElementById('emailDisplay').textContent = 'Error de conexión';
+        const emailDisplay = document.getElementById('emailDisplay');
+        if (emailDisplay) emailDisplay.textContent = 'Error de conexión';
       }
     }
 
-    async function guardarPerfil(e) {
+    async function guardarPerfil(e: Event) {
       e.preventDefault();
       
-      const nombre = document.getElementById('nombreInput').value;
-      const telefono = document.getElementById('telefonoInput').value;
-      const direccion = document.getElementById('direccionInput').value;
+      const nombre = (document.getElementById('nombreInput') as HTMLInputElement)?.value || '';
+      const telefono = (document.getElementById('telefonoInput') as HTMLInputElement)?.value || '';
+      const direccion = (document.getElementById('direccionInput') as HTMLInputElement)?.value || '';
       const mensajeEstado = document.getElementById('mensajePerfilEstado');
-      const boton = e.target.querySelector('button[type="submit"]');
+      const boton = (e.target as HTMLFormElement)?.querySelector('button[type="submit"]') as HTMLButtonElement | null;
 
       // Limpiar mensaje anterior
-      mensajeEstado.style.display = 'none';
+      if (mensajeEstado) mensajeEstado.style.display = 'none';
 
       // Validar nombre
       if (!nombre || nombre.trim().length === 0) {
@@ -200,8 +203,10 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
       }
 
       try {
-        boton.disabled = true;
-        boton.textContent = 'Guardando...';
+        if (boton) {
+          boton.disabled = true;
+          boton.textContent = 'Guardando...';
+        }
 
         const response = await fetch('/api/auth/actualizar-perfil', {
           method: 'POST',
@@ -221,7 +226,7 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
         if (response.ok && data.success) {
           mostrarMensaje('✅ Perfil actualizado exitosamente', 'exito', mensajeEstado, true);
           setTimeout(() => {
-            mensajeEstado.style.display = 'none';
+            if (mensajeEstado) mensajeEstado.style.display = 'none';
           }, 5000);
         } else {
           mostrarMensaje('❌ ' + (data.message || 'Error al guardar'), 'error', mensajeEstado, true);
@@ -230,12 +235,15 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
         console.error('Error:', error);
         mostrarMensaje('❌ Error de conexión', 'error', mensajeEstado, true);
       } finally {
-        boton.disabled = false;
-        boton.textContent = 'Guardar Cambios';
+        if (boton) {
+          boton.disabled = false;
+          boton.textContent = 'Guardar Cambios';
+        }
       }
     }
 
-    function mostrarMensaje(texto, tipo, elemento, separado = false) {
+    function mostrarMensaje(texto: string, tipo: string, elemento: HTMLElement | null, separado = false) {
+      if (!elemento) return;
       elemento.textContent = texto;
       elemento.style.display = 'block';
       elemento.style.background = tipo === 'exito' ? '#d1fae5' : '#fee2e2';
@@ -246,7 +254,7 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
     // Cargar datos del usuario cuando carga la página
     document.addEventListener('DOMContentLoaded', () => {
       cargarDatosUsuario();
-      document.getElementById('formularioPerfil').addEventListener('submit', guardarPerfil);
+      document.getElementById('formularioPerfil')?.addEventListener('submit', guardarPerfil);
     });
   </script>
 </ProtectedLayout>
