@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { enviarEmailDevolucion, notificarDevolucionAlAdmin } from '../../../lib/email';
+import type { EmailDevolucion } from '../../../lib/email';
 import { getAuthenticatedUserId } from '../../../lib/auth-helpers';
 
 export const POST: APIRoute = async ({ request, cookies }) => {
@@ -83,23 +84,60 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    // Enviar email con etiqueta de devolución
+    // Obtener items del pedido para la factura rectificativa
+    let datosDevolucion: EmailDevolucion | undefined;
     try {
-      await enviarEmailDevolucion(pedido.email_cliente, pedido.numero_pedido);
+      const { data: pedidoCompleto } = await supabaseAdmin
+        .from('pedidos')
+        .select('subtotal, envio, total, fecha_creacion')
+        .eq('id', pedido_id)
+        .single();
+
+      const { data: pedidoItems } = await supabaseAdmin
+        .from('pedido_items')
+        .select('nombre_producto, cantidad, precio_unitario, peso_kg')
+        .eq('pedido_id', pedido_id);
+
+      if (pedidoCompleto && pedidoItems && pedidoItems.length > 0) {
+        datosDevolucion = {
+          email_cliente: pedido.email_cliente,
+          numero_pedido: pedido.numero_pedido,
+          fecha_pedido: pedidoCompleto.fecha_creacion,
+          nombre_cliente: pedido.nombre_cliente || undefined,
+          items: pedidoItems.map((item: any) => ({
+            nombre: item.nombre_producto,
+            cantidad: item.cantidad,
+            precio: Math.round(item.precio_unitario * 100), // convertir a céntimos
+            peso_kg: item.peso_kg || undefined
+          })),
+          subtotal: Math.round((pedidoCompleto.subtotal || 0) * 100),
+          envio: Math.round((pedidoCompleto.envio || 0) * 100),
+          total: Math.round((pedidoCompleto.total || 0) * 100)
+        };
+        console.log('📄 Datos de devolución preparados para factura rectificativa');
+      }
+    } catch (itemsError) {
+      console.error('⚠️ Error obteniendo items para factura rectificativa:', itemsError);
+    }
+
+    // Enviar email con etiqueta de devolución y factura rectificativa
+    try {
+      await enviarEmailDevolucion(pedido.email_cliente, pedido.numero_pedido, datosDevolucion);
       console.log('Email de devolución enviado');
     } catch (emailError) {
       console.error('Error enviando email de devolución:', emailError);
       // No fallar si el email no se envía
     }
 
-    // Notificar al admin sobre la devolución
+    // Notificar al admin sobre la devolución con factura rectificativa
     try {
       console.log('📧 Notificando al admin sobre devolución');
       
       await notificarDevolucionAlAdmin(
         pedido.numero_pedido,
         pedido.email_cliente,
-        pedido.nombre_cliente
+        pedido.nombre_cliente,
+        datosDevolucion
       );
       console.log('✅ Admin notificado sobre la devolución');
     } catch (adminEmailError) {

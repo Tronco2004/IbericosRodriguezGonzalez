@@ -35,6 +35,22 @@ export interface EmailPedido {
   total: number;
 }
 
+export interface EmailDevolucion {
+  email_cliente: string;
+  numero_pedido: string;
+  fecha_pedido: string;
+  nombre_cliente?: string;
+  items: {
+    nombre: string;
+    cantidad: number;
+    precio: number;
+    peso_kg?: number;
+  }[];
+  subtotal: number;
+  envio: number;
+  total: number;
+}
+
 /**
  * Generar PDF de factura
  */
@@ -172,6 +188,173 @@ function generarPDFFactura(datos: EmailPedido): Promise<Buffer> {
       doc.fontSize(8).font('Helvetica').fillColor('#999');
       doc.text('Ibéricos Rodríguez González  |  ibericosrodriguezgonzalez.victoriafp.online', 50, footerY + 10, { align: 'center', width: 495 });
       doc.text('Gracias por confiar en nosotros', 50, footerY + 22, { align: 'center', width: 495 });
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+/**
+ * Generar PDF de factura rectificativa (nota de crédito)
+ */
+function generarPDFFacturaRectificativa(datos: EmailDevolucion): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: 'A4',
+        margin: 50
+      });
+
+      const buffers: Buffer[] = [];
+
+      doc.on('data', (buffer: Buffer) => {
+        buffers.push(buffer);
+      });
+
+      doc.on('end', () => {
+        resolve(Buffer.concat(buffers));
+      });
+
+      doc.on('error', reject);
+
+      // === HEADER CON LÍNEA DECORATIVA ===
+      doc.rect(50, 45, 495, 3).fill('#a89968');
+      doc.moveDown(0.5);
+      
+      doc.fontSize(22).font('Helvetica-Bold').fillColor('#001a33').text('Ibéricos Rodríguez González', { align: 'center' });
+      doc.moveDown(0.2);
+      doc.fontSize(9).font('Helvetica').fillColor('#555');
+      doc.text('Calle de la Moda 123, Polígono Industrial, 28001 Madrid', { align: 'center' });
+      doc.text('NIF: 25384756B  |  ibericosrg@gmail.com  |  +34 670 878 333', { align: 'center' });
+      doc.moveDown(0.5);
+      doc.rect(50, doc.y, 495, 1).fill('#e0d5c7');
+      doc.moveDown(1);
+
+      // === TÍTULO FACTURA RECTIFICATIVA ===
+      doc.fontSize(18).font('Helvetica-Bold').fillColor('#dc3545').text('FACTURA RECTIFICATIVA', { align: 'right' });
+      doc.moveDown(0.2);
+      doc.fontSize(10).font('Helvetica').fillColor('#dc3545').text('(Nota de Crédito)', { align: 'right' });
+      doc.moveDown(0.3);
+      doc.fontSize(9).font('Helvetica').fillColor('#888').text(`Ref. Factura Original: ${datos.numero_pedido}`, { align: 'right' });
+      const rectNum = `RECT-${datos.numero_pedido.replace('PED-', '')}`;
+      doc.text(`Nº Rectificativa: ${rectNum}`, { align: 'right' });
+      doc.text(`Fecha: ${new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}`, { align: 'right' });
+      doc.moveDown(1);
+
+      // === MOTIVO DE RECTIFICACIÓN ===
+      doc.fillColor('#001a33');
+      doc.fontSize(11).font('Helvetica-Bold').text('MOTIVO DE RECTIFICACIÓN');
+      doc.moveDown(0.15);
+      doc.rect(50, doc.y, 120, 2).fill('#dc3545');
+      doc.moveDown(0.4);
+      doc.fontSize(9.5).font('Helvetica').fillColor('#333');
+      doc.text('Devolución de productos del pedido original.');
+      doc.moveDown(1);
+
+      // === INFORMACIÓN DEL PEDIDO ORIGINAL ===
+      doc.fillColor('#001a33');
+      doc.fontSize(11).font('Helvetica-Bold').text('DATOS DEL PEDIDO ORIGINAL');
+      doc.moveDown(0.15);
+      doc.rect(50, doc.y, 80, 2).fill('#a89968');
+      doc.moveDown(0.4);
+      doc.fontSize(9.5).font('Helvetica').fillColor('#333');
+      doc.text(`Número de Pedido Original:   ${datos.numero_pedido}`);
+      doc.text(`Fecha Pedido Original:   ${new Date(datos.fecha_pedido).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}`);
+      doc.text(`Email Cliente:   ${datos.email_cliente}`);
+      if (datos.nombre_cliente) {
+        doc.text(`Cliente:   ${datos.nombre_cliente}`);
+      }
+      doc.moveDown(1.2);
+
+      // === TABLA DE PRODUCTOS DEVUELTOS ===
+      doc.fillColor('#001a33');
+      doc.fontSize(11).font('Helvetica-Bold').text('PRODUCTOS DEVUELTOS');
+      doc.moveDown(0.15);
+      doc.rect(50, doc.y, 120, 2).fill('#dc3545');
+      doc.moveDown(0.5);
+
+      const tableTop = doc.y;
+      const col1 = 50;
+      const col2 = 270;
+      const col3 = 370;
+      const col4 = 470;
+
+      // Fondo header tabla
+      doc.rect(col1, tableTop - 4, 500, 20).fill('#fce4e4');
+      
+      doc.fontSize(9).font('Helvetica-Bold').fillColor('#721c24');
+      doc.text('Producto', col1 + 5, tableTop, { width: 200 });
+      doc.text('Cant.', col2, tableTop, { width: 70, align: 'center' });
+      doc.text('P. Unitario', col3, tableTop, { width: 80, align: 'center' });
+      doc.text('Importe', col4, tableTop, { width: 75, align: 'center' });
+
+      doc.moveTo(col1, tableTop + 18).lineTo(545, tableTop + 18).lineWidth(0.5).strokeColor('#dc3545').stroke();
+      doc.moveDown(0.8);
+
+      doc.font('Helvetica').fontSize(9).fillColor('#333');
+      let yPosition = doc.y;
+
+      datos.items.forEach((item, rowIndex) => {
+        const subtotal = (item.precio * item.cantidad) / 100;
+        const precioUnitario = item.precio / 100;
+
+        const productText = item.peso_kg
+          ? `${item.nombre} (${item.peso_kg.toFixed(3)} kg)`
+          : item.nombre;
+
+        if (rowIndex % 2 === 1) {
+          doc.rect(col1, yPosition - 3, 500, 26).fill('#fef5f5');
+        }
+
+        doc.fillColor('#333').font('Helvetica').fontSize(9);
+        doc.text(productText, col1 + 5, yPosition, { width: 200, height: 25 });
+        doc.text(item.cantidad.toString(), col2, yPosition, { width: 70, align: 'center' });
+        doc.text(`${precioUnitario.toFixed(2)} €`, col3, yPosition, { width: 80, align: 'center' });
+        doc.fillColor('#dc3545').font('Helvetica-Bold');
+        doc.text(`-${subtotal.toFixed(2)} €`, col4, yPosition, { width: 75, align: 'center' });
+
+        yPosition += 26;
+      });
+
+      doc.moveTo(col1, yPosition + 2).lineTo(545, yPosition + 2).lineWidth(0.5).strokeColor('#dc3545').stroke();
+      yPosition += 18;
+
+      // Totales negativos
+      doc.fontSize(9.5).font('Helvetica').fillColor('#555');
+      doc.text('Subtotal:', col3, yPosition, { width: 80, align: 'right' });
+      doc.fillColor('#dc3545').font('Helvetica-Bold');
+      doc.text(`-${(datos.subtotal / 100).toFixed(2)} €`, col4, yPosition, { width: 75, align: 'center' });
+
+      yPosition += 18;
+      doc.font('Helvetica').fillColor('#555');
+      doc.text('Envío:', col3, yPosition, { width: 80, align: 'right' });
+      doc.fillColor('#dc3545').font('Helvetica-Bold');
+      doc.text(`-${(datos.envio / 100).toFixed(2)} €`, col4, yPosition, { width: 75, align: 'center' });
+
+      yPosition += 8;
+      doc.moveTo(col3, yPosition).lineTo(545, yPosition).lineWidth(0.5).strokeColor('#ccc').stroke();
+      yPosition += 10;
+
+      // Total a devolver destacado
+      doc.rect(col3 - 5, yPosition - 5, 180, 28).fill('#dc3545');
+      doc.font('Helvetica-Bold').fontSize(12).fillColor('#ffffff');
+      doc.text('A DEVOLVER:', col3, yPosition, { width: 80, align: 'right' });
+      doc.text(`-${(datos.total / 100).toFixed(2)} €`, col4, yPosition, { width: 75, align: 'center' });
+
+      // === AVISO LEGAL ===
+      yPosition += 50;
+      doc.fontSize(8).font('Helvetica').fillColor('#888');
+      doc.text('Esta factura rectificativa anula parcial o totalmente la factura original referenciada.', 50, yPosition, { width: 495, align: 'center' });
+      doc.text('El importe será reembolsado al método de pago original del cliente.', 50, yPosition + 12, { width: 495, align: 'center' });
+
+      // === FOOTER ===
+      const footerY = doc.page.height - 80;
+      doc.rect(50, footerY, 495, 1).fill('#e0d5c7');
+      doc.fontSize(8).font('Helvetica').fillColor('#999');
+      doc.text('Ibéricos Rodríguez González  |  ibericosrodriguezgonzalez.victoriafp.online', 50, footerY + 10, { align: 'center', width: 495 });
+      doc.text('Factura Rectificativa - Documento válido a efectos fiscales', 50, footerY + 22, { align: 'center', width: 495 });
 
       doc.end();
     } catch (error) {
@@ -353,7 +536,7 @@ export async function enviarConfirmacionPedido(datos: EmailPedido) {
 
     console.log('✅ Correo enviado al cliente:', datos.email_cliente);
 
-    // Enviar correo al admin
+    // Enviar correo al admin con la factura adjunta
     await getTransporter().sendMail({
       from: import.meta.env.GMAIL_USER,
       to: import.meta.env.ADMIN_EMAIL,
@@ -365,7 +548,14 @@ export async function enviarConfirmacionPedido(datos: EmailPedido) {
         <p><strong>Total:</strong> ${(datos.total / 100).toFixed(2)}€</p>
         <p><strong>Productos:</strong> ${datos.items.length}</p>
         ${htmlContent}
-      `
+      `,
+      attachments: [
+        {
+          filename: `factura_${datos.numero_pedido}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf'
+        }
+      ]
     });
 
     console.log('✅ Correo enviado al admin:', import.meta.env.ADMIN_EMAIL);
@@ -434,9 +624,9 @@ function generarEtiquetaDevolucion(numeroPedido: string): string {
 }
 
 /**
- * Enviar correo con instrucciones de devolución
+ * Enviar correo con instrucciones de devolución y factura rectificativa
  */
-export async function enviarEmailDevolucion(emailCliente: string, numeroPedido: string) {
+export async function enviarEmailDevolucion(emailCliente: string, numeroPedido: string, datosDevolucion?: EmailDevolucion) {
   try {
     console.log('📧 Preparando email de devolución para:', emailCliente);
 
@@ -509,11 +699,29 @@ export async function enviarEmailDevolucion(emailCliente: string, numeroPedido: 
       </html>
     `;
 
+    // Generar PDF de factura rectificativa si hay datos disponibles
+    let attachments: any[] = [];
+    if (datosDevolucion) {
+      try {
+        console.log('📄 Generando PDF de factura rectificativa para devolución...');
+        const pdfRectificativa = await generarPDFFacturaRectificativa(datosDevolucion);
+        console.log('✅ PDF rectificativa generado, tamaño:', pdfRectificativa.length, 'bytes');
+        attachments.push({
+          filename: `factura_rectificativa_${numeroPedido}.pdf`,
+          content: pdfRectificativa,
+          contentType: 'application/pdf'
+        });
+      } catch (pdfError) {
+        console.error('⚠️ Error generando PDF rectificativa:', pdfError);
+      }
+    }
+
     await getTransporter().sendMail({
       from: import.meta.env.GMAIL_USER,
       to: emailCliente,
       subject: `Instrucciones de Devolución - ${numeroPedido}`,
-      html: htmlContent
+      html: htmlContent,
+      attachments
     });
 
     console.log('✅ Email de devolución enviado a:', emailCliente);
@@ -530,7 +738,8 @@ export async function enviarEmailDevolucion(emailCliente: string, numeroPedido: 
 export async function notificarDevolucionAlAdmin(
   numeroPedido: string,
   emailCliente: string,
-  nombreCliente?: string
+  nombreCliente?: string,
+  datosDevolucion?: EmailDevolucion
 ) {
   try {
     const adminEmail = import.meta.env.ADMIN_EMAIL;
@@ -635,11 +844,29 @@ export async function notificarDevolucionAlAdmin(
       </html>
     `;
 
+    // Generar PDF de factura rectificativa si hay datos disponibles
+    let attachments: any[] = [];
+    if (datosDevolucion) {
+      try {
+        console.log('📄 Generando PDF de factura rectificativa para admin...');
+        const pdfRectificativa = await generarPDFFacturaRectificativa(datosDevolucion);
+        console.log('✅ PDF rectificativa generado para admin, tamaño:', pdfRectificativa.length, 'bytes');
+        attachments.push({
+          filename: `factura_rectificativa_${numeroPedido}.pdf`,
+          content: pdfRectificativa,
+          contentType: 'application/pdf'
+        });
+      } catch (pdfError) {
+        console.error('⚠️ Error generando PDF rectificativa para admin:', pdfError);
+      }
+    }
+
     await getTransporter().sendMail({
       from: import.meta.env.GMAIL_USER,
       to: adminEmail,
       subject: `[DEVOLUCIÓN] Nueva devolución solicitada - ${numeroPedido}`,
-      html: htmlContent
+      html: htmlContent,
+      attachments
     });
 
     console.log('✅ Notificación de devolución enviada al admin:', adminEmail);
@@ -657,7 +884,8 @@ export async function enviarEmailCancelacion(
   emailCliente: string,
   numeroPedido: string,
   nombreCliente?: string,
-  totalReembolso?: number
+  totalReembolso?: number,
+  datosDevolucion?: EmailDevolucion
 ) {
   try {
     console.log('📧 Preparando email de cancelación para:', emailCliente);
@@ -737,11 +965,29 @@ export async function enviarEmailCancelacion(
       </html>
     `;
 
+    // Generar PDF de factura rectificativa si hay datos disponibles
+    let attachments: any[] = [];
+    if (datosDevolucion) {
+      try {
+        console.log('📄 Generando PDF de factura rectificativa para cancelación...');
+        const pdfRectificativa = await generarPDFFacturaRectificativa(datosDevolucion);
+        console.log('✅ PDF rectificativa generado, tamaño:', pdfRectificativa.length, 'bytes');
+        attachments.push({
+          filename: `factura_rectificativa_${numeroPedido}.pdf`,
+          content: pdfRectificativa,
+          contentType: 'application/pdf'
+        });
+      } catch (pdfError) {
+        console.error('⚠️ Error generando PDF rectificativa:', pdfError);
+      }
+    }
+
     await getTransporter().sendMail({
       from: import.meta.env.GMAIL_USER,
       to: emailCliente,
       subject: `Confirmación de Cancelación - ${numeroPedido}`,
-      html: htmlContent
+      html: htmlContent,
+      attachments
     });
 
     console.log('✅ Email de cancelación enviado a:', emailCliente);
@@ -759,7 +1005,8 @@ export async function notificarCancelacionAlAdmin(
   numeroPedido: string,
   emailCliente: string,
   nombreCliente?: string,
-  totalPedido?: number
+  totalPedido?: number,
+  datosDevolucion?: EmailDevolucion
 ) {
   try {
     console.log('📧 Preparando notificación de cancelación para admin:', import.meta.env.ADMIN_EMAIL);
@@ -834,11 +1081,29 @@ export async function notificarCancelacionAlAdmin(
       </html>
     `;
 
+    // Generar PDF de factura rectificativa si hay datos disponibles
+    let attachments: any[] = [];
+    if (datosDevolucion) {
+      try {
+        console.log('📄 Generando PDF de factura rectificativa para admin (cancelación)...');
+        const pdfRectificativa = await generarPDFFacturaRectificativa(datosDevolucion);
+        console.log('✅ PDF rectificativa generado para admin, tamaño:', pdfRectificativa.length, 'bytes');
+        attachments.push({
+          filename: `factura_rectificativa_${numeroPedido}.pdf`,
+          content: pdfRectificativa,
+          contentType: 'application/pdf'
+        });
+      } catch (pdfError) {
+        console.error('⚠️ Error generando PDF rectificativa para admin:', pdfError);
+      }
+    }
+
     await getTransporter().sendMail({
       from: import.meta.env.GMAIL_USER,
       to: import.meta.env.ADMIN_EMAIL,
       subject: `[CANCELACIÓN] Pedido cancelado - ${numeroPedido}`,
-      html: htmlContent
+      html: htmlContent,
+      attachments
     });
 
     console.log('✅ Notificación de cancelación enviada al admin');
@@ -856,7 +1121,8 @@ export async function notificarDevolucionValidada(
   emailCliente: string,
   numeroPedido: string,
   nombreCliente?: string,
-  totalReembolso?: number
+  totalReembolso?: number,
+  datosDevolucion?: EmailDevolucion
 ) {
   try {
     console.log('📧 Preparando email de devolución validada para:', emailCliente);
@@ -955,12 +1221,55 @@ export async function notificarDevolucionValidada(
       </html>
     `;
 
+    // Generar PDF de factura rectificativa si hay datos disponibles
+    let attachments: any[] = [];
+    if (datosDevolucion) {
+      try {
+        console.log('📄 Generando PDF de factura rectificativa para validación...');
+        const pdfRectificativa = await generarPDFFacturaRectificativa(datosDevolucion);
+        console.log('✅ PDF rectificativa generado, tamaño:', pdfRectificativa.length, 'bytes');
+        attachments.push({
+          filename: `factura_rectificativa_${numeroPedido}.pdf`,
+          content: pdfRectificativa,
+          contentType: 'application/pdf'
+        });
+      } catch (pdfError) {
+        console.error('⚠️ Error generando PDF rectificativa:', pdfError);
+      }
+    }
+
     await getTransporter().sendMail({
       from: import.meta.env.GMAIL_USER,
       to: emailCliente,
       subject: `Devolución Validada - Reembolso Autorizado - ${numeroPedido}`,
-      html: htmlContent
+      html: htmlContent,
+      attachments
     });
+
+    // Enviar también la factura rectificativa al admin
+    if (attachments.length > 0) {
+      try {
+        const adminEmail = import.meta.env.ADMIN_EMAIL;
+        if (adminEmail) {
+          await getTransporter().sendMail({
+            from: import.meta.env.GMAIL_USER,
+            to: adminEmail,
+            subject: `[FACTURA RECTIFICATIVA] Devolución validada - ${numeroPedido}`,
+            html: `
+              <h2>Factura Rectificativa - Devolución Validada</h2>
+              <p><strong>Número de Pedido:</strong> ${numeroPedido}</p>
+              <p><strong>Cliente:</strong> ${emailCliente}</p>
+              ${totalReembolso ? `<p><strong>Reembolso:</strong> ${Number(totalReembolso).toFixed(2)} €</p>` : ''}
+              <p>Se adjunta la factura rectificativa correspondiente a la devolución validada.</p>
+            `,
+            attachments
+          });
+          console.log('✅ Factura rectificativa enviada al admin');
+        }
+      } catch (adminError) {
+        console.error('⚠️ Error enviando factura rectificativa al admin:', adminError);
+      }
+    }
 
     console.log('✅ Email de devolución validada enviado a:', emailCliente);
     return true;
