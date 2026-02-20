@@ -1,10 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
-const siteUrl = import.meta.env.PUBLIC_SITE_URL || 'https://ibericosrodriguezgonzalez.victoriafp.online';
 ---
 
 <Layout>
-  <div id="siteConfig" data-site-url={siteUrl} style="display:none;"></div>
   <style>
     .reset-page {
       min-height: 80vh;
@@ -114,7 +112,7 @@ const siteUrl = import.meta.env.PUBLIC_SITE_URL || 'https://ibericosrodriguezgon
     <div class="reset-container">
       <div class="reset-header">
         <h1 class="reset-title">Recuperar Contraseña</h1>
-        <p class="reset-subtitle">Introduce tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.</p>
+        <p class="reset-subtitle">Introduce tu correo electrónico y te enviaremos un código de 6 dígitos para restablecer tu contraseña.</p>
       </div>
 
       <form id="resetForm" class="reset-form">
@@ -131,7 +129,7 @@ const siteUrl = import.meta.env.PUBLIC_SITE_URL || 'https://ibericosrodriguezgon
         </div>
 
         <button type="submit" class="submit-btn" id="submitBtn">
-          Enviar enlace de recuperación
+          Enviar código de recuperación
         </button>
 
         <div id="successMessage" class="message message-success"></div>
@@ -147,7 +145,8 @@ const siteUrl = import.meta.env.PUBLIC_SITE_URL || 'https://ibericosrodriguezgon
 
     const supabase = createClient(
       import.meta.env.PUBLIC_SUPABASE_URL,
-      import.meta.env.PUBLIC_SUPABASE_ANON_KEY
+      import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+      { auth: { flowType: 'implicit' } }
     );
 
     const form = document.getElementById('resetForm') as HTMLFormElement | null;
@@ -171,27 +170,37 @@ const siteUrl = import.meta.env.PUBLIC_SITE_URL || 'https://ibericosrodriguezgon
       if (errorMsg) errorMsg.style.display = 'none';
 
       try {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: (document.getElementById('siteConfig')?.dataset.siteUrl || 'https://ibericosrodriguezgonzalez.victoriafp.online') + '/restablecer-contrasena',
-        });
+        const { error } = await supabase.auth.resetPasswordForEmail(email);
 
         if (error) throw error;
 
+        // Guardar email para la siguiente página
+        sessionStorage.setItem('recovery_email', email);
+
         if (successMsg) {
-          successMsg.textContent = 'Si existe una cuenta con ese email, recibirás un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada y la carpeta de spam.';
+          successMsg.textContent = 'Si existe una cuenta con ese email, recibirás un código de recuperación. Revisa tu bandeja de entrada y la carpeta de spam. Redirigiendo...';
           successMsg.style.display = 'block';
         }
         form?.reset();
+
+        // Redirigir a la página de código + nueva contraseña
+        setTimeout(() => {
+          window.location.href = '/restablecer-contrasena';
+        }, 2000);
       } catch (err) {
         // No revelar si el email existe o no por seguridad
+        sessionStorage.setItem('recovery_email', email);
         if (successMsg) {
-          successMsg.textContent = 'Si existe una cuenta con ese email, recibirás un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada y la carpeta de spam.';
+          successMsg.textContent = 'Si existe una cuenta con ese email, recibirás un código de recuperación. Revisa tu bandeja de entrada y la carpeta de spam. Redirigiendo...';
           successMsg.style.display = 'block';
         }
+        setTimeout(() => {
+          window.location.href = '/restablecer-contrasena';
+        }, 2000);
       } finally {
         if (submitBtn) {
           submitBtn.disabled = false;
-          submitBtn.textContent = 'Enviar enlace de recuperación';
+          submitBtn.textContent = 'Enviar código de recuperación';
         }
       }
     });
