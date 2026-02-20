@@ -246,17 +246,22 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
     }
 
-    // Determinar email del cliente (prioridad: BD > frontend > invitado)
+    // ═══════════════════════════════════════════════════════════
+    // DETERMINAR EMAIL DEL CLIENTE
+    // PRIORIDAD: invitado > usuario logueado > frontend
+    // Si es invitado, IGNORAR cualquier JWT anterior en cookies
+    // ═══════════════════════════════════════════════════════════
     let customerEmail: string | undefined;
     
-    if (dbUser?.email) {
+    if (datosInvitado?.email) {
+      // ES INVITADO: usar SIEMPRE el email del invitado
+      // Ignorar dbUser aunque haya JWT previo en cookies
+      customerEmail = datosInvitado.email;
+      console.log('👻 Email: INVITADO (ignorando JWT previo)');
+    } else if (dbUser?.email) {
       // Usuario logueado: obtener email de la BD (fuente fiable)
       customerEmail = dbUser.email;
       console.log('👤 Email: usuario BD');
-    } else if (datosInvitado?.email) {
-      // Es invitado
-      customerEmail = datosInvitado.email;
-      console.log('👻 Email: invitado');
     } else if (userEmail) {
       // Fallback: email enviado desde el frontend
       customerEmail = userEmail;
@@ -279,12 +284,37 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       successUrl += '&guest=true';
     }
 
-    // ── Determinar si el usuario ya tiene dirección guardada ──
-    const tieneNombre = !!(dbUser?.nombre || datosInvitado?.nombre);
-    const tieneDireccion = !!(dbUser?.direccion || datosInvitado?.direccion);
-    const nombreCliente = dbUser?.nombre || datosInvitado?.nombre || '';
-    const telefonoCliente = dbUser?.telefono || datosInvitado?.telefono || '';
-    const direccionCliente = dbUser?.direccion || datosInvitado?.direccion || '';
+    // ── Determinar datos del cliente (invitado > usuario logueado) ──
+    // Si es invitado, IGNORAR los datos de dbUser, aunque tenga JWT previo
+    let tieneNombre: boolean;
+    let tieneDireccion: boolean;
+    let nombreCliente: string;
+    let telefonoCliente: string;
+    let direccionCliente: string;
+
+    if (datosInvitado) {
+      // INVITADO: usar SOLO sus datos, ignorar JWT previo
+      tieneNombre = !!datosInvitado?.nombre;
+      tieneDireccion = !!datosInvitado?.direccion;
+      nombreCliente = datosInvitado?.nombre || '';
+      telefonoCliente = datosInvitado?.telefono || '';
+      direccionCliente = datosInvitado?.direccion || '';
+      console.log('👻 Usando datos del INVITADO');
+    } else if (dbUser) {
+      // USUARIO LOGUEADO: usar sus datos
+      tieneNombre = !!dbUser?.nombre;
+      tieneDireccion = !!dbUser?.direccion;
+      nombreCliente = dbUser?.nombre || '';
+      telefonoCliente = dbUser?.telefono || '';
+      direccionCliente = dbUser?.direccion || '';
+      console.log('👤 Usando datos del usuario logueado');
+    } else {
+      tieneNombre = false;
+      tieneDireccion = false;
+      nombreCliente = '';
+      telefonoCliente = '';
+      direccionCliente = '';
+    }
 
     console.log('📍 Dirección guardada:', direccionCliente, '| Tiene dirección:', tieneDireccion);
 
