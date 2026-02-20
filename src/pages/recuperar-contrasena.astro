@@ -167,7 +167,7 @@ import Layout from '../layouts/Layout.astro';
 
       try {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin + '/restablecer-contrasena',
+          redirectTo: (import.meta.env.PUBLIC_SITE_URL || window.location.origin) + '/restablecer-contrasena',
         });
 
         if (error) throw error;
