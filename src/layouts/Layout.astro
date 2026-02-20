@@ -2100,11 +2100,18 @@ const { data: categorias } = await supabaseClient
       (window as any).handleLogout = async function() {
         if (_logoutEnCurso) return;
         _logoutEnCurso = true;
-        console.log('Cerrando sesión...');
+        // Limpiar localStorage PRIMERO (antes del fetch, para que si falla el fetch
+        // al menos el estado local quede limpio)
+        const tema = localStorage.getItem('theme');
+        localStorage.clear();
+        if (tema) localStorage.setItem('theme', tema);
+        // Marcar en sessionStorage que acabamos de hacer logout
+        // Esto evita que la próxima carga de página re-autentique via /api/auth/me
+        sessionStorage.setItem('just_logged_out', '1');
         try {
           await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
         } catch (e) {
-          console.error('Error en logout:', e);
+          // No es crítico — localStorage ya está limpio
         }
         // Limpiar cookies accesibles desde JS
         const cookies = ['user_role', 'user_name', 'user_id', 'auth_token', 'sb-access-token', 'sb-refresh-token'];
@@ -2112,9 +2119,6 @@ const { data: categorias } = await supabaseClient
           document.cookie = c + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; SameSite=Lax';
           document.cookie = c + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; SameSite=Lax; Secure';
         });
-        const tema = localStorage.getItem('theme');
-        localStorage.clear();
-        if (tema) localStorage.setItem('theme', tema);
         window.location.href = '/';
       };
 
@@ -2394,8 +2398,16 @@ const { data: categorias } = await supabaseClient
       let userName = localStorage.getItem('user_name');
       let userRole = localStorage.getItem('user_role');
 
-      // Si no hay datos en localStorage, intentar obtener del endpoint
-      if ((!token || !userName) && authContainer) {
+      // Si acabamos de hacer logout, NO intentar re-autenticar via /api/auth/me
+      // (las cookies httpOnly podrían seguir en el navegador si el proxy no las borró)
+      const justLoggedOut = sessionStorage.getItem('just_logged_out');
+      if (justLoggedOut) {
+        sessionStorage.removeItem('just_logged_out');
+        token = null;
+        userName = null;
+        userRole = null;
+        renderAuthUI();
+      } else if ((!token || !userName) && authContainer) {
         fetch('/api/auth/me', { credentials: 'include' })
           .then(res => res.ok ? res.json() : null)
           .then(data => {
