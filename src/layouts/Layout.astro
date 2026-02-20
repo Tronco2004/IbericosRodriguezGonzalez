@@ -2728,11 +2728,11 @@ const { data: categorias } = await supabaseClient
     <!-- Chatbot flotante -->
     <ChatBot />
 
-    <!-- Popup Completar Perfil (para usuarios OAuth con perfil incompleto) -->
-    <div id="perfilPopup" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10000; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
-      <div style="background: var(--bg-card); border-radius: 16px; padding: 2.5rem; max-width: 460px; width: 90%; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.3); border: 1px solid var(--border-color); animation: popupSlideIn 0.4s ease-out;">
+    <!-- Popup Completar Perfil OBLIGATORIO (usuarios OAuth con perfil incompleto) -->
+    <div id="perfilPopup" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 10000; justify-content: center; align-items: center; backdrop-filter: blur(6px);">
+      <div style="background: var(--bg-card); border-radius: 16px; padding: 2.5rem; max-width: 460px; width: 90%; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.4); border: 1px solid var(--border-color); animation: popupSlideIn 0.4s ease-out; max-height: 90vh; overflow-y: auto;">
         <!-- Icono -->
-        <div style="text-align: center; margin-bottom: 1.5rem;">
+        <div style="text-align: center; margin-bottom: 1.25rem;">
           <div style="width: 64px; height: 64px; background: linear-gradient(135deg, var(--color-accent), var(--color-accent-light)); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(168, 153, 104, 0.3);">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
@@ -2742,44 +2742,65 @@ const { data: categorias } = await supabaseClient
         </div>
 
         <!-- Título -->
-        <h2 style="text-align: center; color: var(--text-primary); font-size: 1.4rem; margin: 0 0 0.5rem 0; font-weight: 700;">¡Bienvenido/a!</h2>
-        <p style="text-align: center; color: var(--text-muted); font-size: 0.95rem; margin: 0 0 1.5rem 0;">Tu cuenta con Google se ha creado correctamente.</p>
+        <h2 style="text-align: center; color: var(--text-primary); font-size: 1.4rem; margin: 0 0 0.4rem 0; font-weight: 700;">¡Bienvenido/a!</h2>
+        <p style="text-align: center; color: var(--text-muted); font-size: 0.9rem; margin: 0 0 1.25rem 0;">Completa tu perfil para continuar usando la tienda.</p>
 
-        <!-- Aviso importante -->
-        <div style="background: linear-gradient(135deg, #fef3c7, #fde68a); border: 1px solid #f59e0b; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.5rem;">
-          <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
-            <div>
-              <p style="margin: 0 0 0.25rem 0; font-weight: 700; color: #92400e; font-size: 0.95rem;">Completa tu perfil para poder recibir pedidos</p>
-              <p style="margin: 0; color: #a16207; font-size: 0.85rem;">Sin dirección de envío y teléfono de contacto, no podremos enviarte tu pedido.</p>
-            </div>
-          </div>
+        <!-- Aviso obligatorio -->
+        <div style="background: linear-gradient(135deg, #fef3c7, #fde68a); border: 1px solid #f59e0b; border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1.5rem;">
+          <p style="margin: 0; font-weight: 700; color: #92400e; font-size: 0.88rem;">Debes completar estos datos antes de continuar. No podrás navegar por la tienda hasta terminar.</p>
         </div>
 
-        <!-- Qué falta -->
-        <div style="background: var(--bg-tertiary); border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.75rem; border: 1px solid var(--border-color);">
-          <p style="margin: 0 0 0.75rem 0; font-weight: 600; color: var(--text-primary); font-size: 0.9rem;">Te falta completar:</p>
-          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <span style="color: var(--text-secondary); font-size: 0.9rem;">Dirección de envío</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <span style="color: var(--text-secondary); font-size: 0.9rem;">Teléfono de contacto</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <span style="color: var(--text-secondary); font-size: 0.9rem;">Contraseña (opcional, para login con email)</span>
-            </div>
-          </div>
-        </div>
+        <!-- Formulario -->
+        <form id="formCompletarPerfil" style="display: flex; flex-direction: column; gap: 1rem;">
 
-        <!-- Botones -->
-        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-          <a href="/mi-perfil" id="btnIrPerfil" style="display: block; text-align: center; padding: 0.9rem; background: linear-gradient(135deg, var(--color-accent), var(--color-accent-dark)); color: white; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 1rem; transition: all 0.3s; box-shadow: 0 4px 12px rgba(168, 153, 104, 0.3); text-transform: uppercase; letter-spacing: 0.5px;">
-            Completar mi perfil
-          </a>
-          <button id="btnCerrarPerfilPopup" style="padding: 0.7rem; background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); border-radius: 10px; cursor: pointer; font-size: 0.9rem; transition: all 0.3s;">
-            Más tarde
+          <!-- Número de teléfono -->
+          <div>
+            <label for="popupTelefono" style="display: block; font-size: 0.78rem; font-weight: 700; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.4rem;">Número de teléfono *</label>
+            <input
+              id="popupTelefono"
+              type="tel"
+              placeholder="Ej: 612 345 678"
+              required
+              style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; box-sizing: border-box; background: var(--bg-input); color: var(--text-primary); transition: border-color 0.2s;"
+            />
+          </div>
+
+          <!-- Contraseña -->
+          <div>
+            <label for="popupContrasena" style="display: block; font-size: 0.78rem; font-weight: 700; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.4rem;">Contraseña *</label>
+            <input
+              id="popupContrasena"
+              type="password"
+              placeholder="Mínimo 6 caracteres"
+              required
+              style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; box-sizing: border-box; background: var(--bg-input); color: var(--text-primary); transition: border-color 0.2s;"
+            />
+          </div>
+
+          <!-- Confirmar contraseña -->
+          <div>
+            <label for="popupContrasenaConfirm" style="display: block; font-size: 0.78rem; font-weight: 700; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.4rem;">Confirmar contraseña *</label>
+            <input
+              id="popupContrasenaConfirm"
+              type="password"
+              placeholder="Repite la contraseña"
+              required
+              style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; box-sizing: border-box; background: var(--bg-input); color: var(--text-primary); transition: border-color 0.2s;"
+            />
+          </div>
+
+          <!-- Mensaje de estado -->
+          <div id="popupMensaje" style="display: none; padding: 0.85rem 1rem; border-radius: 8px; font-size: 0.9rem; border-left: 4px solid;"></div>
+
+          <!-- Botón guardar -->
+          <button
+            type="submit"
+            id="popupBtnGuardar"
+            style="width: 100%; padding: 0.9rem; background: linear-gradient(135deg, var(--color-accent), var(--color-accent-dark)); color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 1rem; transition: all 0.3s; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 4px 12px rgba(168, 153, 104, 0.3); margin-top: 0.25rem;"
+          >
+            Guardar y continuar
           </button>
-        </div>
+        </form>
       </div>
     </div>
 
@@ -2788,56 +2809,144 @@ const { data: categorias } = await supabaseClient
         from { opacity: 0; transform: translateY(20px) scale(0.95); }
         to { opacity: 1; transform: translateY(0) scale(1); }
       }
-      #perfilPopup a:hover {
+      #perfilPopup input:focus {
+        outline: none;
+        border-color: var(--color-accent) !important;
+        box-shadow: 0 0 0 3px rgba(168, 153, 104, 0.12) !important;
+      }
+      #popupBtnGuardar:hover:not(:disabled) {
         transform: translateY(-2px);
         box-shadow: 0 6px 20px rgba(168, 153, 104, 0.4) !important;
       }
-      #perfilPopup button:hover {
-        background: var(--bg-tertiary) !important;
-        color: var(--text-primary) !important;
+      #popupBtnGuardar:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
       }
     </style>
 
     <script>
-      // Popup de completar perfil tras login con Google
-      function mostrarPopupPerfil() {
-        const mostrar = localStorage.getItem('mostrar_popup_perfil');
-        if (mostrar === 'true') {
+      // Popup OBLIGATORIO de completar perfil tras login con Google
+      async function verificarYMostrarPopupPerfil() {
+        // Verificar flag persistente en localStorage
+        const incompleto = localStorage.getItem('perfil_incompleto');
+        if (incompleto === 'true') {
           const popup = document.getElementById('perfilPopup');
-          if (popup) {
-            popup.style.display = 'flex';
-          }
-          // Limpiar el flag para que no se muestre de nuevo
-          localStorage.removeItem('mostrar_popup_perfil');
+          if (popup) popup.style.display = 'flex';
+          return;
+        }
+
+        // Si hay sesión activa, verificar también contra el servidor por si recargó sin el flag
+        const token = localStorage.getItem('auth_token');
+        if (token && token !== 'null') {
+          try {
+            const res = await fetch('/api/auth/me', { credentials: 'include' });
+            if (res.ok) {
+              const data = await res.json();
+              if (data.success && data.usuario) {
+                const faltaTelefono = !data.usuario.telefono;
+                const faltaPassword = !data.usuario.tienePassword;
+                if (faltaTelefono || faltaPassword) {
+                  localStorage.setItem('perfil_incompleto', 'true');
+                  const popup = document.getElementById('perfilPopup');
+                  if (popup) popup.style.display = 'flex';
+                }
+              }
+            }
+          } catch (_) {}
         }
       }
 
-      // Cerrar popup
-      document.getElementById('btnCerrarPerfilPopup')?.addEventListener('click', () => {
-        const popup = document.getElementById('perfilPopup');
-        if (popup) popup.style.display = 'none';
-      });
-
-      // Cerrar al hacer click en "Completar mi perfil" (ya redirige)
-      document.getElementById('btnIrPerfil')?.addEventListener('click', () => {
-        const popup = document.getElementById('perfilPopup');
-        if (popup) popup.style.display = 'none';
-      });
-
-      // Cerrar al hacer click fuera del popup
+      // NO permitir cerrar el popup haciendo clic fuera
       document.getElementById('perfilPopup')?.addEventListener('click', (e) => {
-        const target = e.target as HTMLElement;
-        if (target && target.id === 'perfilPopup') {
-          const popup = document.getElementById('perfilPopup');
-          if (popup) popup.style.display = 'none';
+        e.stopPropagation();
+      });
+
+      // Enviar formulario
+      document.getElementById('formCompletarPerfil')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const telefono = (document.getElementById('popupTelefono') as HTMLInputElement)?.value?.trim();
+        const contrasena = (document.getElementById('popupContrasena') as HTMLInputElement)?.value;
+        const contrasenaConfirm = (document.getElementById('popupContrasenaConfirm') as HTMLInputElement)?.value;
+        const mensajeEl = document.getElementById('popupMensaje');
+        const boton = document.getElementById('popupBtnGuardar') as HTMLButtonElement;
+
+        const mostrarError = (msg: string) => {
+          if (!mensajeEl) return;
+          mensajeEl.textContent = msg;
+          mensajeEl.style.display = 'block';
+          mensajeEl.style.background = '#fee2e2';
+          mensajeEl.style.color = '#991b1b';
+          mensajeEl.style.borderLeftColor = '#ef4444';
+        };
+
+        const mostrarExito = (msg: string) => {
+          if (!mensajeEl) return;
+          mensajeEl.textContent = msg;
+          mensajeEl.style.display = 'block';
+          mensajeEl.style.background = '#d1fae5';
+          mensajeEl.style.color = '#065f46';
+          mensajeEl.style.borderLeftColor = '#10b981';
+        };
+
+        if (!telefono) return mostrarError('El número de teléfono es obligatorio.');
+        if (!contrasena) return mostrarError('La contraseña es obligatoria.');
+        if (contrasena.length < 6) return mostrarError('La contraseña debe tener al menos 6 caracteres.');
+        if (contrasena !== contrasenaConfirm) return mostrarError('Las contraseñas no coinciden.');
+
+        boton.disabled = true;
+        boton.textContent = 'Guardando...';
+        if (mensajeEl) mensajeEl.style.display = 'none';
+
+        try {
+          // Obtener nombre actual para no perderlo al actualizar
+          let nombreActual = localStorage.getItem('user_name') || 'Usuario';
+
+          // 1. Guardar teléfono
+          const resPerfil = await fetch('/api/auth/actualizar-perfil', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nombre: nombreActual, telefono, direccion: null })
+          });
+          const dataPerfil = await resPerfil.json();
+          if (!resPerfil.ok || !dataPerfil.success) {
+            throw new Error(dataPerfil.message || 'Error guardando el teléfono');
+          }
+
+          // 2. Establecer contraseña
+          const resPass = await fetch('/api/auth/establecer-contrasena', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contrasenaNueva: contrasena, contrasenaConfirm: contrasenaConfirm })
+          });
+          const dataPass = await resPass.json();
+          if (!resPass.ok || !dataPass.success) {
+            throw new Error(dataPass.message || 'Error estableciendo la contraseña');
+          }
+
+          // 3. Limpiar flag y cerrar popup
+          localStorage.removeItem('perfil_incompleto');
+          localStorage.removeItem('mostrar_popup_perfil');
+          mostrarExito('¡Perfil completado! Redirigiendo...');
+          setTimeout(() => {
+            const popup = document.getElementById('perfilPopup');
+            if (popup) popup.style.display = 'none';
+          }, 1200);
+
+        } catch (err: any) {
+          mostrarError(err.message || 'Error desconocido. Inténtalo de nuevo.');
+          boton.disabled = false;
+          boton.textContent = 'Guardar y continuar';
         }
       });
 
       // Mostrar al cargar la página
       if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', mostrarPopupPerfil);
+        document.addEventListener('DOMContentLoaded', verificarYMostrarPopupPerfil);
       } else {
-        mostrarPopupPerfil();
+        verificarYMostrarPopupPerfil();
       }
     </script>
   </body>

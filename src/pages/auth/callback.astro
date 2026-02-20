@@ -126,9 +126,11 @@ import Layout from '../../layouts/Layout.astro';
           localStorage.setItem('user_name', result.usuario.nombre);
           localStorage.setItem('user_email', result.usuario.email);
 
-          // Si el perfil está incompleto, marcar para mostrar popup
-          if (result.perfilIncompleto) {
-            localStorage.setItem('mostrar_popup_perfil', 'true');
+          // Si el perfil está incompleto o es nuevo usuario, marcar flag persistente
+          if (result.perfilIncompleto || result.esNuevo) {
+            localStorage.setItem('perfil_incompleto', 'true');
+          } else {
+            localStorage.removeItem('perfil_incompleto');
           }
 
           // Redirigir
