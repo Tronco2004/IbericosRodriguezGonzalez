@@ -70,13 +70,18 @@ export const GET: APIRoute = async () => {
     const stockTotal = stockProductosSimples + stockVariantes;
     console.log('✅ Stock TOTAL:', stockTotal);
 
-    // 6. Obtener ingresos totales de ESTE MES (suma de SUBTOTAL de pedidos CON ESTADO PAGADO del mes actual)
+    // 6. Obtener ingresos totales de ESTE MES
+    // Incluir TODOS los estados que representan un pago completado:
+    // pagado, preparando, enviado, entregado, devolucion_solicitada, devolucion_denegada
+    // NO incluir: cancelado (no se pagó), devolucion_recibida (se resta aparte)
     const ahora = new Date();
     const primerDiaDelMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1).toISOString();
     const ultimoDiaDelMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0).toISOString();
-    
+
     console.log('📅 Buscando ingresos entre:', primerDiaDelMes, 'y', ultimoDiaDelMes);
-    
+
+    const estadosPagados = ['pagado', 'preparando', 'enviado', 'entregado', 'devolucion_solicitada', 'devolucion_denegada'];
+
     // Obtener pedidos CON sus items para calcular subtotal desde los items
     const { data: pedidosMes, error: ingresosError } = await supabaseAdmin
       .from('pedidos')
@@ -87,7 +92,7 @@ export const GET: APIRoute = async () => {
           subtotal
         )
       `)
-      .eq('estado', 'pagado')
+      .in('estado', estadosPagados)
       .gte('fecha_creacion', primerDiaDelMes)
       .lte('fecha_creacion', ultimoDiaDelMes);
 
