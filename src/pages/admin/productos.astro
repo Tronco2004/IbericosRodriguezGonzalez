@@ -585,12 +585,12 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
             console.log('✅ Variante eliminada de la BD');
           } else {
             console.error('❌ Error eliminando variante:', result.error);
-            alert('Error al eliminar la variante: ' + (result.error || 'Error desconocido'));
+            showPopup('Error al eliminar la variante: ' + (result.error || 'Error desconocido'), 'error');
             return;
           }
         } catch (error) {
           console.error('❌ Error en petición DELETE:', error);
-          alert('Error de conexión al eliminar la variante');
+          showPopup('Error de conexión al eliminar la variante', 'error');
           return;
         }
       }
@@ -922,7 +922,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       // Validar categoría
       const categoriaValue = document.getElementById('categoria').value;
       if (!categoriaValue) {
-        alert('Por favor selecciona una categoría');
+        showPopup('Por favor selecciona una categoría', 'error');
         return;
       }
 
@@ -1114,7 +1114,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         cargarProductos(); // Recargar desde Supabase
       } catch (error) {
         console.error('Error guardando producto:', error);
-        alert('Error al guardar: ' + (error instanceof Error ? error.message : 'Error desconocido'));
+        showPopup('Error al guardar: ' + (error instanceof Error ? error.message : 'Error desconocido'), 'error');
       }
     }
 
@@ -1147,7 +1147,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         cargarProductos(); // Recargar desde Supabase
       } catch (error) {
         console.error('Error eliminando producto:', error);
-        alert('Error al eliminar: ' + (error instanceof Error ? error.message : 'Error desconocido'));
+        showPopup('Error al eliminar: ' + (error instanceof Error ? error.message : 'Error desconocido'), 'error');
       }
     }
 
