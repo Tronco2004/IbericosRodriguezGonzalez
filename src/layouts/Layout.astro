@@ -2766,11 +2766,35 @@ const { data: categorias } = await supabaseClient
 
           <!-- Dirección -->
           <div>
-            <label for="popupDireccion" style="display: block; font-size: 0.78rem; font-weight: 700; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.4rem;">Dirección de envío *</label>
+            <label for="popupDireccion" style="display: block; font-size: 0.78rem; font-weight: 700; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.4rem;">Dirección *</label>
             <input
               id="popupDireccion"
               type="text"
-              placeholder="Ej: Calle Mayor 12, 2ºB, 28001 Madrid"
+              placeholder="Ej: Calle Mayor 12"
+              required
+              style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; box-sizing: border-box; background: var(--bg-input); color: var(--text-primary); transition: border-color 0.2s;"
+            />
+          </div>
+
+          <!-- Código Postal -->
+          <div>
+            <label for="popupCodigoPostal" style="display: block; font-size: 0.78rem; font-weight: 700; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.4rem;">Código Postal *</label>
+            <input
+              id="popupCodigoPostal"
+              type="text"
+              placeholder="Ej: 28001"
+              required
+              style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; box-sizing: border-box; background: var(--bg-input); color: var(--text-primary); transition: border-color 0.2s;"
+            />
+          </div>
+
+          <!-- Piso -->
+          <div>
+            <label for="popupPiso" style="display: block; font-size: 0.78rem; font-weight: 700; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.4rem;">Piso / Puerta *</label>
+            <input
+              id="popupPiso"
+              type="text"
+              placeholder="Ej: 2ºB"
               required
               style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; box-sizing: border-box; background: var(--bg-input); color: var(--text-primary); transition: border-color 0.2s;"
             />
@@ -2857,6 +2881,8 @@ const { data: categorias } = await supabaseClient
 
         const telefono = (document.getElementById('popupTelefono') as HTMLInputElement)?.value?.trim();
         const direccion = (document.getElementById('popupDireccion') as HTMLInputElement)?.value?.trim();
+        const codigoPostal = (document.getElementById('popupCodigoPostal') as HTMLInputElement)?.value?.trim();
+        const piso = (document.getElementById('popupPiso') as HTMLInputElement)?.value?.trim();
         const contrasena = (document.getElementById('popupContrasena') as HTMLInputElement)?.value;
         const contrasenaConfirm = (document.getElementById('popupContrasenaConfirm') as HTMLInputElement)?.value;
         const mensajeEl = document.getElementById('popupMensaje');
@@ -2881,10 +2907,15 @@ const { data: categorias } = await supabaseClient
         };
 
         if (!telefono) return mostrarError('El número de teléfono es obligatorio.');
-        if (!direccion) return mostrarError('La dirección de envío es obligatoria.');
+        if (!direccion) return mostrarError('La dirección es obligatoria.');
+        if (!codigoPostal) return mostrarError('El código postal es obligatorio.');
+        if (!piso) return mostrarError('El piso/puerta es obligatorio.');
         if (!contrasena) return mostrarError('La contraseña es obligatoria.');
         if (contrasena.length < 6) return mostrarError('La contraseña debe tener al menos 6 caracteres.');
         if (contrasena !== contrasenaConfirm) return mostrarError('Las contraseñas no coinciden.');
+
+        // Concatenar dirección en formato "Dirección | Código Postal | Piso"
+        const direccionConcatenada = `${direccion} | ${codigoPostal} | ${piso}`;
 
         boton.disabled = true;
         boton.textContent = 'Guardando...';
@@ -2899,7 +2930,7 @@ const { data: categorias } = await supabaseClient
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nombre: nombreActual, telefono, direccion })
+            body: JSON.stringify({ nombre: nombreActual, telefono, direccion: direccionConcatenada })
           });
           const dataPerfil = await resPerfil.json();
           if (!resPerfil.ok || !dataPerfil.success) {

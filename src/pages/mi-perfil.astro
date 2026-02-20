@@ -77,11 +77,33 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
             
             <!-- Dirección -->
             <div style="background: var(--bg-input); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
-              <label for="direccionInput" style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Dirección</label>
+              <label for="direccionInput" style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Dirección *</label>
               <input 
                 id="direccionInput"
                 type="text"
-                placeholder="Tu dirección de envío"
+                placeholder="Ej: Calle Mayor 12"
+                style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem; box-sizing: border-box; transition: all 0.3s; background: var(--bg-input); color: var(--text-primary);"
+              />
+            </div>
+
+            <!-- Código Postal -->
+            <div style="background: var(--bg-input); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+              <label for="codigoPostalInput" style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Código Postal *</label>
+              <input 
+                id="codigoPostalInput"
+                type="text"
+                placeholder="Ej: 28001"
+                style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem; box-sizing: border-box; transition: all 0.3s; background: var(--bg-input); color: var(--text-primary);"
+              />
+            </div>
+
+            <!-- Piso -->
+            <div style="background: var(--bg-input); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+              <label for="pisoInput" style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">Piso / Puerta *</label>
+              <input 
+                id="pisoInput"
+                type="text"
+                placeholder="Ej: 2ºB"
                 style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem; box-sizing: border-box; transition: all 0.3s; background: var(--bg-input); color: var(--text-primary);"
               />
             </div>
@@ -165,7 +187,13 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
           const emailDisplay = document.getElementById('emailDisplay');
           if (emailDisplay) emailDisplay.textContent = data.usuario.email || '-';
           (document.getElementById('telefonoInput') as HTMLInputElement).value = data.usuario.telefono || '';
-          (document.getElementById('direccionInput') as HTMLInputElement).value = data.usuario.direccion || '';
+          
+          // Parsear dirección concatenada (formato: "Dirección | Código Postal | Piso")
+          const direccionCompleta = data.usuario.direccion || '';
+          const partes = direccionCompleta.split('|').map((p: string) => p.trim());
+          (document.getElementById('direccionInput') as HTMLInputElement).value = partes[0] || '';
+          (document.getElementById('codigoPostalInput') as HTMLInputElement).value = partes[1] || '';
+          (document.getElementById('pisoInput') as HTMLInputElement).value = partes[2] || '';
           
           // Detectar si el usuario viene de OAuth
           if (!data.usuario.tienePassword && data.usuario.provider !== 'email') {
@@ -190,7 +218,9 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
       
       const nombre = (document.getElementById('nombreInput') as HTMLInputElement)?.value || '';
       const telefono = (document.getElementById('telefonoInput') as HTMLInputElement)?.value || '';
-      const direccion = (document.getElementById('direccionInput') as HTMLInputElement)?.value || '';
+      const direccion = (document.getElementById('direccionInput') as HTMLInputElement)?.value?.trim() || '';
+      const codigoPostal = (document.getElementById('codigoPostalInput') as HTMLInputElement)?.value?.trim() || '';
+      const piso = (document.getElementById('pisoInput') as HTMLInputElement)?.value?.trim() || '';
       const mensajeEstado = document.getElementById('mensajePerfilEstado');
       const boton = (e.target as HTMLFormElement)?.querySelector('button[type="submit"]') as HTMLButtonElement | null;
 
@@ -202,6 +232,25 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
         mostrarMensaje('El nombre es requerido', 'error', mensajeEstado, true);
         return;
       }
+
+      // Validar dirección completa
+      if (!direccion) {
+        mostrarMensaje('La dirección es requerida', 'error', mensajeEstado, true);
+        return;
+      }
+
+      if (!codigoPostal) {
+        mostrarMensaje('El código postal es requerido', 'error', mensajeEstado, true);
+        return;
+      }
+
+      if (!piso) {
+        mostrarMensaje('El piso/puerta es requerido', 'error', mensajeEstado, true);
+        return;
+      }
+
+      // Concatenar dirección en formato "Dirección | Código Postal | Piso"
+      const direccionConcatenada = `${direccion} | ${codigoPostal} | ${piso}`;
 
       try {
         if (boton) {
@@ -218,7 +267,7 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
           body: JSON.stringify({
             nombre: nombre.trim(),
             telefono: telefono?.trim() || null,
-            direccion: direccion?.trim() || null
+            direccion: direccionConcatenada
           })
         });
 

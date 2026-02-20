@@ -709,11 +709,31 @@ import Layout from '../layouts/Layout.astro';
         </div>
 
         <div id="campoPerfilDireccion" style="display: none;">
-          <label class="form-label">Dirección de envío *</label>
+          <label class="form-label">Dirección *</label>
           <input
             type="text"
             id="perfilDireccion"
-            placeholder="Ej: Calle Mayor 12, 2ºB, 28001 Madrid"
+            placeholder="Ej: Calle Mayor 12"
+            class="form-input"
+          />
+        </div>
+
+        <div id="campoPerfilCodigoPostal" style="display: none;">
+          <label class="form-label">Código Postal *</label>
+          <input
+            type="text"
+            id="perfilCodigoPostal"
+            placeholder="Ej: 28001"
+            class="form-input"
+          />
+        </div>
+
+        <div id="campoPerfilPiso" style="display: none;">
+          <label class="form-label">Piso / Puerta *</label>
+          <input
+            type="text"
+            id="perfilPiso"
+            placeholder="Ej: 2ºB"
             class="form-input"
           />
         </div>
@@ -1730,17 +1750,51 @@ import Layout from '../layouts/Layout.astro';
 
       const campoTelefono = document.getElementById('campoPerfilTelefono');
       const campoDireccion = document.getElementById('campoPerfilDireccion');
+      const campoCodigoPostal = document.getElementById('campoPerfilCodigoPostal');
+      const campoPiso = document.getElementById('campoPerfilPiso');
+
       const inputTelefono = document.getElementById('perfilTelefono') as HTMLInputElement;
       const inputDireccion = document.getElementById('perfilDireccion') as HTMLInputElement;
+      const inputCodigoPostal = document.getElementById('perfilCodigoPostal') as HTMLInputElement;
+      const inputPiso = document.getElementById('perfilPiso') as HTMLInputElement;
+
+      // Parsear dirección concatenada (formato: "Dirección | Código Postal | Piso")
+      let direccionSeparada = { direccion: '', codigoPostal: '', piso: '' };
+      if (usuario.direccion) {
+        const partes = usuario.direccion.split('|').map((p: string) => p.trim());
+        direccionSeparada = {
+          direccion: partes[0] || '',
+          codigoPostal: partes[1] || '',
+          piso: partes[2] || ''
+        };
+      }
 
       // Mostrar solo los campos que faltan
       if (!usuario.telefono && campoTelefono) {
         campoTelefono.style.display = 'block';
         inputTelefono.required = true;
       }
-      if (!usuario.direccion && campoDireccion) {
+      if (!usuario.direccion && campoDireccion && campoCodigoPostal && campoPiso) {
         campoDireccion.style.display = 'block';
+        campoCodigoPostal.style.display = 'block';
+        campoPiso.style.display = 'block';
         inputDireccion.required = true;
+        inputCodigoPostal.required = true;
+        inputPiso.required = true;
+      }
+
+      // Prellenar datos existentes (si existen)
+      if (direccionSeparada.direccion) {
+        inputDireccion.value = direccionSeparada.direccion;
+      }
+      if (direccionSeparada.codigoPostal) {
+        inputCodigoPostal.value = direccionSeparada.codigoPostal;
+      }
+      if (direccionSeparada.piso) {
+        inputPiso.value = direccionSeparada.piso;
+      }
+      if (usuario.telefono) {
+        inputTelefono.value = usuario.telefono;
       }
 
       modal.style.display = 'flex';
@@ -1929,9 +1983,14 @@ import Layout from '../layouts/Layout.astro';
           e.preventDefault();
           const telefonoEl = document.getElementById('perfilTelefono') as HTMLInputElement | null;
           const direccionEl = document.getElementById('perfilDireccion') as HTMLInputElement | null;
+          const codigoPostalEl = document.getElementById('perfilCodigoPostal') as HTMLInputElement | null;
+          const pisoEl = document.getElementById('perfilPiso') as HTMLInputElement | null;
           const errorEl = document.getElementById('perfilMensajeError');
+          
           const telefono = telefonoEl?.value.trim() || '';
           const direccion = direccionEl?.value.trim() || '';
+          const codigoPostal = codigoPostalEl?.value.trim() || '';
+          const piso = pisoEl?.value.trim() || '';
 
           // Validar campos visibles
           if (telefonoEl?.required && !telefono) {
@@ -1942,8 +2001,19 @@ import Layout from '../layouts/Layout.astro';
             if (errorEl) { errorEl.textContent = 'La dirección es obligatoria.'; errorEl.style.display = 'block'; }
             return;
           }
+          if (codigoPostalEl?.required && !codigoPostal) {
+            if (errorEl) { errorEl.textContent = 'El código postal es obligatorio.'; errorEl.style.display = 'block'; }
+            return;
+          }
+          if (pisoEl?.required && !piso) {
+            if (errorEl) { errorEl.textContent = 'El piso/puerta es obligatorio.'; errorEl.style.display = 'block'; }
+            return;
+          }
 
           if (errorEl) errorEl.style.display = 'none';
+
+          // Concatenar dirección en formato "Dirección | Código Postal | Piso"
+          const direccionConcatenada = `${direccion} | ${codigoPostal} | ${piso}`;
 
           try {
             const nombreActual = localStorage.getItem('user_name') || 'Usuario';
@@ -1954,7 +2024,7 @@ import Layout from '../layouts/Layout.astro';
               body: JSON.stringify({
                 nombre: nombreActual,
                 telefono: telefono || undefined,
-                direccion: direccion || undefined,
+                direccion: direccionConcatenada,
               })
             });
             const data = await res.json();
