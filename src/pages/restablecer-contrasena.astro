@@ -56,6 +56,13 @@ import Layout from '../layouts/Layout.astro';
     .form-input::placeholder {
       color: var(--text-muted);
     }
+    .code-input {
+      text-align: center;
+      font-size: 1.5rem;
+      letter-spacing: 8px;
+      font-weight: 700;
+      padding: 1rem;
+    }
     .submit-btn {
       width: 100%;
       padding: 0.75rem;
@@ -98,16 +105,60 @@ import Layout from '../layouts/Layout.astro';
       color: var(--text-muted);
       margin: 0.25rem 0 0 0;
     }
+    .resend-link {
+      display: block;
+      text-align: center;
+      color: var(--color-accent);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+      text-decoration: underline;
+    }
+    .resend-link:disabled {
+      color: var(--text-muted);
+      cursor: not-allowed;
+      text-decoration: none;
+    }
+    .back-link {
+      display: block;
+      text-align: center;
+      color: var(--color-accent);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.95rem;
+      margin-top: 1.5rem;
+    }
+    .back-link:hover {
+      text-decoration: underline;
+    }
   </style>
 
   <div class="reset-page">
     <div class="reset-container">
       <div class="reset-header">
         <h1 class="reset-title">Nueva Contraseña</h1>
-        <p class="reset-subtitle">Introduce tu nueva contraseña</p>
+        <p class="reset-subtitle">Introduce el código de 6 dígitos que te hemos enviado al email y tu nueva contraseña</p>
       </div>
 
       <form id="newPasswordForm" class="reset-form">
+        <div class="form-group">
+          <label class="form-label">Código de recuperación</label>
+          <input 
+            type="text" 
+            name="otpCode" 
+            required 
+            placeholder="000000"
+            class="form-input code-input"
+            id="otpCodeInput"
+            maxlength="6"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+          />
+          <button type="button" class="resend-link" id="resendBtn">¿No recibiste el código? Reenviar</button>
+        </div>
+
         <div class="form-group">
           <label class="form-label">Nueva contraseña</label>
           <input 
@@ -142,6 +193,8 @@ import Layout from '../layouts/Layout.astro';
         <div id="successMessage" class="message message-success"></div>
         <div id="errorMessage" class="message message-error"></div>
       </form>
+
+      <a href="/recuperar-contrasena" class="back-link">Volver a solicitar código</a>
     </div>
   </div>
 
@@ -150,59 +203,82 @@ import Layout from '../layouts/Layout.astro';
 
     const supabase = createClient(
       import.meta.env.PUBLIC_SUPABASE_URL,
-      import.meta.env.PUBLIC_SUPABASE_ANON_KEY
+      import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+      { auth: { flowType: 'implicit' } }
     );
 
     const form = document.getElementById('newPasswordForm') as HTMLFormElement | null;
     const submitBtn = document.getElementById('submitBtn') as HTMLButtonElement | null;
     const successMsg = document.getElementById('successMessage');
     const errorMsg = document.getElementById('errorMessage');
+    const resendBtn = document.getElementById('resendBtn') as HTMLButtonElement | null;
 
-    // Recuperar la sesión del hash fragment que Supabase pone en la URL
-    async function init() {
-      // Supabase pone los tokens en el hash: #access_token=...&type=recovery
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const accessToken = hashParams.get('access_token');
-      const refreshToken = hashParams.get('refresh_token');
-      const type = hashParams.get('type');
+    // Obtener email de la página anterior
+    const recoveryEmail = sessionStorage.getItem('recovery_email') || '';
 
-      if (type === 'recovery' && accessToken) {
-        try {
-          const { error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken || '',
-          });
-          if (error) {
-            console.error('Error estableciendo sesión de recovery:', error);
-            if (errorMsg) {
-              errorMsg.textContent = 'El enlace ha expirado o no es válido. Solicita uno nuevo.';
-              errorMsg.style.display = 'block';
-            }
-            if (submitBtn) submitBtn.disabled = true;
-          }
-        } catch (e) {
-          console.error('Error en init:', e);
-          if (errorMsg) {
-            errorMsg.textContent = 'Error al procesar el enlace. Solicita uno nuevo.';
-            errorMsg.style.display = 'block';
-          }
-          if (submitBtn) submitBtn.disabled = true;
-        }
-      }
+    if (!recoveryEmail) {
+      window.location.href = '/recuperar-contrasena';
     }
 
-    init();
+    // ── Reenviar código ──
+    resendBtn?.addEventListener('click', async () => {
+      if (!recoveryEmail) {
+        window.location.href = '/recuperar-contrasena';
+        return;
+      }
 
+      if (resendBtn) {
+        resendBtn.disabled = true;
+        resendBtn.textContent = 'Enviando...';
+      }
+
+      try {
+        await supabase.auth.resetPasswordForEmail(recoveryEmail);
+        if (successMsg) {
+          successMsg.textContent = 'Código reenviado. Revisa tu bandeja de entrada.';
+          successMsg.style.display = 'block';
+        }
+      } catch (e) {
+        // Silenciar por seguridad
+      }
+
+      // Cooldown de 60 segundos
+      let seconds = 60;
+      const interval = setInterval(() => {
+        seconds--;
+        if (resendBtn) resendBtn.textContent = `Reenviar en ${seconds}s`;
+        if (seconds <= 0) {
+          clearInterval(interval);
+          if (resendBtn) {
+            resendBtn.disabled = false;
+            resendBtn.textContent = '¿No recibiste el código? Reenviar';
+          }
+        }
+      }, 1000);
+    });
+
+    // ── Enviar formulario ──
     form?.addEventListener('submit', async (e) => {
       e.preventDefault();
 
+      const otpInput = document.getElementById('otpCodeInput') as HTMLInputElement | null;
       const passwordInput = document.getElementById('passwordInput') as HTMLInputElement | null;
       const confirmInput = document.getElementById('confirmPasswordInput') as HTMLInputElement | null;
+      const otpCode = otpInput?.value.trim() || '';
       const password = passwordInput?.value || '';
       const confirmPassword = confirmInput?.value || '';
 
       if (successMsg) successMsg.style.display = 'none';
       if (errorMsg) errorMsg.style.display = 'none';
+
+      // Validaciones
+      if (!otpCode || otpCode.length !== 6) {
+        if (errorMsg) {
+          errorMsg.textContent = 'Introduce el código de 6 dígitos que recibiste por email';
+          errorMsg.style.display = 'block';
+        }
+        return;
+      }
 
       if (password.length < 6) {
         if (errorMsg) {
@@ -222,15 +298,32 @@ import Layout from '../layouts/Layout.astro';
 
       if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Restableciendo...';
+        submitBtn.textContent = 'Verificando código...';
       }
 
       try {
-        const { error } = await supabase.auth.updateUser({
+        // 1) Verificar el código OTP de Supabase
+        const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+          email: recoveryEmail,
+          token: otpCode,
+          type: 'recovery',
+        });
+
+        if (verifyError) {
+          throw new Error(verifyError.message === 'Token has expired or is invalid' 
+            ? 'El código ha expirado o no es válido. Solicita uno nuevo.'
+            : verifyError.message);
+        }
+
+        // 2) Con la sesión de recovery activa, actualizar la contraseña
+        const { error: updateError } = await supabase.auth.updateUser({
           password: password,
         });
 
-        if (error) throw error;
+        if (updateError) throw updateError;
+
+        // Limpiar
+        sessionStorage.removeItem('recovery_email');
 
         if (successMsg) {
           successMsg.textContent = 'Contraseña restablecida correctamente. Redirigiendo al login...';
@@ -238,14 +331,16 @@ import Layout from '../layouts/Layout.astro';
         }
         form?.reset();
 
-        // Cerrar sesión y redirigir al login
+        // Cerrar sesión de recovery y redirigir al login
         setTimeout(async () => {
           await supabase.auth.signOut();
           window.location.href = '/login';
         }, 2500);
       } catch (err) {
         if (errorMsg) {
-          errorMsg.textContent = err instanceof Error ? err.message : 'Error al restablecer la contraseña. El enlace puede haber expirado.';
+          errorMsg.textContent = err instanceof Error 
+            ? err.message 
+            : 'Error al restablecer la contraseña. Verifica el código e inténtalo de nuevo.';
           errorMsg.style.display = 'block';
         }
         if (submitBtn) {
