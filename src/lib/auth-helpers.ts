@@ -33,9 +33,10 @@ async function tryRefreshSession(
     const newRefreshToken = data.session.refresh_token;
 
     // Actualizar las cookies con los nuevos tokens
+    // secure: false para que funcione en HTTP (localhost) y HTTPS (producción)
     cookies.set('auth_token', newAccessToken, {
       httpOnly: true,
-      secure: true,
+      secure: false,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
@@ -43,7 +44,7 @@ async function tryRefreshSession(
 
     cookies.set('sb-access-token', newAccessToken, {
       httpOnly: true,
-      secure: true,
+      secure: false,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 365,
       path: '/',
@@ -52,7 +53,7 @@ async function tryRefreshSession(
     if (newRefreshToken) {
       cookies.set('sb-refresh-token', newRefreshToken, {
         httpOnly: true,
-        secure: true,
+        secure: false,
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 365,
         path: '/',
