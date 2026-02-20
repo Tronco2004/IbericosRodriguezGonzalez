@@ -124,7 +124,30 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     </div>
   </div>
 
+  <!-- PopUp de notificaciones -->
+  <div id="popupNotificacion" class="popup-notificacion" style="display: none;">
+    <div class="popup-icono" id="popupIcono"></div>
+    <span class="popup-mensaje" id="popupMensaje"></span>
+  </div>
+
   <script>
+    let popupTimeout;
+    function showPopup(mensaje, tipo = 'success') {
+      const popup = document.getElementById('popupNotificacion');
+      const icono = document.getElementById('popupIcono');
+      const msg = document.getElementById('popupMensaje');
+      if (popupTimeout) clearTimeout(popupTimeout);
+      icono.textContent = tipo === 'success' ? '\u2713' : '\u2715';
+      msg.textContent = mensaje;
+      popup.className = `popup-notificacion popup-${tipo} popup-visible`;
+      popup.style.display = 'flex';
+      popupTimeout = setTimeout(() => {
+        popup.classList.remove('popup-visible');
+        popup.classList.add('popup-hide');
+        setTimeout(() => { popup.style.display = 'none'; popup.classList.remove('popup-hide'); }, 400);
+      }, 3000);
+    }
+
     let clientes = [];
     let editingId = null;
 
@@ -272,7 +295,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         cargarClientes();
       } catch (error) {
         console.error('Error guardando cliente:', error);
-        alert('Error: ' + (error instanceof Error ? error.message : 'Error desconocido'));
+        showPopup('Error: ' + (error instanceof Error ? error.message : 'Error desconocido'), 'error');
       }
     }
 
@@ -288,10 +311,11 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
             throw new Error(result.message || 'Error al eliminar');
           }
           
+          showPopup('Cliente eliminado exitosamente', 'success');
           cargarClientes();
         } catch (error) {
           console.error('Error eliminando cliente:', error);
-          alert('Error: ' + (error instanceof Error ? error.message : 'Error desconocido'));
+          showPopup('Error: ' + (error instanceof Error ? error.message : 'Error desconocido'), 'error');
         }
       }
     }
@@ -341,5 +365,15 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       padding: 0.5rem 1rem;
       font-size: 0.85rem;
     }
+  </style>
+
+  <style>
+    .popup-notificacion { position: fixed; top: 2rem; right: 2rem; display: flex; align-items: center; gap: 0.75rem; padding: 1rem 1.5rem; border-radius: 12px; font-size: 0.95rem; font-weight: 600; z-index: 10000; box-shadow: 0 10px 40px rgba(0,0,0,0.2); opacity: 0; transform: translateX(100%); transition: all 0.4s cubic-bezier(0.22,1,0.36,1); }
+    .popup-visible { opacity: 1; transform: translateX(0); }
+    .popup-hide { opacity: 0; transform: translateX(100%); }
+    .popup-success { background: linear-gradient(135deg, #065f46 0%, #047857 100%); color: white; border: 1px solid rgba(255,255,255,0.15); }
+    .popup-error { background: linear-gradient(135deg, #991b1b 0%, #dc2626 100%); color: white; border: 1px solid rgba(255,255,255,0.15); }
+    .popup-icono { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 900; flex-shrink: 0; background: rgba(255,255,255,0.2); }
+    .popup-mensaje { max-width: 300px; }
   </style>
 </ProtectedLayout>
