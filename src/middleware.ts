@@ -87,7 +87,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
         .single();
 
       if (!usuario || usuario.rol !== 'admin') {
-        return context.redirect('/sin-acceso');
+        return context.redirect('/login?redirect=' + encodeURIComponent(path));
       }
     } catch {
       return context.redirect('/login?redirect=' + encodeURIComponent(path));
