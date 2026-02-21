@@ -248,19 +248,24 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         const estado = oferta.activa ? 'Activa' : 'Inactiva';
         const fechaFin = new Date(oferta.fecha_fin).toLocaleDateString('es-ES');
         const badgeClass = oferta.activa ? 'success' : 'danger';
-        const btnActivarTexto = oferta.activa ? 'Desactivar' : 'Activar';
-        const btnActivarColor = oferta.activa ? '#ef4444' : '#10b981';
+        const toggleIcon = oferta.activa ? '⊘' : '●';
+        const toggleBg = oferta.activa ? '#10b981' : '#6c757d';
         
         html += `<tr>
           <td>${oferta.nombre_oferta}</td>
           <td>${oferta.producto?.nombre || 'Sin producto'}</td>
           <td><strong class="ofertas-descuento">${descuento}%</strong></td>
           <td>${fechaFin}</td>
-          <td>
+          <td style="display: flex; align-items: center; gap: 0.5rem; justify-content: center;">
             <span class="admin-badge ${badgeClass}">${estado}</span>
+            <button onclick="toggleActivarOferta(${oferta.id}, ${!oferta.activa})" 
+              class="ofertas-toggle-btn" 
+              style="background: ${toggleBg}; color: white; border: none; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; padding: 0; transition: all 0.2s;" 
+              title="${oferta.activa ? 'Desactivar oferta' : 'Activar oferta'}">
+              ${toggleIcon}
+            </button>
           </td>
           <td class="center">
-            <button onclick="toggleActivarOferta(${oferta.id}, ${!oferta.activa})" class="admin-btn-secondary ofertas-btn-accion" style="background: ${btnActivarColor}; color: white; border: none;">${btnActivarTexto}</button>
             <button onclick="editarOferta(${oferta.id})" class="admin-btn-secondary ofertas-btn-accion">Editar</button>
             <button onclick="eliminarOferta(${oferta.id})" class="admin-btn-danger ofertas-btn-accion">Eliminar</button>
           </td>
@@ -692,6 +697,15 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         width: 100%;
         justify-content: center;
       }
+    }
+
+    .ofertas-toggle-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .ofertas-toggle-btn:active {
+      transform: scale(0.95);
     }
   </style>
 </ProtectedLayout>
