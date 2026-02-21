@@ -114,7 +114,7 @@ if (!categoriaDB && !categoryInfoFallback[slug as string]) {
         <option value="nombre">Nombre: A a Z</option>
         <option value="precio-asc">Precio: menor a mayor</option>
         <option value="precio-desc">Precio: mayor a menor</option>
-        <option value="nuevos">Más recientes</option>
+        <option value="nuevo">Más recientes</option>
       </select>
 
       <button id="btn-reset-filtros" class="btn-reset-filters">
@@ -1336,8 +1336,8 @@ if (!categoriaDB && !categoryInfoFallback[slug as string]) {
     }
 
     function actualizarContadorFiltrado() {
-      const precioMin = parseFloat(document.getElementById('precioMin').value) || 0;
-      const precioMax = parseFloat(document.getElementById('precioMax').value) || 1000;
+      const precioMin = parseFloat(document.getElementById('sliderPrecioMin').value) || 0;
+      const precioMax = parseFloat(document.getElementById('sliderPrecioMax').value) || 1000;
       const filtrados = productosOriginales.filter(p => {
         const precio = parseFloat(p.precio);
         return precio >= precioMin && precio <= precioMax;
@@ -1348,8 +1348,8 @@ if (!categoriaDB && !categoryInfoFallback[slug as string]) {
     }
 
     function aplicarFiltros() {
-      const precioMin = parseFloat(document.getElementById('precioMin').value) || 0;
-      const precioMax = parseFloat(document.getElementById('precioMax').value) || 1000;
+      const precioMin = parseFloat(document.getElementById('sliderPrecioMin').value) || 0;
+      const precioMax = parseFloat(document.getElementById('sliderPrecioMax').value) || 1000;
       const ordenSelect = document.getElementById('filtro-orden');
       
       const ordenSeleccionado = ordenSelect.value;
@@ -1367,6 +1367,8 @@ if (!categoriaDB && !categoryInfoFallback[slug as string]) {
         productosFiltrados.sort((a, b) => parseFloat(a.precio) - parseFloat(b.precio));
       } else if (ordenSeleccionado === 'precio-desc') {
         productosFiltrados.sort((a, b) => parseFloat(b.precio) - parseFloat(a.precio));
+      } else if (ordenSeleccionado === 'nuevo') {
+        productosFiltrados.sort((a, b) => b.id - a.id);
       }
 
       // Re-renderizar
