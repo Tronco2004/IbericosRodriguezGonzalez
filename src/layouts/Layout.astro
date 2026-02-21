@@ -2679,8 +2679,13 @@ const { data: categorias } = await supabaseClient
                       margin-right: 1rem;
                     ">
                     <div style="flex: 1;">
-                      <div style="font-weight: 600; color: #001a33; margin-bottom: 0.25rem;">${producto.nombre}</div>
-                      <div style="font-size: 0.85rem; color: #a89968;">€${producto.precio}</div>
+                      <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">${producto.nombre}</div>
+                      <div style="font-size: 0.85rem;">
+                        ${producto.tieneOferta 
+                          ? `<span style="color: #a89968; margin-right: 0.5rem;">${producto.precioDescuento}€</span><span style="color: #94a3b8; text-decoration: line-through; font-size: 0.75rem;">${producto.precio}€</span>` 
+                          : `<span style="color: #a89968;">${producto.precio}€</span>`
+                        }
+                      </div>
                     </div>
                   </a>
                 `).join('');

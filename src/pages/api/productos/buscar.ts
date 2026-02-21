@@ -42,6 +42,11 @@ export const GET: APIRoute = async ({ url }) => {
           nombre,
           slug,
           categoria_padre
+        ),
+        ofertas (
+          id,
+          precio_descuento_centimos,
+          porcentaje_descuento
         )
       `)
       .ilike('nombre', `%${query}%`)
@@ -62,16 +67,28 @@ export const GET: APIRoute = async ({ url }) => {
       );
     }
 
-    // Formatear resultados con información de categoría
-    const resultados = (productos || []).map((producto: any) => ({
-      id: producto.id,
-      nombre: producto.nombre,
-      precio: (parseInt(producto.precio_centimos) / 100).toFixed(2),
-      imagen: producto.imagen_url || '/default-product.jpg',
-      categoria_id: producto.categoria_id,
-      categoria_nombre: producto.categorias?.nombre || '',
-      categoria_slug: producto.categorias?.slug || ''
-    }));
+    // Formatear resultados con información de categoría y ofertas
+    const resultados = (productos || []).map((producto: any) => {
+      const precioBase = parseInt(producto.precio_centimos) / 100;
+      const oferta = producto.ofertas?.[0]; // Obtener la primera oferta si existe
+      const tieneOferta = oferta && oferta.porcentaje_descuento > 0;
+      const precioDescuento = tieneOferta 
+        ? (parseInt(oferta.precio_descuento_centimos) / 100).toFixed(2)
+        : null;
+
+      return {
+        id: producto.id,
+        nombre: producto.nombre,
+        precio: precioBase.toFixed(2),
+        precioDescuento: precioDescuento,
+        porcentajeDescuento: oferta?.porcentaje_descuento || 0,
+        tieneOferta: tieneOferta,
+        imagen: producto.imagen_url || '/default-product.jpg',
+        categoria_id: producto.categoria_id,
+        categoria_nombre: producto.categorias?.nombre || '',
+        categoria_slug: producto.categorias?.slug || ''
+      };
+    });
 
     return new Response(
       JSON.stringify({
