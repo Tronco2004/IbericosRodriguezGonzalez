@@ -248,24 +248,21 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         const estado = oferta.activa ? 'Activa' : 'Inactiva';
         const fechaFin = new Date(oferta.fecha_fin).toLocaleDateString('es-ES');
         const badgeClass = oferta.activa ? 'success' : 'danger';
-        const toggleIcon = oferta.activa ? '⊘' : '●';
-        const toggleBg = oferta.activa ? '#10b981' : '#6c757d';
         
         html += `<tr>
           <td>${oferta.nombre_oferta}</td>
           <td>${oferta.producto?.nombre || 'Sin producto'}</td>
           <td><strong class="ofertas-descuento">${descuento}%</strong></td>
           <td>${fechaFin}</td>
-          <td style="display: flex; align-items: center; gap: 0.5rem; justify-content: center;">
+          <td>
             <span class="admin-badge ${badgeClass}">${estado}</span>
-            <button onclick="toggleActivarOferta(${oferta.id}, ${!oferta.activa})" 
-              class="ofertas-toggle-btn" 
-              style="background: ${toggleBg}; color: white; border: none; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; padding: 0; transition: all 0.2s;" 
-              title="${oferta.activa ? 'Desactivar oferta' : 'Activar oferta'}">
-              ${toggleIcon}
-            </button>
           </td>
           <td class="center">
+            <button onclick="toggleActivarOferta(${oferta.id}, ${!oferta.activa})" 
+              class="ofertas-toggle-switch ${oferta.activa ? 'activo' : 'inactivo'}"
+              title="${oferta.activa ? 'Desactivar' : 'Activar'}">
+              ${oferta.activa ? 'Activo' : 'Inactivo'}
+            </button>
             <button onclick="editarOferta(${oferta.id})" class="admin-btn-secondary ofertas-btn-accion">Editar</button>
             <button onclick="eliminarOferta(${oferta.id})" class="admin-btn-danger ofertas-btn-accion">Eliminar</button>
           </td>
@@ -705,6 +702,44 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     }
 
     .ofertas-toggle-btn:active {
+      transform: scale(0.95);
+    }
+
+    .ofertas-toggle-switch {
+      padding: 0.5rem 1rem;
+      border: 2px solid;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+      display: inline-block;
+    }
+
+    .ofertas-toggle-switch.activo {
+      background: #10b981;
+      color: white;
+      border-color: #059669;
+    }
+
+    .ofertas-toggle-switch.activo:hover {
+      background: #059669;
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+    }
+
+    .ofertas-toggle-switch.inactivo {
+      background: #6c757d;
+      color: white;
+      border-color: #5a6268;
+    }
+
+    .ofertas-toggle-switch.inactivo:hover {
+      background: #5a6268;
+      box-shadow: 0 0 12px rgba(108, 117, 125, 0.5);
+    }
+
+    .ofertas-toggle-switch:active {
       transform: scale(0.95);
     }
   </style>
