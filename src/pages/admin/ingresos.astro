@@ -405,9 +405,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           document.getElementById('totalPedidos').textContent = String(data.totalPedidos);
           document.getElementById('totalClientes').textContent = String(datosIngresos.length);
           
-          const ticket = data.totalPedidos > 0 
-            ? (parseFloat(data.totalGeneral) / data.totalPedidos).toFixed(2) 
-            : '0.00';
+          const ticket = data.ticketPromedio || '0.00';
           document.getElementById('ticketPromedio').textContent = ticket + ' €';
 
           renderTabla(datosIngresos);
