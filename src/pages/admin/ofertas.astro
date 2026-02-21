@@ -248,6 +248,10 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         const estado = oferta.activa ? 'Activa' : 'Inactiva';
         const fechaFin = new Date(oferta.fecha_fin).toLocaleDateString('es-ES');
         
+        const toggleStyle = oferta.activa 
+          ? 'background:#10b981;color:white;border:2px solid #059669;box-shadow:0 2px 8px rgba(16,185,129,0.4);'
+          : 'background:#ef4444;color:white;border:2px solid #dc2626;box-shadow:0 2px 8px rgba(239,68,68,0.4);';
+        
         html += `<tr>
           <td>${oferta.nombre_oferta}</td>
           <td>${oferta.producto?.nombre || 'Sin producto'}</td>
@@ -255,8 +259,10 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           <td>${fechaFin}</td>
           <td class="center">
             <button onclick="toggleActivarOferta(${oferta.id}, ${!oferta.activa})" 
-              class="ofertas-toggle-switch ${oferta.activa ? 'activo' : 'inactivo'}"
-              title="${oferta.activa ? 'Desactivar' : 'Activar'}">
+              style="${toggleStyle}padding:0.55rem 1.2rem;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.9rem;transition:all 0.2s;white-space:nowrap;"
+              title="${oferta.activa ? 'Desactivar' : 'Activar'}"
+              onmouseover="this.style.opacity='0.85';this.style.transform='translateY(-1px)'"
+              onmouseout="this.style.opacity='1';this.style.transform='translateY(0)'">
               ${estado}
             </button>
           </td>
