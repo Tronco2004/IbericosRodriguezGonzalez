@@ -1087,6 +1087,12 @@ import Layout from '../layouts/Layout.astro';
               <!-- Campo de Código de Descuento -->
               <div class="codigo-descuento-box">
                 <label class="codigo-descuento-label">Código de Descuento</label>
+                
+                <!-- Mensaje de alerta para usuarios no logueados -->
+                <div id="loginRequiredAlert" style="display: none; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 0.75rem; font-size: 0.9rem; color: #92400e; text-align: center;">
+                  <strong>⚠️ Debes <a href="/login" style="color: #d97706; text-decoration: underline; font-weight: 600;">iniciar sesión</a> para usar códigos de descuento</strong>
+                </div>
+                
                 <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                   <input 
                     id="inputCodigo"
@@ -1555,11 +1561,37 @@ import Layout from '../layouts/Layout.astro';
 
         if (!data.success) {
           if (statusDiv) {
-            statusDiv.textContent = data.mensaje || 'Código inválido';
-            statusDiv.style.display = 'block';
-            statusDiv.style.background = '#fee2e2';
-            statusDiv.style.color = '#991b1b';
-            statusDiv.style.borderLeft = '4px solid #ef4444';
+            // Si requiere login, mostrar mensaje especial
+            if (data.requiresLogin) {
+              statusDiv.textContent = 'Debes iniciar sesión para usar códigos de descuento. ';
+              statusDiv.style.display = 'block';
+              statusDiv.style.background = '#dbeafe';
+              statusDiv.style.color = '#1e40af';
+              statusDiv.style.borderLeft = '4px solid #3b82f6';
+              
+              // Crear botón de login
+              const btnLogin = document.createElement('button');
+              btnLogin.innerHTML = '→ Ir a Login';
+              btnLogin.style.marginLeft = '0.5rem';
+              btnLogin.style.padding = '0.25rem 0.75rem';
+              btnLogin.style.background = '#3b82f6';
+              btnLogin.style.color = 'white';
+              btnLogin.style.border = 'none';
+              btnLogin.style.borderRadius = '4px';
+              btnLogin.style.cursor = 'pointer';
+              btnLogin.style.fontSize = '0.9rem';
+              btnLogin.style.fontWeight = '500';
+              btnLogin.onclick = () => {
+                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
+              };
+              statusDiv.appendChild(btnLogin);
+            } else {
+              statusDiv.textContent = data.message || 'Código inválido';
+              statusDiv.style.display = 'block';
+              statusDiv.style.background = '#fee2e2';
+              statusDiv.style.color = '#991b1b';
+              statusDiv.style.borderLeft = '4px solid #ef4444';
+            }
           }
           if (inputCodigo) inputCodigo.value = '';
           descuentoAplicado = 0;
@@ -2177,6 +2209,46 @@ import Layout from '../layouts/Layout.astro';
     setInterval(actualizarContadores, 1000);
 
     cargarCarrito();
+    
+    // Verificar si el usuario está logueado y mostrar/ocultar alerta de códigos
+    function actualizarEstadoCodigos() {
+      const userId = localStorage.getItem('user_id');
+      const loginAlert = document.getElementById('loginRequiredAlert');
+      const inputCodigo = document.getElementById('inputCodigo') as HTMLInputElement | null;
+      const btnValidarCodigo = document.getElementById('btnValidarCodigo') as HTMLButtonElement | null;
+      
+      if (loginAlert) {
+        if (!userId) {
+          // Usuario NO está logueado
+          loginAlert.style.display = 'block';
+          if (inputCodigo) inputCodigo.disabled = true;
+          if (btnValidarCodigo) {
+            btnValidarCodigo.disabled = true;
+            btnValidarCodigo.style.opacity = '0.5';
+            btnValidarCodigo.style.cursor = 'not-allowed';
+          }
+        } else {
+          // Usuario está logueado
+          loginAlert.style.display = 'none';
+          if (inputCodigo) inputCodigo.disabled = false;
+          if (btnValidarCodigo) {
+            btnValidarCodigo.disabled = false;
+            btnValidarCodigo.style.opacity = '1';
+            btnValidarCodigo.style.cursor = 'pointer';
+          }
+        }
+      }
+    }
+    
+    actualizarEstadoCodigos();
+    
+    // Escuchar cambios de autenticación
+    window.addEventListener('loginSuccess', () => {
+      actualizarEstadoCodigos();
+    });
+    window.addEventListener('logout', () => {
+      actualizarEstadoCodigos();
+    });
     
     // Listener para cuando se actualice el contador (se dispara cuando el carrito cambia)
     document.addEventListener('carritoActualizado', () => {
