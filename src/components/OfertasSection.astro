@@ -44,6 +44,8 @@ const { data: ofertas } = await response.json();
           const precioDescuento = (oferta.precio_descuento_centimos / 100).toFixed(2);
           const descuento = oferta.porcentaje_descuento || 0;
           const imagenUrl = oferta.imagen_url || oferta.producto?.imagen_url || '';
+          const stock = oferta.producto?.stock || 0;
+          const estaAgotado = stock <= 0;
 
           return (
             <div style="
@@ -77,6 +79,7 @@ const { data: ofertas } = await response.json();
                 height: 250px;
                 overflow: hidden;
                 background: #f3f4f6;
+                position: relative;
               ">
                 {imagenUrl ? (
                   <img
@@ -101,6 +104,34 @@ const { data: ofertas } = await response.json();
                     color: #9ca3af;
                   ">
                     Sin imagen
+                  </div>
+                )}
+                {estaAgotado && (
+                  <div style="
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 20;
+                  ">
+                    <span style="
+                      background: rgba(255, 255, 255, 0.95);
+                      color: #1a1a1a;
+                      padding: 10px 24px;
+                      border-radius: 30px;
+                      font-weight: 800;
+                      font-size: 0.85rem;
+                      text-transform: uppercase;
+                      letter-spacing: 1px;
+                      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                    ">
+                      Agotado
+                    </span>
                   </div>
                 )}
               </div>
