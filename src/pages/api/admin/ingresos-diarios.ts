@@ -94,7 +94,7 @@ export const GET: APIRoute = async () => {
     }
 
     // Restar pedidos cancelados del mes
-    // Filtrar por fecha_actualizacion (cuándo se cancelaron), no por fecha_creacion del pedido
+    // Filtrar por fecha_actualizacion (cuándo se cancelaron en el mes), NO por fecha de creación
     const { data: pedidosCancelados } = await supabaseAdmin
       .from('pedidos')
       .select(`
