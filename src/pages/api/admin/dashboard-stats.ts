@@ -84,21 +84,27 @@ export const GET: APIRoute = async () => {
 
     const estadosPagados = ['pagado', 'preparando', 'enviado', 'entregado', 'devolucion_denegada'];
 
-    // Obtener pedidos CON sus items para calcular subtotal desde los items
-    const { data: pedidosMes, error: ingresosError } = await supabaseAdmin
+    // Obtener TODOS los pedidos del mes (sin filtro de estado)
+    // Todos los pedidos en la BD fueron pagados vía Stripe, así que representan dinero recibido
+    // Si filtramos por estadosPagados, los cancelados/devueltos este mes NO se suman pero SÍ se restan → error
+    const { data: todosPedidosMes, error: ingresosError } = await supabaseAdmin
       .from('pedidos')
       .select(`
         id,
+        estado,
         fecha_creacion,
         pedido_items (
           subtotal
         )
       `)
-      .in('estado', estadosPagados)
       .gte('fecha_creacion', primerDiaDelMes)
       .lte('fecha_creacion', ultimoDiaDelMes);
 
-    console.log('📋 Pedidos pagados del mes:', pedidosMes?.length || 0);
+    // Filtrar pedidos en estados "pagados" (para ticket promedio y conteo de pedidos reales)
+    const pedidosMesPagados = todosPedidosMes?.filter(p => estadosPagados.includes(p.estado)) || [];
+
+    console.log('📋 Todos los pedidos del mes:', todosPedidosMes?.length || 0);
+    console.log('📋 Pedidos pagados del mes:', pedidosMesPagados.length);
 
     // Obtener devoluciones validadas del mes para restarlas
     // Filtrar por fecha_actualizacion (cuando se aceptó la devolución), no por fecha_creacion del pedido
@@ -157,11 +163,11 @@ export const GET: APIRoute = async () => {
     let ingresosHoy = 0;
     let pedidosHoy = 0;
     
-    if (!ingresosError && pedidosMes) {
+    if (!ingresosError && todosPedidosMes) {
       hoy.setHours(0, 0, 0, 0);
       
-      // Sumar ingresos de pedidos pagados (suma directa de subtotales)
-      ingresosTotal = pedidosMes.reduce((total, pedido) => {
+      // Sumar ingresos de TODOS los pedidos del mes (dinero recibido vía Stripe)
+      ingresosTotal = todosPedidosMes.reduce((total, pedido) => {
         const subtotalPedido = pedido.pedido_items?.reduce((sum: number, item: any) => {
           const valor = parseFloat(item.subtotal) || 0;
           return sum + valor;
@@ -197,14 +203,14 @@ export const GET: APIRoute = async () => {
         ingresosTotal -= restoCancelados;
       }
       
-      // Calcular ingresos de hoy
-      const pedidosDeHoy = pedidosMes.filter(pedido => {
+      // Calcular ingresos de hoy (todos los pedidos creados hoy = dinero recibido hoy)
+      const todosDeHoy = todosPedidosMes.filter(pedido => {
         const fechaPedido = new Date(pedido.fecha_creacion);
         fechaPedido.setHours(0, 0, 0, 0);
         return fechaPedido.getTime() === hoy.getTime();
       });
       
-      ingresosHoy = pedidosDeHoy.reduce((total, pedido) => {
+      ingresosHoy = todosDeHoy.reduce((total, pedido) => {
         return total + (pedido.pedido_items?.reduce((sum: number, item: any) => {
           return sum + (parseFloat(item.subtotal) || 0);
         }, 0) || 0);
@@ -244,17 +250,19 @@ export const GET: APIRoute = async () => {
         ingresosHoy -= restaCanceladosHoy;
       }
       
-      pedidosHoy = pedidosDeHoy.length;
+      // Contar pedidos de hoy (solo los que siguen activos/pagados, no cancelados)
+      const pedidosPagadosHoy = todosDeHoy.filter(p => estadosPagados.includes(p.estado));
+      pedidosHoy = pedidosPagadosHoy.length;
     }
     console.log('✅ Ingresos del mes actual:', ingresosTotal);
     console.log('✅ Ingresos de hoy:', ingresosHoy);
     console.log('✅ Pedidos de hoy:', pedidosHoy);
 
-    // Calcular ticket promedio (media limpia del precio total de los pedidos del mes)
-    // Sin considerar cancelados ni devoluciones, solo la suma de subtotales de pedidos creados / cantidad de pedidos
+    // Calcular ticket promedio (media limpia de pedidos exitosos del mes)
+    // Solo usa pedidos en estadosPagados (no cancelados ni devueltos)
     let ingresosLimpio = 0;
-    if (pedidosMes && pedidosMes.length > 0) {
-      ingresosLimpio = pedidosMes.reduce((total, pedido) => {
+    if (pedidosMesPagados.length > 0) {
+      ingresosLimpio = pedidosMesPagados.reduce((total, pedido) => {
         const subtotalPedido = pedido.pedido_items?.reduce((sum: number, item: any) => {
           const valor = parseFloat(item.subtotal) || 0;
           return sum + valor;
@@ -263,7 +271,7 @@ export const GET: APIRoute = async () => {
       }, 0);
     }
     
-    const totalPedidosMes = pedidosMes?.length || 0;
+    const totalPedidosMes = pedidosMesPagados.length;
     const ticketPromedio = totalPedidosMes > 0 ? ingresosLimpio / totalPedidosMes : 0;
 
     return new Response(
