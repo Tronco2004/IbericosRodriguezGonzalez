@@ -2489,8 +2489,10 @@ const { data: categorias } = await supabaseClient
                   </div>
                 ` : ''}
                 <!-- <a href="/carrito" style="display: block; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee;">Carrito</a> -->
+                ${userRole !== 'admin' ? `
                 <a href="/mi-perfil" style="display: block; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee;">Mi Perfil</a>
                 <a href="/mis-pedidos" style="display: block; padding: 0.6rem 1rem; color: #001a33; border-bottom: 1px solid #eee;">Mis Pedidos</a>
+                ` : ''}
                 <button id="logoutBtn" data-logout onclick="handleLogout()" style="width: 100%; padding: 0.6rem 1rem; background: #fee; color: #c33; text-align: left; font-weight: 600; cursor: pointer; border: none;">Cerrar Sesión</button>
               </div>
             </div>
@@ -2509,6 +2511,7 @@ const { data: categorias } = await supabaseClient
                   </div>
                 </div>
                 
+${userRole !== 'admin' ? `
                 <a href="/mi-perfil" style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem 1.25rem; background: var(--bg-secondary); border-radius: 10px; color: var(--text-primary); text-decoration: none; font-weight: 500; font-size: 1rem; border: 1px solid var(--border-color);">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a89968" stroke-width="2">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
@@ -2525,6 +2528,7 @@ const { data: categorias } = await supabaseClient
                   </svg>
                   Mis Pedidos
                 </a>
+                ` : ''}
                 
                 ${userRole === 'admin' ? `
                   <a href="/admin/dashboard" style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem 1.25rem; background: linear-gradient(135deg, rgba(168, 153, 104, 0.2), rgba(168, 153, 104, 0.1)); border-radius: 10px; color: var(--text-primary); text-decoration: none; font-weight: 600; font-size: 1rem; border: 1px solid rgba(168, 153, 104, 0.3);">
