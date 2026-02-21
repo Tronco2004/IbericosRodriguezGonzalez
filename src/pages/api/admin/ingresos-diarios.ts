@@ -93,6 +93,35 @@ export const GET: APIRoute = async () => {
       });
     }
 
+    // Restar pedidos cancelados del mes
+    // Filtrar por fecha_actualizacion (cuándo se cancelaron), no por fecha_creacion del pedido
+    const { data: pedidosCancelados } = await supabaseAdmin
+      .from('pedidos')
+      .select(`
+        id,
+        fecha_actualizacion,
+        pedido_items (
+          subtotal
+        )
+      `)
+      .eq('estado', 'cancelado')
+      .gte('fecha_actualizacion', primerDiaDelMes)
+      .lte('fecha_actualizacion', ultimoDiaDelMes);
+    
+    if (pedidosCancelados && pedidosCancelados.length > 0) {
+      pedidosCancelados.forEach(pedido => {
+        const fecha = new Date(pedido.fecha_actualizacion);
+        const dia = fecha.getDate();
+        
+        // Restar una sola vez: anula la venta que no se concretó (sin pérdida de producto)
+        const subtotal = pedido.pedido_items?.reduce((sum: number, item: any) => {
+          return sum + (parseFloat(item.subtotal) || 0);
+        }, 0) || 0;
+        
+        ingresosMatriz[dia] -= subtotal;
+      });
+    }
+
     // Convertir a arrays
     const dias = Array.from({ length: diasDelMes }, (_, i) => i + 1);
     const ingresos = dias.map(dia => parseFloat(ingresosMatriz[dia].toFixed(2)));
