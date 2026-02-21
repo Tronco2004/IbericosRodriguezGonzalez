@@ -1299,6 +1299,8 @@ export const prerender = false;
     let variantesDisponibles = [];
     let varianteSeleccionada = null;
     let precioActual = 0;
+    let oferta = null;
+    let porcentajeDescuento = 0;
 
     async function cargarProducto() {
       try {
@@ -1325,7 +1327,7 @@ export const prerender = false;
           await cargarVariantes(producto.id);
         }
 
-        let oferta = null;
+        oferta = null;
         try {
           const ofertasResponse = await fetch('/api/ofertas');
           const ofertasData = await ofertasResponse.json();
@@ -1338,7 +1340,7 @@ export const prerender = false;
 
         const precioOriginal = producto.precio_centimos / 100;
         const precioFinal = oferta ? (oferta.precio_descuento_centimos / 100) : precioOriginal;
-        const porcentajeDescuento = oferta ? oferta.porcentaje_descuento : 0;
+        porcentajeDescuento = oferta ? oferta.porcentaje_descuento : 0;
         precioActual = precioFinal;
 
         // Determinar disponibilidad y estado del stock
