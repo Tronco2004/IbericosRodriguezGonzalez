@@ -118,7 +118,7 @@ export const GET: APIRoute = async () => {
     console.log('🔄 Devoluciones validadas del mes:', devolucionesValidadas?.length || 0);
 
     // Obtener pedidos cancelados del mes para restarlos
-    // Filtrar por fecha_actualizacion (cuando se cancelaron), no por fecha_creacion del pedido
+    // Filtrar por fecha_actualizacion (cuando se cancelaron en el mes), NO por fecha de creación
     const { data: pedidosCancelados } = await supabaseAdmin
       .from('pedidos')
       .select(`
@@ -134,12 +134,30 @@ export const GET: APIRoute = async () => {
 
     console.log('❌ Pedidos cancelados del mes:', pedidosCancelados?.length || 0);
 
+    // Obtener pedidos cancelados de HOY (para restar solo hoy)
+    // Filtrar por fecha_actualizacion (cuándo se cancelaron)
+    const hoy = new Date();
+    const inicioDia = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()).toISOString();
+    const finDia = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1).toISOString();
+    
+    const { data: pedidosCanceladosHoy } = await supabaseAdmin
+      .from('pedidos')
+      .select(`
+        id,
+        fecha_actualizacion,
+        pedido_items (
+          subtotal
+        )
+      `)
+      .eq('estado', 'cancelado')
+      .gte('fecha_actualizacion', inicioDia)
+      .lt('fecha_actualizacion', finDia);
+
     let ingresosTotal = 0;
     let ingresosHoy = 0;
     let pedidosHoy = 0;
     
     if (!ingresosError && pedidosMes) {
-      const hoy = new Date();
       hoy.setHours(0, 0, 0, 0);
       
       // Sumar ingresos de pedidos pagados (suma directa de subtotales)
@@ -215,14 +233,8 @@ export const GET: APIRoute = async () => {
       // Restar pedidos cancelados de hoy
       // Usa fecha_actualizacion (cuándo se cancelaron), no fecha_creacion del pedido
       // Restamos una sola vez: anula el ingreso que no se concretó
-      if (pedidosCancelados && pedidosCancelados.length > 0) {
-        const canceladosHoy = pedidosCancelados.filter(pedido => {
-          const fechaActualizacion = new Date(pedido.fecha_actualizacion);
-          fechaActualizacion.setHours(0, 0, 0, 0);
-          return fechaActualizacion.getTime() === hoy.getTime();
-        });
-        
-        const restaCanceladosHoy = canceladosHoy.reduce((total, pedido) => {
+      if (pedidosCanceladosHoy && pedidosCanceladosHoy.length > 0) {
+        const restaCanceladosHoy = pedidosCanceladosHoy.reduce((total, pedido) => {
           return total + (pedido.pedido_items?.reduce((sum: number, item: any) => {
             return sum + (parseFloat(item.subtotal) || 0);
           }, 0) || 0);
