@@ -64,25 +64,24 @@ export const GET: APIRoute = async () => {
       });
     }
     
-    // Restar devoluciones validadas del mes 
-    // IMPORTANTE: Solo restamos el SUBTOTAL (productos), no el envío
-    // El envío lo paga el cliente SIEMPRE, así que es su pérdida en caso de devolución
+    // Restar devoluciones validadas del mes
+    // Filtrar por fecha_actualizacion (cuándo se aceptó la devolución), no por fecha_creacion del pedido
     const { data: devolucionesValidadas } = await supabaseAdmin
       .from('pedidos')
       .select(`
         id,
-        fecha_creacion,
+        fecha_actualizacion,
         pedido_items (
           subtotal
         )
       `)
       .eq('estado', 'devolucion_recibida')
-      .gte('fecha_creacion', primerDiaDelMes)
-      .lte('fecha_creacion', ultimoDiaDelMes);
+      .gte('fecha_actualizacion', primerDiaDelMes)
+      .lte('fecha_actualizacion', ultimoDiaDelMes);
     
     if (devolucionesValidadas && devolucionesValidadas.length > 0) {
       devolucionesValidadas.forEach(pedido => {
-        const fecha = new Date(pedido.fecha_creacion);
+        const fecha = new Date(pedido.fecha_actualizacion);
         const dia = fecha.getDate();
         
         // Restar el DOBLE del subtotal: anular ingreso inicial + pérdida neta del producto

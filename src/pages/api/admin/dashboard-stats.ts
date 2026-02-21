@@ -101,20 +101,19 @@ export const GET: APIRoute = async () => {
     console.log('📋 Pedidos pagados del mes:', pedidosMes?.length || 0);
 
     // Obtener devoluciones validadas del mes para restarlas
-    // IMPORTANTE: Solo restamos el SUBTOTAL (productos), no el envío
-    // El envío lo paga el cliente SIEMPRE, así que es su pérdida en caso de devolución
+    // Filtrar por fecha_actualizacion (cuando se aceptó la devolución), no por fecha_creacion del pedido
     const { data: devolucionesValidadas } = await supabaseAdmin
       .from('pedidos')
       .select(`
         id,
-        fecha_creacion,
+        fecha_actualizacion,
         pedido_items (
           subtotal
         )
       `)
       .eq('estado', 'devolucion_recibida')
-      .gte('fecha_creacion', primerDiaDelMes)
-      .lte('fecha_creacion', ultimoDiaDelMes);
+      .gte('fecha_actualizacion', primerDiaDelMes)
+      .lte('fecha_actualizacion', ultimoDiaDelMes);
 
     console.log('🔄 Devoluciones validadas del mes:', devolucionesValidadas?.length || 0);
 
@@ -165,12 +164,13 @@ export const GET: APIRoute = async () => {
       }, 0);
       
       // Restar devoluciones aprobadas (devolucion_recibida) de hoy
+      // Usa fecha_actualizacion (cuándo se aceptó la devolución), no fecha_creacion del pedido
       // Restamos el DOBLE: anular ingreso inicial + pérdida neta del producto
       if (devolucionesValidadas && devolucionesValidadas.length > 0) {
         const devolucionesHoy = devolucionesValidadas.filter(pedido => {
-          const fechaPedido = new Date(pedido.fecha_creacion);
-          fechaPedido.setHours(0, 0, 0, 0);
-          return fechaPedido.getTime() === hoy.getTime();
+          const fechaActualizacion = new Date(pedido.fecha_actualizacion);
+          fechaActualizacion.setHours(0, 0, 0, 0);
+          return fechaActualizacion.getTime() === hoy.getTime();
         });
         
         const restaDevolucionesHoy = devolucionesHoy.reduce((total, pedido) => {

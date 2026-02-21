@@ -14,6 +14,31 @@ export const PUT: APIRoute = async ({ request }) => {
       );
     }
 
+    // 🔒 SEGURIDAD: Obtener estado actual del pedido
+    const { data: pedidoActual, error: errorPedido } = await supabaseAdmin
+      .from('pedidos')
+      .select('estado')
+      .eq('id', pedido_id)
+      .single();
+
+    if (errorPedido || !pedidoActual) {
+      return new Response(
+        JSON.stringify({ error: 'Pedido no encontrado' }),
+        { status: 404 }
+      );
+    }
+
+    // 🔒 BLOQUEADOR: No permitir cambios si está cancelado o devolución aceptada
+    const estadosFinales = ['cancelado', 'devolucion_recibida'];
+    if (estadosFinales.includes(pedidoActual.estado)) {
+      return new Response(
+        JSON.stringify({ 
+          error: `❌ NO SE PUEDE CAMBIAR: El pedido está en estado "${pedidoActual.estado}". Este estado es FINAL y no puede ser modificado.` 
+        }),
+        { status: 403 }
+      );
+    }
+
     // Preparar datos de actualización
     const updateData: any = { estado: estado.toLowerCase() };
     const ahora = new Date().toISOString();

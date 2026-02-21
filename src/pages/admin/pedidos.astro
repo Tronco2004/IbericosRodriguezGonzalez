@@ -420,7 +420,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
                   <p class="pedido-contacto">${pedido.direccion_envio || 'N/A'}</p>
                 </div>
                 <div style="display: flex; gap: 0.75rem; align-items: center;">
-                  <select class="cambiar-estado" data-pedido-id="${pedido.id}" style="
+                  <select class="cambiar-estado" data-pedido-id="${pedido.id}" ${['cancelado', 'devolucion_recibida'].includes(pedido.estado) ? 'disabled' : ''} style="
                     background: ${estadoColor[pedido.estado] || '#6c757d'};
                     color: white;
                     padding: 0.5rem 1rem;
@@ -428,8 +428,9 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
                     border: none;
                     font-weight: 600;
                     font-size: 0.85rem;
-                    cursor: pointer;
+                    cursor: ${['cancelado', 'devolucion_recibida'].includes(pedido.estado) ? 'not-allowed' : 'pointer'};
                     min-width: 140px;
+                    opacity: ${['cancelado', 'devolucion_recibida'].includes(pedido.estado) ? '0.6' : '1'};
                   ">
                     <option value="pagado" ${pedido.estado === 'pagado' ? 'selected' : ''}>Pagado</option>
                     <option value="preparando" ${pedido.estado === 'preparando' ? 'selected' : ''}>Preparado</option>
@@ -718,7 +719,14 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 
           if (!response.ok) {
             const error = await response.json();
-            mostrarNotificacion('error', 'Error al actualizar', error.error || 'No se pudo actualizar el estado');
+            
+            // 🔒 Bloqueador de pedidos finalizados
+            if (response.status === 403) {
+              mostrarNotificacion('error', '🔒 PEDIDO FINALIZADO', error.error || 'Este pedido no puede ser modificado');
+            } else {
+              mostrarNotificacion('error', 'Error al actualizar', error.error || 'No se pudo actualizar el estado');
+            }
+            
             // Recargar los pedidos para restaurar el estado anterior
             cargarPedidos(filtroActual);
             return;
