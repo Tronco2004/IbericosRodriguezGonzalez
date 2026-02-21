@@ -241,12 +241,22 @@ export const GET: APIRoute = async ({ request }) => {
     const totalGeneral = ingresosUsuarios.reduce((sum, u) => sum + u.totalIngresos, 0);
     const totalPedidos = ingresosUsuarios.reduce((sum, u) => sum + u.totalPedidos, 0);
 
+    // Ticket promedio: solo pedidos exitosos (misma lógica que dashboard)
+    // Filtrar pedidos que NO son cancelados ni devueltos
+    const estadosPagados = ['pagado', 'preparando', 'enviado', 'entregado', 'devolucion_denegada'];
+    const pedidosPagados = (pedidos || []).filter(p => estadosPagados.includes(p.estado));
+    const sumaPagados = pedidosPagados.reduce((sum, p) => {
+      return sum + (p.pedido_items?.reduce((s: number, item: any) => s + (parseFloat(item.subtotal) || 0), 0) || 0);
+    }, 0);
+    const ticketPromedio = pedidosPagados.length > 0 ? sumaPagados / pedidosPagados.length : 0;
+
     return new Response(
       JSON.stringify({
         success: true,
         ingresosUsuarios,
         totalGeneral: totalGeneral.toFixed(2),
         totalPedidos,
+        ticketPromedio: ticketPromedio.toFixed(2),
         periodo
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
