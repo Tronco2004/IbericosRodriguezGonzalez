@@ -416,8 +416,8 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           <!-- Precio por Kg -->
           <div class="admin-form-group">
             <label class="admin-label">Precio por Kg (€)</label>
-            <input type="number" id="precioKg" placeholder="35.00" step="0.01" class="admin-input" />
-            <p class="admin-hint">Se usará para calcular el precio total de cada peso</p>
+            <input type="number" id="precioKg" placeholder="35.00" step="0.01" class="admin-input" style="background: var(--bg-input);" readonly />
+            <p class="admin-hint">Se toma automáticamente del precio al público</p>
           </div>
 
           <!-- Agregar Variantes -->
@@ -864,7 +864,9 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       if (producto.es_variable) {
         stockSection.style.display = 'none';
         variantesSection.style.display = 'block';
-        document.getElementById('precioKg').value = (producto.precio_por_kg || 0).toFixed(2);
+        // Precio por kg = precio al público
+        const precioPublico = (producto.precio / 100).toFixed(2);
+        document.getElementById('precioKg').value = precioPublico;
         
         // Limpiar inputs de nuevo peso
         document.getElementById('nuevoVariantePeso').value = '';
@@ -929,9 +931,9 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       // Validar según tipo de producto
       const esVariable = document.getElementById('esVariable').checked;
       if (esVariable) {
-        const precioKg = parseFloat(document.getElementById('precioKg').value);
-        if (!precioKg || precioKg <= 0) {
-          showPopup('Por favor ingresa el precio por kg para productos variables', 'warning');
+        const precioPublico = parseFloat(document.getElementById('precio').value);
+        if (!precioPublico || precioPublico <= 0) {
+          showPopup('Por favor ingresa el precio al público para productos variables (será el precio por kg)', 'warning');
           return;
         }
         
@@ -973,7 +975,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         descripcion: document.getElementById('descripcion').value,
         imagen: imagenFinal,
         es_variable: esVariable,
-        precio_por_kg: esVariable ? parseFloat(document.getElementById('precioKg').value) : null
+        precio_por_kg: esVariable ? parseFloat(document.getElementById('precio').value) : null
       };
 
       try {
@@ -1189,10 +1191,27 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           document.getElementById('stock').removeAttribute('required');
           variantesActuales = [];
           document.getElementById('variantesList').innerHTML = '<p style="color: #808080; font-size: 0.9rem; margin: 0;">Aquí aparecerán los pesos que agregues</p>';
+          // Sincronizar precio público → precio por kg
+          const precioPublico = document.getElementById('precio').value;
+          if (precioPublico) {
+            document.getElementById('precioKg').value = precioPublico;
+            calcularPrecioVariante();
+          }
         } else {
           document.getElementById('precioKg').value = '';
           document.getElementById('stock').setAttribute('required', 'required');
           variantesActuales = [];
+        }
+      });
+    }
+
+    // Sincronizar precio público → precio por kg cuando es variable
+    const precioInput = document.getElementById('precio');
+    if (precioInput) {
+      precioInput.addEventListener('input', () => {
+        if (document.getElementById('esVariable').checked) {
+          document.getElementById('precioKg').value = precioInput.value;
+          calcularPrecioVariante();
         }
       });
     }
