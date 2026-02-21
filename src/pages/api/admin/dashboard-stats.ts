@@ -1,6 +1,17 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase';
 
+// Helper: obtener fecha actual en zona horaria de España
+function getSpainDate() {
+  const now = new Date();
+  // Obtener la fecha/hora en España como string y parsearla
+  const spainStr = now.toLocaleString('en-CA', { timeZone: 'Europe/Madrid', hour12: false });
+  // Formato: "2026-02-22, 00:15:30"
+  const [datePart] = spainStr.split(',');
+  const [year, month, day] = datePart.trim().split('-').map(Number);
+  return { year, month: month - 1, day }; // month 0-indexed
+}
+
 export const GET: APIRoute = async () => {
   try {
     console.log('Cargando estadísticas del dashboard');
@@ -76,9 +87,10 @@ export const GET: APIRoute = async () => {
     // TAMBIÉN: devolucion_denegada (la devolución fue rechazada, se mantiene el pago)
     // NO incluir: cancelado (nunca se pagó), devolucion_solicitada (pendiente de decisión), devolucion_recibida (se resta aparte)
     // IMPORTANTE: No incluir 'devolucion_solicitada' para evitar contar dos veces cuando luego se acepta la devolución
-    const ahora = new Date();
-    const primerDiaDelMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1).toISOString();
-    const ultimoDiaDelMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0).toISOString();
+    // Usar zona horaria de España para todas las fechas
+    const spain = getSpainDate();
+    const primerDiaDelMes = new Date(Date.UTC(spain.year, spain.month, 1)).toISOString();
+    const ultimoDiaDelMes = new Date(Date.UTC(spain.year, spain.month + 1, 0, 23, 59, 59, 999)).toISOString();
 
     console.log('📅 Buscando ingresos entre:', primerDiaDelMes, 'y', ultimoDiaDelMes);
 
@@ -141,10 +153,9 @@ export const GET: APIRoute = async () => {
     console.log('❌ Pedidos cancelados del mes:', pedidosCancelados?.length || 0);
 
     // Obtener pedidos cancelados de HOY (para restar solo hoy)
-    // Filtrar por fecha_actualizacion (cuándo se cancelaron)
-    const hoy = new Date();
-    const inicioDia = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()).toISOString();
-    const finDia = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1).toISOString();
+    // Usar zona horaria de España para definir "hoy"
+    const inicioDia = new Date(Date.UTC(spain.year, spain.month, spain.day)).toISOString();
+    const finDia = new Date(Date.UTC(spain.year, spain.month, spain.day + 1)).toISOString();
     
     const { data: pedidosCanceladosHoy } = await supabaseAdmin
       .from('pedidos')
@@ -164,7 +175,9 @@ export const GET: APIRoute = async () => {
     let pedidosHoy = 0;
     
     if (!ingresosError && todosPedidosMes) {
-      hoy.setHours(0, 0, 0, 0);
+      // Timestamps de inicio/fin del día en España (ya calculados arriba)
+      const inicioDiaTs = new Date(inicioDia).getTime();
+      const finDiaTs = new Date(finDia).getTime();
       
       // Sumar ingresos de TODOS los pedidos del mes (dinero recibido vía Stripe)
       ingresosTotal = todosPedidosMes.reduce((total, pedido) => {
@@ -200,10 +213,10 @@ export const GET: APIRoute = async () => {
       }
       
       // Calcular ingresos de hoy (todos los pedidos creados hoy = dinero recibido hoy)
+      // Usar rangos de timestamp con zona horaria española
       const todosDeHoy = todosPedidosMes.filter(pedido => {
-        const fechaPedido = new Date(pedido.fecha_creacion);
-        fechaPedido.setHours(0, 0, 0, 0);
-        return fechaPedido.getTime() === hoy.getTime();
+        const ts = new Date(pedido.fecha_creacion).getTime();
+        return ts >= inicioDiaTs && ts < finDiaTs;
       });
       
       ingresosHoy = todosDeHoy.reduce((total, pedido) => {
@@ -217,9 +230,8 @@ export const GET: APIRoute = async () => {
       // Se resta ×2: una vez por devolver el dinero + otra por pérdida del producto
       if (devolucionesValidadas && devolucionesValidadas.length > 0) {
         const devolucionesHoy = devolucionesValidadas.filter(pedido => {
-          const fechaActualizacion = new Date(pedido.fecha_actualizacion);
-          fechaActualizacion.setHours(0, 0, 0, 0);
-          return fechaActualizacion.getTime() === hoy.getTime();
+          const ts = new Date(pedido.fecha_actualizacion).getTime();
+          return ts >= inicioDiaTs && ts < finDiaTs;
         });
         
         const restaDevolucionesHoy = devolucionesHoy.reduce((total, pedido) => {

@@ -1,14 +1,23 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase';
 
+// Helper: obtener fecha actual en zona horaria de España
+function getSpainDate() {
+  const now = new Date();
+  const spainStr = now.toLocaleString('en-CA', { timeZone: 'Europe/Madrid', hour12: false });
+  const [datePart] = spainStr.split(',');
+  const [year, month, day] = datePart.trim().split('-').map(Number);
+  return { year, month: month - 1, day };
+}
+
 export const GET: APIRoute = async () => {
   try {
     console.log('Cargando ingresos diarios del mes actual');
 
-    // Obtener el mes y año actual
-    const ahora = new Date();
-    const primerDiaDelMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1).toISOString();
-    const ultimoDiaDelMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0).toISOString();
+    // Obtener el mes y año actual en zona horaria de España
+    const spain = getSpainDate();
+    const primerDiaDelMes = new Date(Date.UTC(spain.year, spain.month, 1)).toISOString();
+    const ultimoDiaDelMes = new Date(Date.UTC(spain.year, spain.month + 1, 0, 23, 59, 59, 999)).toISOString();
 
     // Obtener TODOS los pedidos del mes (sin filtro de estado)
     // Mismo enfoque que dashboard-stats: todos representan dinero recibido vía Stripe
@@ -37,7 +46,7 @@ export const GET: APIRoute = async () => {
     }
 
     // Procesar datos por día
-    const diasDelMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0).getDate();
+    const diasDelMes = new Date(Date.UTC(spain.year, spain.month + 1, 0)).getUTCDate();
     const ingresosMatriz: { [key: number]: number } = {};
 
     // Inicializar todos los días del mes con 0
@@ -48,8 +57,9 @@ export const GET: APIRoute = async () => {
     // Procesar cada pedido - suma directa de subtotales
     if (pedidosMes && pedidosMes.length > 0) {
       pedidosMes.forEach(pedido => {
-        const fecha = new Date(pedido.fecha_creacion);
-        const dia = fecha.getDate();
+        // Obtener el día en zona horaria de España
+        const fechaStr = new Date(pedido.fecha_creacion).toLocaleString('en-CA', { timeZone: 'Europe/Madrid', hour12: false });
+        const dia = parseInt(fechaStr.split(',')[0].trim().split('-')[2]);
         
         // Sumar todos los subtotales de los items del pedido
         const subtotal = pedido.pedido_items?.reduce((sum: number, item: any) => {
@@ -77,8 +87,9 @@ export const GET: APIRoute = async () => {
     
     if (devolucionesValidadas && devolucionesValidadas.length > 0) {
       devolucionesValidadas.forEach(pedido => {
-        const fecha = new Date(pedido.fecha_actualizacion);
-        const dia = fecha.getDate();
+        // Obtener el día en zona horaria de España
+        const fechaStr = new Date(pedido.fecha_actualizacion).toLocaleString('en-CA', { timeZone: 'Europe/Madrid', hour12: false });
+        const dia = parseInt(fechaStr.split(',')[0].trim().split('-')[2]);
         
         // Restar ×2: una vez por devolver el dinero + otra por pérdida del producto
         const subtotal = pedido.pedido_items?.reduce((sum: number, item: any) => {
@@ -106,8 +117,9 @@ export const GET: APIRoute = async () => {
     
     if (pedidosCancelados && pedidosCancelados.length > 0) {
       pedidosCancelados.forEach(pedido => {
-        const fecha = new Date(pedido.fecha_actualizacion);
-        const dia = fecha.getDate();
+        // Obtener el día en zona horaria de España
+        const fechaStr = new Date(pedido.fecha_actualizacion).toLocaleString('en-CA', { timeZone: 'Europe/Madrid', hour12: false });
+        const dia = parseInt(fechaStr.split(',')[0].trim().split('-')[2]);
         
         // Restar una sola vez: anula la venta que no se concretó (sin pérdida de producto)
         const subtotal = pedido.pedido_items?.reduce((sum: number, item: any) => {
