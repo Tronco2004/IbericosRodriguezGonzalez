@@ -22,9 +22,8 @@ export const GET: APIRoute = async ({ request }) => {
       // 'todo' - sin filtro
     }
 
-    // Obtener pedidos con pago completado (todos los estados excepto cancelado y devolucion_recibida)
-    const estadosPagados = ['pagado', 'preparando', 'enviado', 'entregado', 'devolucion_solicitada', 'devolucion_denegada'];
-
+    // Obtener TODOS los pedidos del periodo (sin filtro de estado)
+    // Mismo enfoque que dashboard-stats: todos los pedidos representan dinero recibido vía Stripe
     let query = supabaseAdmin
       .from('pedidos')
       .select(`
@@ -39,8 +38,7 @@ export const GET: APIRoute = async ({ request }) => {
         pedido_items (
           subtotal
         )
-      `)
-      .in('estado', estadosPagados);
+      `);
 
     if (fechaInicio) {
       query = query.gte('fecha_creacion', fechaInicio);
@@ -56,7 +54,8 @@ export const GET: APIRoute = async ({ request }) => {
       );
     }
 
-    // También obtener pedidos con devolución recibida para restarlos
+    // Obtener devoluciones validadas para restarlas ×2
+    // Filtrar por fecha_actualizacion (cuando se aceptó la devolución), igual que en dashboard
     let queryDev = supabaseAdmin
       .from('pedidos')
       .select(`
@@ -66,7 +65,7 @@ export const GET: APIRoute = async ({ request }) => {
         email_cliente,
         es_invitado,
         estado,
-        fecha_creacion,
+        fecha_actualizacion,
         pedido_items (
           subtotal
         )
@@ -74,14 +73,39 @@ export const GET: APIRoute = async ({ request }) => {
       .eq('estado', 'devolucion_recibida');
 
     if (fechaInicio) {
-      queryDev = queryDev.gte('fecha_creacion', fechaInicio);
+      queryDev = queryDev.gte('fecha_actualizacion', fechaInicio);
     }
 
     const { data: devoluciones } = await queryDev;
 
-    // Obtener nombres de usuarios registrados
+    // Obtener pedidos cancelados para restarlos ×1
+    // Filtrar por fecha_actualizacion (cuando se cancelaron), igual que en dashboard
+    let queryCan = supabaseAdmin
+      .from('pedidos')
+      .select(`
+        id,
+        usuario_id,
+        nombre_cliente,
+        email_cliente,
+        es_invitado,
+        estado,
+        fecha_actualizacion,
+        pedido_items (
+          subtotal
+        )
+      `)
+      .eq('estado', 'cancelado');
+
+    if (fechaInicio) {
+      queryCan = queryCan.gte('fecha_actualizacion', fechaInicio);
+    }
+
+    const { data: cancelados } = await queryCan;
+
+    // Obtener nombres de usuarios registrados (de todos los pedidos + devoluciones + cancelados)
+    const allPedidos = [...(pedidos || []), ...(devoluciones || []), ...(cancelados || [])];
     const usuarioIds = [...new Set(
-      (pedidos || [])
+      allPedidos
         .filter(p => p.usuario_id)
         .map(p => p.usuario_id)
     )];
@@ -160,8 +184,28 @@ export const GET: APIRoute = async ({ request }) => {
       });
     });
 
-    // Restar devoluciones
+    // Restar devoluciones ×2: una vez por devolver el dinero + otra por pérdida del producto
     (devoluciones || []).forEach(pedido => {
+      const subtotal = pedido.pedido_items?.reduce((sum: number, item: any) => {
+        return sum + (parseFloat(item.subtotal) || 0);
+      }, 0) || 0;
+
+      let email = '';
+      if (pedido.usuario_id && usuariosMap[pedido.usuario_id]) {
+        email = usuariosMap[pedido.usuario_id].email;
+      } else if (pedido.email_cliente) {
+        email = pedido.email_cliente;
+      }
+
+      const key = email || `unknown_${pedido.id}`;
+
+      if (ingresosMap[key]) {
+        ingresosMap[key].totalIngresos -= (subtotal * 2);
+      }
+    });
+
+    // Restar cancelados ×1: anula el ingreso que no se concretó
+    (cancelados || []).forEach(pedido => {
       const subtotal = pedido.pedido_items?.reduce((sum: number, item: any) => {
         return sum + (parseFloat(item.subtotal) || 0);
       }, 0) || 0;
