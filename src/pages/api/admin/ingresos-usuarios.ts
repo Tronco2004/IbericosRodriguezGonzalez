@@ -1,23 +1,32 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase';
 
+// Helper: obtener fecha actual en zona horaria de España
+function getSpainDate() {
+  const now = new Date();
+  const spainStr = now.toLocaleString('en-CA', { timeZone: 'Europe/Madrid', hour12: false });
+  const [datePart] = spainStr.split(',');
+  const [year, month, day] = datePart.trim().split('-').map(Number);
+  return { year, month: month - 1, day };
+}
+
 export const GET: APIRoute = async ({ request }) => {
   try {
     const url = new URL(request.url);
     const periodo = url.searchParams.get('periodo') || 'mes'; // mes, trimestre, anio, todo
 
-    const ahora = new Date();
+    const spain = getSpainDate();
     let fechaInicio: string | null = null;
 
     switch (periodo) {
       case 'mes':
-        fechaInicio = new Date(ahora.getFullYear(), ahora.getMonth(), 1).toISOString();
+        fechaInicio = new Date(Date.UTC(spain.year, spain.month, 1)).toISOString();
         break;
       case 'trimestre':
-        fechaInicio = new Date(ahora.getFullYear(), ahora.getMonth() - 2, 1).toISOString();
+        fechaInicio = new Date(Date.UTC(spain.year, spain.month - 2, 1)).toISOString();
         break;
       case 'anio':
-        fechaInicio = new Date(ahora.getFullYear(), 0, 1).toISOString();
+        fechaInicio = new Date(Date.UTC(spain.year, 0, 1)).toISOString();
         break;
       // 'todo' - sin filtro
     }
