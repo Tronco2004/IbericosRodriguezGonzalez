@@ -1,8 +1,22 @@
 import type { APIRoute } from 'astro';
 import { supabaseClient } from '../../../lib/supabase';
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, cookies }) => {
   try {
+    // Verificar que el usuario esté autenticado
+    const userId = cookies.get('user_id')?.value;
+    
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: 'Debes iniciar sesión para usar códigos de descuento',
+          requiresLogin: true
+        }),
+        { status: 401 }
+      );
+    }
+
     const { codigo, monto_carrito } = await request.json();
 
     if (!codigo) {
