@@ -177,17 +177,13 @@ export const GET: APIRoute = async () => {
       }, 0);
       
       // Restar ingresos de devoluciones validadas
-      // IMPORTANTE: Restamos el DOBLE del subtotal (productos)
-      // Primera resta: annula el ingreso inicial
-      // Segunda resta: pérdida neta del producto
-      // Resultado: -€ (pérdida real)
+      // Se resta ×2: una vez por devolver el dinero al cliente + otra por pérdida del producto
       if (devolucionesValidadas && devolucionesValidadas.length > 0) {
         const restoDevoluciones = devolucionesValidadas.reduce((total, pedido) => {
           return total + (pedido.pedido_items?.reduce((sum: number, item: any) => {
             return sum + (parseFloat(item.subtotal) || 0);
           }, 0) || 0);
         }, 0);
-        // Restar el doble: una vez por anular ingreso, otra por pérdida del producto
         ingresosTotal -= (restoDevoluciones * 2);
       }
 
@@ -218,7 +214,7 @@ export const GET: APIRoute = async () => {
       
       // Restar devoluciones aprobadas (devolucion_recibida) de hoy
       // Usa fecha_actualizacion (cuándo se aceptó la devolución), no fecha_creacion del pedido
-      // Restamos el DOBLE: anular ingreso inicial + pérdida neta del producto
+      // Se resta ×2: una vez por devolver el dinero + otra por pérdida del producto
       if (devolucionesValidadas && devolucionesValidadas.length > 0) {
         const devolucionesHoy = devolucionesValidadas.filter(pedido => {
           const fechaActualizacion = new Date(pedido.fecha_actualizacion);
@@ -232,7 +228,6 @@ export const GET: APIRoute = async () => {
           }, 0) || 0);
         }, 0);
         
-        // Restar el doble: una vez por anular ingreso, otra por pérdida del producto
         ingresosHoy -= (restaDevolucionesHoy * 2);
       }
 

@@ -10,11 +10,8 @@ export const GET: APIRoute = async () => {
     const primerDiaDelMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1).toISOString();
     const ultimoDiaDelMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0).toISOString();
 
-    // Obtener todos los pedidos con pago CONFIRMADO del mes
-    // IMPORTANTE: No incluir 'devolucion_solicitada' para evitar contar dos veces
-    // cuando la devolución se acepte (devolucion_recibida)
-    const estadosPagados = ['pagado', 'preparando', 'enviado', 'entregado', 'devolucion_denegada'];
-
+    // Obtener TODOS los pedidos del mes (sin filtro de estado)
+    // Mismo enfoque que dashboard-stats: todos representan dinero recibido vía Stripe
     const { data: pedidosMes, error: errorPedidos } = await supabaseAdmin
       .from('pedidos')
       .select(`
@@ -24,7 +21,6 @@ export const GET: APIRoute = async () => {
           subtotal
         )
       `)
-      .in('estado', estadosPagados)
       .gte('fecha_creacion', primerDiaDelMes)
       .lte('fecha_creacion', ultimoDiaDelMes);
 
@@ -84,7 +80,7 @@ export const GET: APIRoute = async () => {
         const fecha = new Date(pedido.fecha_actualizacion);
         const dia = fecha.getDate();
         
-        // Restar el DOBLE del subtotal: anular ingreso inicial + pérdida neta del producto
+        // Restar ×2: una vez por devolver el dinero + otra por pérdida del producto
         const subtotal = pedido.pedido_items?.reduce((sum: number, item: any) => {
           return sum + (parseFloat(item.subtotal) || 0);
         }, 0) || 0;
