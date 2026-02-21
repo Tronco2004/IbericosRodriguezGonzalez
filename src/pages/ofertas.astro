@@ -152,6 +152,11 @@ import Layout from '../layouts/Layout.astro';
           const imagenUrl = oferta.imagen_url || oferta.producto?.imagen_url || '';
           const nombreProducto = oferta.producto?.nombre || oferta.nombre_oferta || 'Producto en oferta';
           const productoId = oferta.producto?.id || '#';
+          const stock = oferta.producto?.stock || 0;
+          const estaAgotado = stock <= 0;
+          
+          const badgeTexto = estaAgotado ? 'Agotado' : `Oferta activa`;
+          const badgeClase = estaAgotado ? 'stock-label-agotado' : 'stock-label-oferta';
 
           html += `
             <article class="producto-card">
@@ -174,12 +179,19 @@ import Layout from '../layouts/Layout.astro';
                 
                 <div class="producto-stock-row">
                   <span class="stock-info">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                      <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    Oferta activa
+                    ${estaAgotado ? `
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                      </svg>
+                      Agotado
+                    ` : `
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                      Oferta activa
+                    `}
                   </span>
-                  <span class="stock-label stock-label-oferta">-${descuento}% dto.</span>
+                  <span class="stock-label ${badgeClase}">${estaAgotado ? 'Sin stock' : `-${descuento}% dto.`}</span>
                 </div>
                 
                 <div class="producto-footer">
@@ -188,12 +200,21 @@ import Layout from '../layouts/Layout.astro';
                     <span class="producto-precio producto-precio-oferta">${precioDescuento}€</span>
                   </div>
                   
-                  <a href="/productos/${productoId}" class="product-btn btn-ver-oferta">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>
-                    </svg>
-                    <span>Ver Oferta</span>
-                  </a>
+                  ${estaAgotado ? `
+                    <button class="product-btn btn-ver-oferta" disabled style="opacity: 0.5; cursor: not-allowed;">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>
+                      </svg>
+                      <span>Agotado</span>
+                    </button>
+                  ` : `
+                    <a href="/productos/${productoId}" class="product-btn btn-ver-oferta">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>
+                      </svg>
+                      <span>Ver Oferta</span>
+                    </a>
+                  `}
                 </div>
               </div>
             </article>
@@ -348,6 +369,11 @@ import Layout from '../layouts/Layout.astro';
     :global(.stock-label-oferta) {
       background: rgba(239, 68, 68, 0.15);
       color: #dc2626;
+    }
+
+    :global(.stock-label-agotado) {
+      background: rgba(107, 114, 128, 0.15);
+      color: #4b5563;
     }
 
     :global(.producto-footer) {

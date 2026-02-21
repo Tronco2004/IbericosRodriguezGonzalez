@@ -31,7 +31,8 @@ export const GET: APIRoute = async ({ request }) => {
           descripcion,
           imagen_url,
           categoria_id,
-          rating
+          rating,
+          stock
         )
       `)
       .eq('activa', true)
