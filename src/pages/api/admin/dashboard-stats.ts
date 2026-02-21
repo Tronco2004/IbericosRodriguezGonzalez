@@ -117,6 +117,23 @@ export const GET: APIRoute = async () => {
 
     console.log('🔄 Devoluciones validadas del mes:', devolucionesValidadas?.length || 0);
 
+    // Obtener pedidos cancelados del mes para restarlos
+    // Filtrar por fecha_actualizacion (cuando se cancelaron), no por fecha_creacion del pedido
+    const { data: pedidosCancelados } = await supabaseAdmin
+      .from('pedidos')
+      .select(`
+        id,
+        fecha_actualizacion,
+        pedido_items (
+          subtotal
+        )
+      `)
+      .eq('estado', 'cancelado')
+      .gte('fecha_actualizacion', primerDiaDelMes)
+      .lte('fecha_actualizacion', ultimoDiaDelMes);
+
+    console.log('❌ Pedidos cancelados del mes:', pedidosCancelados?.length || 0);
+
     let ingresosTotal = 0;
     let ingresosHoy = 0;
     let pedidosHoy = 0;
@@ -148,6 +165,18 @@ export const GET: APIRoute = async () => {
         }, 0);
         // Restar el doble: una vez por anular ingreso, otra por pérdida del producto
         ingresosTotal -= (restoDevoluciones * 2);
+      }
+
+      // Restar ingresos de pedidos cancelados del mes
+      // Restamos solo una vez: anula el ingreso que nunca se concretó
+      if (pedidosCancelados && pedidosCancelados.length > 0) {
+        const restoCancelados = pedidosCancelados.reduce((total, pedido) => {
+          return total + (pedido.pedido_items?.reduce((sum: number, item: any) => {
+            return sum + (parseFloat(item.subtotal) || 0);
+          }, 0) || 0);
+        }, 0);
+        // Restar una vez: anula la venta que no se concretó (no hay pérdida de producto)
+        ingresosTotal -= restoCancelados;
       }
       
       // Calcular ingresos de hoy
@@ -181,6 +210,26 @@ export const GET: APIRoute = async () => {
         
         // Restar el doble: una vez por anular ingreso, otra por pérdida del producto
         ingresosHoy -= (restaDevolucionesHoy * 2);
+      }
+
+      // Restar pedidos cancelados de hoy
+      // Usa fecha_actualizacion (cuándo se cancelaron), no fecha_creacion del pedido
+      // Restamos una sola vez: anula el ingreso que no se concretó
+      if (pedidosCancelados && pedidosCancelados.length > 0) {
+        const canceladosHoy = pedidosCancelados.filter(pedido => {
+          const fechaActualizacion = new Date(pedido.fecha_actualizacion);
+          fechaActualizacion.setHours(0, 0, 0, 0);
+          return fechaActualizacion.getTime() === hoy.getTime();
+        });
+        
+        const restaCanceladosHoy = canceladosHoy.reduce((total, pedido) => {
+          return total + (pedido.pedido_items?.reduce((sum: number, item: any) => {
+            return sum + (parseFloat(item.subtotal) || 0);
+          }, 0) || 0);
+        }, 0);
+        
+        // Restar una vez: anula la venta que no se concretó
+        ingresosHoy -= restaCanceladosHoy;
       }
       
       pedidosHoy = pedidosDeHoy.length;
