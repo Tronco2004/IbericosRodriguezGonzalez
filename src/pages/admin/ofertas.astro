@@ -248,6 +248,8 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         const estado = oferta.activa ? 'Activa' : 'Inactiva';
         const fechaFin = new Date(oferta.fecha_fin).toLocaleDateString('es-ES');
         const badgeClass = oferta.activa ? 'success' : 'danger';
+        const btnActivarTexto = oferta.activa ? 'Desactivar' : 'Activar';
+        const btnActivarColor = oferta.activa ? '#ef4444' : '#10b981';
         
         html += `<tr>
           <td>${oferta.nombre_oferta}</td>
@@ -258,6 +260,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
             <span class="admin-badge ${badgeClass}">${estado}</span>
           </td>
           <td class="center">
+            <button onclick="toggleActivarOferta(${oferta.id}, ${!oferta.activa})" class="admin-btn-secondary ofertas-btn-accion" style="background: ${btnActivarColor}; color: white; border: none;">${btnActivarTexto}</button>
             <button onclick="editarOferta(${oferta.id})" class="admin-btn-secondary ofertas-btn-accion">Editar</button>
             <button onclick="eliminarOferta(${oferta.id})" class="admin-btn-danger ofertas-btn-accion">Eliminar</button>
           </td>
@@ -351,6 +354,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     (window as any).guardarOferta = guardarOferta;
     (window as any).editarOferta = editarOferta;
     (window as any).eliminarOferta = eliminarOferta;
+    (window as any).toggleActivarOferta = toggleActivarOferta;
 
     // Event Listeners para modal de eliminar oferta
     document.getElementById('btnConfirmarEliminarOferta')!.addEventListener('click', async () => {
@@ -439,6 +443,33 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     async function eliminarOferta(id: number) {
       eliminandoOfertaId = id;
       document.getElementById('modalEliminarOferta')!.style.display = 'flex';
+    }
+
+    async function toggleActivarOferta(id: number, activar: boolean) {
+      try {
+        const response = await fetch(`/api/admin/ofertas/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ activa: activar })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          const oferta = ofertas.find(o => o.id === id);
+          if (oferta) {
+            oferta.activa = activar;
+          }
+          const status = activar ? 'activada' : 'desactivada';
+          cargarOfertas();
+          showPopup(`Oferta ${status} exitosamente`, 'success');
+        } else {
+          showPopup('Error: ' + data.error, 'error');
+        }
+      } catch (error) {
+        console.error('Error toggling oferta:', error);
+        showPopup('Error al actualizar el estado de la oferta', 'error');
+      }
     }
 
     // Event listeners
