@@ -704,41 +704,53 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
     }
 
     .ofertas-toggle-switch {
-      padding: 0.5rem 1rem;
+      padding: 0.6rem 1.2rem;
       border: 2px solid;
       border-radius: 6px;
       cursor: pointer;
-      font-weight: 600;
+      font-weight: 700;
       font-size: 0.9rem;
       transition: all 0.3s ease;
       white-space: nowrap;
       display: inline-block;
+      text-transform: capitalize;
+      letter-spacing: 0.5px;
     }
 
     .ofertas-toggle-switch.activo {
       background: #10b981;
       color: white;
       border-color: #059669;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
     }
 
     .ofertas-toggle-switch.activo:hover {
       background: #059669;
-      box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+      border-color: #047857;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .ofertas-toggle-switch.activo:active {
+      transform: translateY(0);
     }
 
     .ofertas-toggle-switch.inactivo {
       background: #6c757d;
       color: white;
       border-color: #5a6268;
+      box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
     }
 
     .ofertas-toggle-switch.inactivo:hover {
       background: #5a6268;
-      box-shadow: 0 0 12px rgba(108, 117, 125, 0.5);
+      border-color: #495057;
+      box-shadow: 0 4px 12px rgba(108, 117, 125, 0.5);
+      transform: translateY(-1px);
     }
 
-    .ofertas-toggle-switch:active {
-      transform: scale(0.95);
+    .ofertas-toggle-switch.inactivo:active {
+      transform: translateY(0);
     }
   </style>
 </ProtectedLayout>
