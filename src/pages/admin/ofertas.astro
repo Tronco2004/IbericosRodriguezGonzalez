@@ -247,22 +247,20 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         const descuento = oferta.porcentaje_descuento || 0;
         const estado = oferta.activa ? 'Activa' : 'Inactiva';
         const fechaFin = new Date(oferta.fecha_fin).toLocaleDateString('es-ES');
-        const badgeClass = oferta.activa ? 'success' : 'danger';
         
         html += `<tr>
           <td>${oferta.nombre_oferta}</td>
           <td>${oferta.producto?.nombre || 'Sin producto'}</td>
           <td><strong class="ofertas-descuento">${descuento}%</strong></td>
           <td>${fechaFin}</td>
-          <td>
-            <span class="admin-badge ${badgeClass}">${estado}</span>
-          </td>
           <td class="center">
             <button onclick="toggleActivarOferta(${oferta.id}, ${!oferta.activa})" 
               class="ofertas-toggle-switch ${oferta.activa ? 'activo' : 'inactivo'}"
               title="${oferta.activa ? 'Desactivar' : 'Activar'}">
-              ${oferta.activa ? 'Activo' : 'Inactivo'}
+              ${estado}
             </button>
+          </td>
+          <td class="center">
             <button onclick="editarOferta(${oferta.id})" class="admin-btn-secondary ofertas-btn-accion">Editar</button>
             <button onclick="eliminarOferta(${oferta.id})" class="admin-btn-danger ofertas-btn-accion">Eliminar</button>
           </td>
