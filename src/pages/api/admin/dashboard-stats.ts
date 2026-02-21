@@ -250,9 +250,21 @@ export const GET: APIRoute = async () => {
     console.log('✅ Ingresos de hoy:', ingresosHoy);
     console.log('✅ Pedidos de hoy:', pedidosHoy);
 
-    // Calcular ticket promedio (ingresos totales / total de pedidos pagados del mes)
+    // Calcular ticket promedio (media limpia del precio total de los pedidos del mes)
+    // Sin considerar cancelados ni devoluciones, solo la suma de subtotales de pedidos creados / cantidad de pedidos
+    let ingresosLimpio = 0;
+    if (pedidosMes && pedidosMes.length > 0) {
+      ingresosLimpio = pedidosMes.reduce((total, pedido) => {
+        const subtotalPedido = pedido.pedido_items?.reduce((sum: number, item: any) => {
+          const valor = parseFloat(item.subtotal) || 0;
+          return sum + valor;
+        }, 0) || 0;
+        return total + subtotalPedido;
+      }, 0);
+    }
+    
     const totalPedidosMes = pedidosMes?.length || 0;
-    const ticketPromedio = totalPedidosMes > 0 ? ingresosTotal / totalPedidosMes : 0;
+    const ticketPromedio = totalPedidosMes > 0 ? ingresosLimpio / totalPedidosMes : 0;
 
     return new Response(
       JSON.stringify({
