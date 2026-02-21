@@ -86,6 +86,7 @@ import Layout from '../layouts/Layout.astro';
       
       if (accion === 'cancelar') {
         console.log('🟡 Llamando cancelarPedidoConfirmado con:', pedidoId);
+        cancelandoPedido = false; // Reset para permitir nueva cancelación tras confirmar
         cancelarPedidoConfirmado(pedidoId);
       }
     }
@@ -138,7 +139,21 @@ import Layout from '../layouts/Layout.astro';
       );
     }
 
+    let cancelandoPedido = false;
+
     async function cancelarPedidoConfirmado(pedidoId) {
+      if (cancelandoPedido) return;
+      cancelandoPedido = true;
+
+      // Deshabilitar el botón y mostrar "Cargando..."
+      const btnCancelar = document.querySelector(`button[onclick="cancelarPedido('${pedidoId}')"]`);
+      if (btnCancelar) {
+        btnCancelar.disabled = true;
+        btnCancelar.textContent = 'Cargando...';
+        btnCancelar.style.opacity = '0.6';
+        btnCancelar.style.cursor = 'not-allowed';
+      }
+
       const userId = localStorage.getItem('user_id');
       console.log('🔵 Iniciando cancelación:', { pedidoId, userId });
       
@@ -165,10 +180,24 @@ import Layout from '../layouts/Layout.astro';
           }, 2000);
         } else {
           mostrarNotificacion(data.error || 'Error al cancelar pedido', 'error');
+          cancelandoPedido = false;
+          if (btnCancelar) {
+            btnCancelar.disabled = false;
+            btnCancelar.textContent = 'Cancelar Pedido';
+            btnCancelar.style.opacity = '1';
+            btnCancelar.style.cursor = 'pointer';
+          }
         }
       } catch (error) {
         console.error('🔴 Error:', error);
         mostrarNotificacion('Error al cancelar pedido', 'error');
+        cancelandoPedido = false;
+        if (btnCancelar) {
+          btnCancelar.disabled = false;
+          btnCancelar.textContent = 'Cancelar Pedido';
+          btnCancelar.style.opacity = '1';
+          btnCancelar.style.cursor = 'pointer';
+        }
       }
     }
 
