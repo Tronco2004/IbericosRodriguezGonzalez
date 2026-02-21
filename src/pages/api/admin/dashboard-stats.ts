@@ -71,16 +71,18 @@ export const GET: APIRoute = async () => {
     console.log('✅ Stock TOTAL:', stockTotal);
 
     // 6. Obtener ingresos totales de ESTE MES
-    // Incluir TODOS los estados que representan un pago completado:
-    // pagado, preparando, enviado, entregado, devolucion_solicitada, devolucion_denegada
-    // NO incluir: cancelado (no se pagó), devolucion_recibida (se resta aparte)
+    // Incluir SOLO los estados que representan un pago CONFIRMADO:
+    // pagado, preparando, enviado, entregado
+    // TAMBIÉN: devolucion_denegada (la devolución fue rechazada, se mantiene el pago)
+    // NO incluir: cancelado (nunca se pagó), devolucion_solicitada (pendiente de decisión), devolucion_recibida (se resta aparte)
+    // IMPORTANTE: No incluir 'devolucion_solicitada' para evitar contar dos veces cuando luego se acepta la devolución
     const ahora = new Date();
     const primerDiaDelMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1).toISOString();
     const ultimoDiaDelMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0).toISOString();
 
     console.log('📅 Buscando ingresos entre:', primerDiaDelMes, 'y', ultimoDiaDelMes);
 
-    const estadosPagados = ['pagado', 'preparando', 'enviado', 'entregado', 'devolucion_solicitada', 'devolucion_denegada'];
+    const estadosPagados = ['pagado', 'preparando', 'enviado', 'entregado', 'devolucion_denegada'];
 
     // Obtener pedidos CON sus items para calcular subtotal desde los items
     const { data: pedidosMes, error: ingresosError } = await supabaseAdmin
@@ -99,6 +101,8 @@ export const GET: APIRoute = async () => {
     console.log('📋 Pedidos pagados del mes:', pedidosMes?.length || 0);
 
     // Obtener devoluciones validadas del mes para restarlas
+    // IMPORTANTE: Solo restamos el SUBTOTAL (productos), no el envío
+    // El envío lo paga el cliente SIEMPRE, así que es su pérdida en caso de devolución
     const { data: devolucionesValidadas } = await supabaseAdmin
       .from('pedidos')
       .select(`
@@ -133,13 +137,18 @@ export const GET: APIRoute = async () => {
       }, 0);
       
       // Restar ingresos de devoluciones validadas
+      // IMPORTANTE: Restamos el DOBLE del subtotal (productos)
+      // Primera resta: annula el ingreso inicial
+      // Segunda resta: pérdida neta del producto
+      // Resultado: -€ (pérdida real)
       if (devolucionesValidadas && devolucionesValidadas.length > 0) {
         const restoDevoluciones = devolucionesValidadas.reduce((total, pedido) => {
           return total + (pedido.pedido_items?.reduce((sum: number, item: any) => {
             return sum + (parseFloat(item.subtotal) || 0);
           }, 0) || 0);
         }, 0);
-        ingresosTotal -= restoDevoluciones;
+        // Restar el doble: una vez por anular ingreso, otra por pérdida del producto
+        ingresosTotal -= (restoDevoluciones * 2);
       }
       
       // Calcular ingresos de hoy
@@ -154,6 +163,25 @@ export const GET: APIRoute = async () => {
           return sum + (parseFloat(item.subtotal) || 0);
         }, 0) || 0);
       }, 0);
+      
+      // Restar devoluciones aprobadas (devolucion_recibida) de hoy
+      // Restamos el DOBLE: anular ingreso inicial + pérdida neta del producto
+      if (devolucionesValidadas && devolucionesValidadas.length > 0) {
+        const devolucionesHoy = devolucionesValidadas.filter(pedido => {
+          const fechaPedido = new Date(pedido.fecha_creacion);
+          fechaPedido.setHours(0, 0, 0, 0);
+          return fechaPedido.getTime() === hoy.getTime();
+        });
+        
+        const restaDevolucionesHoy = devolucionesHoy.reduce((total, pedido) => {
+          return total + (pedido.pedido_items?.reduce((sum: number, item: any) => {
+            return sum + (parseFloat(item.subtotal) || 0);
+          }, 0) || 0);
+        }, 0);
+        
+        // Restar el doble: una vez por anular ingreso, otra por pérdida del producto
+        ingresosHoy -= (restaDevolucionesHoy * 2);
+      }
       
       pedidosHoy = pedidosDeHoy.length;
     }

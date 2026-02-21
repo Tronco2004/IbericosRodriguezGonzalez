@@ -384,6 +384,21 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const pedidoId = pedidoCreado[0].id;
     console.log('✅ Pedido creado. ID:', pedidoId);
 
+    // ✅ OBTENER EL CÓDIGO DE SEGUIMIENTO GENERADO POR EL TRIGGER
+    const { data: pedidoConCodigo, error: codigoError } = await supabaseAdmin
+      .from('pedidos')
+      .select('codigo_seguimiento')
+      .eq('id', pedidoId)
+      .single();
+
+    if (codigoError || !pedidoConCodigo?.codigo_seguimiento) {
+      console.error('⚠️ Error obteniendo código de seguimiento:', codigoError);
+    } else {
+      console.log('✅ Código de seguimiento generado:', pedidoConCodigo.codigo_seguimiento);
+    }
+
+    let codigoSeguimiento = pedidoConCodigo?.codigo_seguimiento || null;
+
     // ✅ CREAR ITEMS DEL PEDIDO (con precios de BD)
     const itemsData = cartItems.map((item: any) => {
       const varianteId = item.producto_variante_id || item.variante_id || null;
@@ -475,15 +490,13 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     });
 
     // ✅ ACTUALIZAR EL PEDIDO CON LOS TOTALES CORRECTOS
-    const { data: pedidoActualizado, error: updateError } = await supabaseAdmin
+    const { error: updateError } = await supabaseAdmin
       .from('pedidos')
       .update({
         subtotal: subtotalCalculado,
         total: totalCalculado
       })
-      .eq('id', pedidoId)
-      .select('codigo_seguimiento')
-      .single();
+      .eq('id', pedidoId);
 
     if (updateError) {
       console.error('⚠️ Error actualizando totales del pedido:', updateError);
@@ -492,9 +505,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       console.log('✅ Totales del pedido actualizados correctamente');
     }
 
-    // Obtener el código de seguimiento (generado por trigger)
-    const codigoSeguimiento = pedidoActualizado?.codigo_seguimiento || null;
-    console.log('📦 Código de seguimiento:', codigoSeguimiento);
+    // El código de seguimiento ya fue obtenido después del INSERT (línea anterior a ✅ CREAR ITEMS DEL PEDIDO)
 
     // 🎁 ENVIAR EMAIL DE CONFIRMACIÓN
     console.log('📧 Enviando email de confirmación...');

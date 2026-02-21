@@ -10,9 +10,10 @@ export const GET: APIRoute = async () => {
     const primerDiaDelMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1).toISOString();
     const ultimoDiaDelMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0).toISOString();
 
-    // Obtener todos los pedidos con pago completado del mes
-    // Incluir todos los estados que representan pago exitoso (no solo 'pagado')
-    const estadosPagados = ['pagado', 'preparando', 'enviado', 'entregado', 'devolucion_solicitada', 'devolucion_denegada'];
+    // Obtener todos los pedidos con pago CONFIRMADO del mes
+    // IMPORTANTE: No incluir 'devolucion_solicitada' para evitar contar dos veces
+    // cuando la devolución se acepte (devolucion_recibida)
+    const estadosPagados = ['pagado', 'preparando', 'enviado', 'entregado', 'devolucion_denegada'];
 
     const { data: pedidosMes, error: errorPedidos } = await supabaseAdmin
       .from('pedidos')
@@ -63,7 +64,9 @@ export const GET: APIRoute = async () => {
       });
     }
     
-    // Restar devoluciones validadas del mes
+    // Restar devoluciones validadas del mes 
+    // IMPORTANTE: Solo restamos el SUBTOTAL (productos), no el envío
+    // El envío lo paga el cliente SIEMPRE, así que es su pérdida en caso de devolución
     const { data: devolucionesValidadas } = await supabaseAdmin
       .from('pedidos')
       .select(`
@@ -82,12 +85,12 @@ export const GET: APIRoute = async () => {
         const fecha = new Date(pedido.fecha_creacion);
         const dia = fecha.getDate();
         
-        // Restar subtotales de los items del pedido
+        // Restar el DOBLE del subtotal: anular ingreso inicial + pérdida neta del producto
         const subtotal = pedido.pedido_items?.reduce((sum: number, item: any) => {
           return sum + (parseFloat(item.subtotal) || 0);
         }, 0) || 0;
         
-        ingresosMatriz[dia] -= subtotal;
+        ingresosMatriz[dia] -= (subtotal * 2);
       });
     }
 
