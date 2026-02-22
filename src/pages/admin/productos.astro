@@ -710,7 +710,8 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
             estado: p.activo ? 'activo' : 'inactivo',
             rating: p.rating || 0,
             es_variable: p.es_variable || false,
-            precio_por_kg: p.precio_por_kg || null
+            precio_por_kg: p.precio_por_kg || null,
+            variantes_count: p.variantes_count
           }));
         } else {
           // Si no hay productos en Supabase, mostrar vacío
@@ -761,7 +762,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           <td class="prod-cell prod-nombre">${p.nombre}</td>
           <td class="prod-cell prod-categoria">${p.categoria}</td>
           <td class="prod-cell center prod-precio">${(p.precio / 100).toFixed(2)} €</td>
-          <td class="prod-cell center prod-stock">${p.stock}</td>
+          <td class="prod-cell center prod-stock">${p.es_variable ? p.variantes_count + ' pesos' : p.stock}</td>
           <td class="prod-cell center">
             <span class="prod-badge ${p.estado === 'activo' ? 'activo' : 'inactivo'}">
               ${p.estado === 'activo' ? '✓ Activo' : '✗ Inactivo'}

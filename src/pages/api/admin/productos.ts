@@ -54,10 +54,30 @@ export const GET: APIRoute = async ({ request }) => {
       categoriaMap[cat.id] = { nombre: cat.nombre, slug: cat.slug };
     });
 
-    // Enriquecer productos con datos de categoría
+    // Obtener conteo de variantes disponibles para productos variables
+    const productosVariables = productos?.filter(p => p.es_variable) || [];
+    const variantesCountMap: Record<number, number> = {};
+
+    if (productosVariables.length > 0) {
+      const idsVariables = productosVariables.map(p => p.id);
+      const { data: variantes, error: varError } = await supabaseAdmin
+        .from('producto_variantes')
+        .select('producto_id')
+        .in('producto_id', idsVariables)
+        .eq('disponible', true);
+
+      if (!varError && variantes) {
+        variantes.forEach((v: { producto_id: number }) => {
+          variantesCountMap[v.producto_id] = (variantesCountMap[v.producto_id] || 0) + 1;
+        });
+      }
+    }
+
+    // Enriquecer productos con datos de categoría y conteo de variantes
     const productosEnriquecidos = productos?.map((p) => ({
       ...p,
-      categorias: categoriaMap[p.categoria_id] || { nombre: 'Sin categoría', slug: 'sin-categoria' }
+      categorias: categoriaMap[p.categoria_id] || { nombre: 'Sin categoría', slug: 'sin-categoria' },
+      variantes_count: p.es_variable ? (variantesCountMap[p.id] || 0) : null
     })) || [];
 
     return new Response(

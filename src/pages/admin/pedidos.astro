@@ -600,10 +600,13 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 
       const userRole = localStorage.getItem('user_role');
       const modal = document.getElementById('modalConfirmacion');
+      const btnDenegarModal = document.getElementById('btnDenegarModal');
 
       try {
         btnValidarEnConfirmacion.disabled = true;
         btnValidarEnConfirmacion.textContent = 'Procesando...';
+        btnDenegarModal.disabled = true;
+        btnDenegarModal.textContent = 'Procesando...';
 
         const response = await fetch('/api/pedidos/denegar-devolucion', {
           method: 'POST',
@@ -621,6 +624,8 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           mostrarNotificacion('error', 'Error al denegar', error.error || 'No se pudo denegar la devolución');
           btnValidarEnConfirmacion.disabled = false;
           btnValidarEnConfirmacion.innerHTML = '✕ Denegar';
+          btnDenegarModal.disabled = false;
+          btnDenegarModal.textContent = 'Denegar';
           modal.style.display = 'none';
           return;
         }
@@ -628,12 +633,16 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         mostrarNotificacion('success', '✓ Devolución Denegada', 'El cliente ha sido notificado de la denegación.');
         // Recargar los pedidos
         cargarPedidos(filtroActual);
+        btnDenegarModal.disabled = false;
+        btnDenegarModal.textContent = 'Denegar';
         modal.style.display = 'none';
       } catch (error) {
         console.error('Error:', error);
         mostrarNotificacion('error', 'Error', 'No se pudo denegar la devolución');
         btnValidarEnConfirmacion.disabled = false;
         btnValidarEnConfirmacion.innerHTML = '✕ Denegar';
+        btnDenegarModal.disabled = false;
+        btnDenegarModal.textContent = 'Denegar';
         modal.style.display = 'none';
       }
 
@@ -648,10 +657,13 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 
       const userRole = localStorage.getItem('user_role');
       const modal = document.getElementById('modalConfirmacion');
+      const btnAceptarModal = document.getElementById('btnAceptarModal');
 
       try {
         btnValidarEnConfirmacion.disabled = true;
         btnValidarEnConfirmacion.textContent = 'Procesando...';
+        btnAceptarModal.disabled = true;
+        btnAceptarModal.textContent = 'Procesando...';
 
         const response = await fetch('/api/pedidos/validar-devolucion', {
           method: 'POST',
@@ -669,6 +681,8 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           mostrarNotificacion('error', 'Error al validar', error.error || 'No se pudo validar la devolución');
           btnValidarEnConfirmacion.disabled = false;
           btnValidarEnConfirmacion.innerHTML = '✓ Validar';
+          btnAceptarModal.disabled = false;
+          btnAceptarModal.textContent = 'Validar';
           modal.style.display = 'none';
           return;
         }
@@ -676,12 +690,16 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         mostrarNotificacion('success', '✓ Devolución Validada', 'El cliente ha sido notificado. Reembolso autorizado.');
         // Recargar los pedidos
         cargarPedidos(filtroActual);
+        btnAceptarModal.disabled = false;
+        btnAceptarModal.textContent = 'Validar';
         modal.style.display = 'none';
       } catch (error) {
         console.error('Error:', error);
         mostrarNotificacion('error', 'Error', 'No se pudo validar la devolución');
         btnValidarEnConfirmacion.disabled = false;
         btnValidarEnConfirmacion.innerHTML = '✓ Validar';
+        btnAceptarModal.disabled = false;
+        btnAceptarModal.textContent = 'Validar';
         modal.style.display = 'none';
       }
 

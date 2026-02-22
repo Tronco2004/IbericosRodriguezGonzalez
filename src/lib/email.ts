@@ -210,6 +210,129 @@ function generarPDFFactura(datos: EmailPedido): Promise<Buffer> {
 }
 
 /**
+ * Generar PDF de etiqueta de envío para devolución
+ */
+function generarPDFEtiquetaEnvio(numeroPedido: string, nombreCliente?: string): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: [400, 600],
+        margin: 30
+      });
+
+      const buffers: Buffer[] = [];
+      doc.on('data', (buffer: Buffer) => buffers.push(buffer));
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+      doc.on('error', reject);
+
+      const codigoEnvio = `DEV-${numeroPedido.replace('PED-', '')}-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+
+      // === BORDE EXTERIOR ===
+      doc.rect(10, 10, 380, 580).lineWidth(2).strokeColor('#001a33').stroke();
+      doc.rect(13, 13, 374, 574).lineWidth(0.5).strokeColor('#a89968').stroke();
+
+      // === HEADER ===
+      doc.rect(20, 20, 360, 50).fill('#001a33');
+      doc.fontSize(18).font('Helvetica-Bold').fillColor('#ffffff').text('ETIQUETA DE ENVÍO', 30, 32, { width: 340, align: 'center' });
+      doc.fontSize(9).fillColor('#a89968').text('DEVOLUCIÓN AUTORIZADA', 30, 52, { width: 340, align: 'center' });
+
+      // === LÍNEA DECORATIVA ===
+      doc.rect(20, 75, 360, 3).fill('#a89968');
+
+      // === REMITENTE ===
+      let y = 90;
+      doc.fontSize(8).font('Helvetica-Bold').fillColor('#888').text('REMITENTE:', 30, y);
+      y += 14;
+      doc.fontSize(11).font('Helvetica-Bold').fillColor('#001a33').text(nombreCliente || 'Cliente', 30, y);
+      y += 16;
+      doc.fontSize(9).font('Helvetica').fillColor('#555').text('(Dirección del cliente)', 30, y);
+
+      // === SEPARADOR ===
+      y += 25;
+      doc.moveTo(30, y).lineTo(370, y).lineWidth(1).strokeColor('#e0d5c7').dash(5, { space: 3 }).stroke();
+      doc.undash();
+
+      // === DESTINATARIO ===
+      y += 15;
+      doc.fontSize(8).font('Helvetica-Bold').fillColor('#888').text('DESTINATARIO:', 30, y);
+      y += 14;
+      doc.fontSize(13).font('Helvetica-Bold').fillColor('#001a33').text('Ibéricos Rodríguez González', 30, y);
+      y += 18;
+      doc.fontSize(10).font('Helvetica').fillColor('#333');
+      doc.text('Calle de la Moda 123', 30, y);
+      y += 14;
+      doc.text('Polígono Industrial', 30, y);
+      y += 14;
+      doc.text('28001 Madrid, España', 30, y);
+      y += 14;
+      doc.text('Tel: +34 670 878 333', 30, y);
+
+      // === SEPARADOR ===
+      y += 25;
+      doc.moveTo(30, y).lineTo(370, y).lineWidth(1).strokeColor('#e0d5c7').dash(5, { space: 3 }).stroke();
+      doc.undash();
+
+      // === DATOS DEL ENVÍO ===
+      y += 15;
+      doc.rect(25, y - 5, 350, 80).lineWidth(1).strokeColor('#a89968').stroke();
+
+      doc.fontSize(8).font('Helvetica-Bold').fillColor('#888').text('REFERENCIA DE ENVÍO:', 35, y + 3);
+      y += 16;
+      doc.fontSize(16).font('Helvetica-Bold').fillColor('#001a33').text(codigoEnvio, 35, y, { width: 330, align: 'center' });
+      y += 24;
+      doc.fontSize(8).font('Helvetica-Bold').fillColor('#888').text('PEDIDO ORIGINAL:', 35, y);
+      doc.fontSize(10).font('Helvetica-Bold').fillColor('#001a33').text(numeroPedido, 160, y);
+      y += 16;
+      doc.fontSize(8).font('Helvetica-Bold').fillColor('#888').text('FECHA:', 35, y);
+      doc.fontSize(10).font('Helvetica').fillColor('#333').text(new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }), 160, y);
+
+      // === CÓDIGO DE BARRAS SIMULADO ===
+      y += 40;
+      const barcodeY = y;
+      const barcodeX = 80;
+      const barcodeWidth = 240;
+      const barCount = 50;
+      const barWidth = barcodeWidth / barCount;
+
+      // Generar barras pseudoaleatorias basadas en el código
+      let seed = 0;
+      for (let i = 0; i < codigoEnvio.length; i++) {
+        seed += codigoEnvio.charCodeAt(i);
+      }
+
+      for (let i = 0; i < barCount; i++) {
+        const thick = ((seed * (i + 1) * 7) % 3) + 1;
+        const gap = ((seed * (i + 1) * 13) % 2) + 1;
+        if (i % gap === 0) {
+          doc.rect(barcodeX + (i * barWidth), barcodeY, barWidth * thick * 0.4, 50).fill('#000000');
+        }
+      }
+
+      // Texto debajo del código de barras
+      doc.fontSize(9).font('Helvetica').fillColor('#333').text(codigoEnvio, barcodeX, barcodeY + 55, { width: barcodeWidth, align: 'center' });
+
+      // === INSTRUCCIONES ===
+      y = barcodeY + 80;
+      doc.rect(25, y, 350, 60).fill('#faf7f2');
+      doc.fontSize(8).font('Helvetica-Bold').fillColor('#001a33').text('INSTRUCCIONES:', 35, y + 8);
+      doc.fontSize(7.5).font('Helvetica').fillColor('#555');
+      doc.text('1. Imprima esta etiqueta y péguela en el paquete de devolución.', 35, y + 22, { width: 330 });
+      doc.text('2. Asegúrese de que los productos estén bien embalados.', 35, y + 33, { width: 330 });
+      doc.text('3. Entregue el paquete en cualquier oficina de correos o punto de recogida.', 35, y + 44, { width: 330 });
+
+      // === FOOTER ===
+      const footerY = 560;
+      doc.rect(20, footerY, 360, 25).fill('#001a33');
+      doc.fontSize(7).font('Helvetica').fillColor('#a89968').text('Ibéricos Rodríguez González  |  ibericosrodriguezgonzalez.victoriafp.online', 30, footerY + 8, { width: 340, align: 'center' });
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+/**
  * Generar PDF de factura rectificativa (nota de crédito)
  */
 function generarPDFFacturaRectificativa(datos: EmailDevolucion): Promise<Buffer> {
@@ -1225,6 +1348,20 @@ export async function notificarDevolucionValidada(
                   </td></tr>
                 </table>
                 
+                <!-- ETIQUETA DE ENVÍO -->
+                <h2 style="margin: 25px 0 15px 0; color: #001a33; font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #28a745; padding-bottom: 8px;">&#128230; Etiqueta de Env&iacute;o</h2>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: #e8f5e9; border: 2px dashed #28a745; border-radius: 8px; margin: 15px 0;">
+                  <tr><td style="padding: 20px;">
+                    <p style="margin: 0 0 8px 0; font-weight: 700; color: #001a33; font-size: 14px;">Adjuntamos tu etiqueta de env&iacute;o</p>
+                    <p style="margin: 0 0 12px 0; color: #555; font-size: 13px; line-height: 1.6;">Hemos generado una etiqueta de env&iacute;o para tu devoluci&oacute;n. Sigue estos pasos:</p>
+                    <table role="presentation" cellpadding="0" cellspacing="0" style="margin-left: 10px;">
+                      <tr><td style="padding: 4px 0; color: #333; font-size: 13px;"><strong>1.</strong> Descarga e imprime la etiqueta adjunta en este correo.</td></tr>
+                      <tr><td style="padding: 4px 0; color: #333; font-size: 13px;"><strong>2.</strong> P&eacute;gala en el exterior del paquete de devoluci&oacute;n.</td></tr>
+                      <tr><td style="padding: 4px 0; color: #333; font-size: 13px;"><strong>3.</strong> Entrega el paquete en cualquier oficina de correos.</td></tr>
+                    </table>
+                  </td></tr>
+                </table>
+
                 <!-- INFO -->
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: #faf7f2; border-left: 4px solid #28a745; border-radius: 0 8px 8px 0; margin: 25px 0;">
                   <tr><td style="padding: 18px 20px;">
@@ -1249,21 +1386,44 @@ export async function notificarDevolucionValidada(
       </html>
     `;
 
+    // Generar PDF de etiqueta de envío para el cliente
+    let etiquetaAttachment: any = null;
+    try {
+      console.log('📄 Generando PDF de etiqueta de envío...');
+      const pdfEtiqueta = await generarPDFEtiquetaEnvio(numeroPedido, nombreCliente);
+      console.log('✅ PDF etiqueta de envío generado, tamaño:', pdfEtiqueta.length, 'bytes');
+      etiquetaAttachment = {
+        filename: `etiqueta_envio_${numeroPedido}.pdf`,
+        content: pdfEtiqueta,
+        contentType: 'application/pdf'
+      };
+    } catch (etiquetaError) {
+      console.error('⚠️ Error generando PDF etiqueta de envío:', etiquetaError);
+    }
+
     // Generar PDF de factura rectificativa si hay datos disponibles
     let attachments: any[] = [];
+    let adminAttachments: any[] = [];
     if (datosDevolucion) {
       try {
         console.log('📄 Generando PDF de factura rectificativa para validación...');
         const pdfRectificativa = await generarPDFFacturaRectificativa(datosDevolucion);
         console.log('✅ PDF rectificativa generado, tamaño:', pdfRectificativa.length, 'bytes');
-        attachments.push({
+        const facturaAttach = {
           filename: `factura_rectificativa_${numeroPedido}.pdf`,
           content: pdfRectificativa,
           contentType: 'application/pdf'
-        });
+        };
+        attachments.push(facturaAttach);
+        adminAttachments.push(facturaAttach);
       } catch (pdfError) {
         console.error('⚠️ Error generando PDF rectificativa:', pdfError);
       }
+    }
+
+    // Añadir etiqueta de envío solo al correo del cliente
+    if (etiquetaAttachment) {
+      attachments.push(etiquetaAttachment);
     }
 
     await getTransporter().sendMail({
@@ -1274,8 +1434,8 @@ export async function notificarDevolucionValidada(
       attachments
     });
 
-    // Enviar también la factura rectificativa al admin
-    if (attachments.length > 0) {
+    // Enviar solo la factura rectificativa al admin (SIN etiqueta de envío)
+    if (adminAttachments.length > 0) {
       try {
         const adminEmail = import.meta.env.ADMIN_EMAIL;
         if (adminEmail) {
@@ -1290,7 +1450,7 @@ export async function notificarDevolucionValidada(
               ${totalReembolso ? `<p><strong>Reembolso:</strong> ${Number(totalReembolso).toFixed(2)} €</p>` : ''}
               <p>Se adjunta la factura rectificativa correspondiente a la devolución validada.</p>
             `,
-            attachments
+            attachments: adminAttachments
           });
           console.log('✅ Factura rectificativa enviada al admin');
         }

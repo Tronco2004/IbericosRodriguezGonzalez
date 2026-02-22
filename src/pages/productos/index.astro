@@ -2617,11 +2617,21 @@ import Layout from '../../layouts/Layout.astro';
     
     resetBtn.addEventListener('click', () => {
       filterCategoria.value = '';
-      sliderPrecioMin.value = 0;
-      sliderPrecioMax.value = precioMaxReal;
-      precioMinDisplay.textContent = `0 €`;
-      precioMaxDisplay.textContent = `${precioMaxReal} €`;
       filterOrden.value = 'nombre';
+
+      const sliderMin = document.getElementById('sliderPrecioMin');
+      const sliderMax = document.getElementById('sliderPrecioMax');
+      const minDisplay = document.getElementById('precioMinDisplay');
+      const maxDisplay = document.getElementById('precioMaxDisplay');
+
+      if (sliderMin && sliderMax) {
+        const maxReal = parseFloat(sliderMax.max) || 1000;
+        sliderMin.value = 0;
+        sliderMax.value = maxReal;
+        if (minDisplay) minDisplay.textContent = '0 €';
+        if (maxDisplay) maxDisplay.textContent = `${Math.round(maxReal)} €`;
+      }
+
       aplicarFiltros();
     });
 
