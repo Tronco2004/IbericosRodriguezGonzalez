@@ -408,7 +408,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
                   <h3 class="pedido-numero">Pedido #${pedido.numero_pedido}</h3>
                   ${pedido.codigo_seguimiento ? `
                     <p style="margin: 0.25rem 0 0 0; font-size: 0.8rem; color: var(--color-accent);">
-                      📦 Seguimiento: <code style="background: var(--bg-tertiary); padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600;">${pedido.codigo_seguimiento}</code>
+                      Seguimiento: <code style="background: var(--bg-tertiary); padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600;">${pedido.codigo_seguimiento}</code>
                     </p>
                   ` : ''}
                   <p class="pedido-fecha">
@@ -603,7 +603,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 
       try {
         btnValidarEnConfirmacion.disabled = true;
-        btnValidarEnConfirmacion.textContent = '⏳ Procesando...';
+        btnValidarEnConfirmacion.textContent = 'Procesando...';
 
         const response = await fetch('/api/pedidos/denegar-devolucion', {
           method: 'POST',
@@ -651,7 +651,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
 
       try {
         btnValidarEnConfirmacion.disabled = true;
-        btnValidarEnConfirmacion.textContent = '⏳ Procesando...';
+        btnValidarEnConfirmacion.textContent = 'Procesando...';
 
         const response = await fetch('/api/pedidos/validar-devolucion', {
           method: 'POST',
@@ -722,7 +722,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
             
             // 🔒 Bloqueador de pedidos finalizados
             if (response.status === 403) {
-              mostrarNotificacion('error', '🔒 PEDIDO FINALIZADO', error.error || 'Este pedido no puede ser modificado');
+              mostrarNotificacion('error', 'PEDIDO FINALIZADO', error.error || 'Este pedido no puede ser modificado');
             } else {
               mostrarNotificacion('error', 'Error al actualizar', error.error || 'No se pudo actualizar el estado');
             }

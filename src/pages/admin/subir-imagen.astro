@@ -20,7 +20,7 @@ import ProtectedLayout from '@/layouts/ProtectedLayout.astro';
           <div class="admin-form-group">
             <label for="image" class="admin-label">Selecciona una imagen:</label>
             <div class="admin-image-drop" id="dropZone">
-              <div class="icon">📷</div>
+              <div class="icon"></div>
               <p class="title">Arrastra una imagen aquí</p>
               <p class="subtitle">o haz clic para seleccionar</p>
               <input 
@@ -105,7 +105,7 @@ import ProtectedLayout from '@/layouts/ProtectedLayout.astro';
       formData.append('file', file);
 
       // Mostrar estado de carga
-      resultDiv.innerHTML = '<p class="admin-loading">⏳ Subiendo imagen...</p>';
+      resultDiv.innerHTML = '<p class="admin-loading">Subiendo imagen...</p>';
       previewDiv.innerHTML = '';
 
       try {
@@ -124,7 +124,7 @@ import ProtectedLayout from '@/layouts/ProtectedLayout.astro';
                 <span class="upload-url-label">URL:</span>
                 <code class="upload-url-code">${data.url}</code>
                 <button type="button" class="admin-btn-secondary upload-copy-btn" onclick="navigator.clipboard.writeText('${data.url}')">
-                  📋 Copiar
+                  Copiar
                 </button>
               </div>
             </div>

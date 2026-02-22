@@ -1144,15 +1144,6 @@ if (!categoriaDB && !categoryInfoFallback[slug as string]) {
         height: 14px;
       }
     }
-
-    @keyframes slideUp {
-      from { opacity: 0; transform: translate(-50%, 20px); }
-      to { opacity: 1; transform: translate(-50%, 0); }
-    }
-    @keyframes fadeOut {
-      from { opacity: 1; }
-      to { opacity: 0; }
-    }
   </style>
 
   <script type="text/javascript">
@@ -1918,7 +1909,7 @@ if (!categoriaDB && !categoryInfoFallback[slug as string]) {
 
           const result = await response.json();
           if (result.success) {
-            mostrarNotificacion('✓ Añadido al carrito');
+            mostrarNotificacion(`Se ha añadido ${productoEnModal.nombre} al carrito`);
             
             // Actualizar variantes con las que devuelve la API o recargar
             if (result.variantes) {
@@ -1996,7 +1987,7 @@ if (!categoriaDB && !categoryInfoFallback[slug as string]) {
         localStorage.setItem('carrito_invitado', JSON.stringify(carrito));
         localStorage.setItem('carrito_invitado_fecha', String(Date.now()));
         
-        mostrarNotificacion('✓ Añadido al carrito');
+        mostrarNotificacion(`Se ha añadido ${productoEnModal.nombre} al carrito`);
         
         // Recargar variantes desde el servidor para actualizar el mapa
         console.log('🔄 Recargando variantes...');
@@ -2072,7 +2063,7 @@ if (!categoriaDB && !categoryInfoFallback[slug as string]) {
             const productoId = productoEnModal.id;
             const nuevoStock = productoEnModal.stock - cantidad;
             
-            mostrarNotificacion(`✓ ${cantidad} ${cantidad > 1 ? 'unidades añadidas' : 'unidad añadida'}`);
+            mostrarNotificacion(`Se ha añadido ${productoEnModal.nombre} al carrito`);
             cerrarModales();
             actualizarStockVisual(productoId, nuevoStock);
             window.dispatchEvent(new CustomEvent('carritoActualizado'));
@@ -2140,7 +2131,7 @@ if (!categoriaDB && !categoryInfoFallback[slug as string]) {
         localStorage.setItem('carrito_invitado', JSON.stringify(carrito));
         localStorage.setItem('carrito_invitado_fecha', String(Date.now()));
         
-        mostrarNotificacion(`✓ ${cantidad} ${cantidad > 1 ? 'unidades añadidas' : 'unidad añadida'}`);
+        mostrarNotificacion(`Se ha añadido ${productoEnModal?.nombre || 'el producto'} al carrito`);
         cerrarModales();
         
         // Actualizar stock visual con el valor del servidor
@@ -2265,29 +2256,71 @@ if (!categoriaDB && !categoryInfoFallback[slug as string]) {
     }
 
     function mostrarNotificacion(mensaje, tipo = 'success') {
+      const container = document.getElementById('notificacionesContainer') || crearContainerNotificaciones();
+      
       const notif = document.createElement('div');
-      notif.textContent = mensaje;
-      const bgColor = tipo === 'error' ? '#dc2626' : tipo === 'info' ? '#2563eb' : '#1a1a1a';
       notif.style.cssText = `
-        position: fixed;
-        bottom: 24px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: ${bgColor};
+        background: ${tipo === 'error' ? '#f5576c' : tipo === 'info' ? '#001a33' : '#a89968'};
         color: white;
-        padding: 14px 28px;
-        border-radius: 12px;
-        font-weight: 600;
-        font-size: 0.95rem;
-        z-index: 9999;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-        animation: slideUp 0.3s ease-out;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        animation: slideIn 0.3s ease-out;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        font-weight: 500;
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
       `;
-      document.body.appendChild(notif);
+
+      let icono = '';
+      if (tipo === 'success') icono = '✓';
+      else if (tipo === 'error') icono = '✕';
+
+      notif.innerHTML = `
+        <span style="font-size: 1.2rem; font-weight: bold;">${icono}</span>
+        <span>${mensaje}</span>
+      `;
+
+      container.appendChild(notif);
+
       setTimeout(() => {
-        notif.style.animation = 'fadeOut 0.3s ease-out forwards';
+        notif.style.animation = 'slideOut 0.3s ease-out';
         setTimeout(() => notif.remove(), 300);
-      }, 2500);
+      }, 3000);
+    }
+
+    function crearContainerNotificaciones() {
+      const container = document.createElement('div');
+      container.id = 'notificacionesContainer';
+      container.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 2rem;
+        z-index: 9999;
+        max-width: 400px;
+        pointer-events: none;
+      `;
+      document.body.appendChild(container);
+
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateX(400px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes slideOut {
+          from { opacity: 1; transform: translateX(0); }
+          to { opacity: 0; transform: translateX(400px); }
+        }
+        #notificacionesContainer > div {
+          pointer-events: auto;
+        }
+      `;
+      document.head.appendChild(style);
+
+      return container;
     }
 
     // Inicializar modales

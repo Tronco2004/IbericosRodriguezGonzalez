@@ -524,7 +524,7 @@ const codigoURL = Astro.url.searchParams.get('codigo') || '';
     if (esCancelado) {
       timelineHTML = `
         <div style="text-align: center; padding: 2rem 1rem; background: var(--cancelado-bg, #fef2f2); border: 1px solid var(--cancelado-border, #fecaca); border-radius: 12px; margin-top: 1rem;">
-          <div style="font-size: 3rem; margin-bottom: 0.5rem;">❌</div>
+          <div style="font-size: 3rem; margin-bottom: 0.5rem;"></div>
           <h3 style="color: #ef4444; font-size: 1.3rem; margin-bottom: 0.5rem;">PEDIDO CANCELADO</h3>
           <p style="color: var(--cancelado-text, #991b1b); font-size: 0.95rem;">Este pedido ha sido cancelado y no será procesado.</p>
         </div>

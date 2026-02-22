@@ -280,16 +280,16 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
         const data = await response.json();
 
         if (response.ok && data.success) {
-          mostrarMensaje('✅ Perfil actualizado exitosamente', 'exito', mensajeEstado, true);
+          mostrarMensaje('Perfil actualizado exitosamente', 'exito', mensajeEstado, true);
           setTimeout(() => {
             if (mensajeEstado) mensajeEstado.style.display = 'none';
           }, 5000);
         } else {
-          mostrarMensaje('❌ ' + (data.message || 'Error al guardar'), 'error', mensajeEstado, true);
+          mostrarMensaje((data.message || 'Error al guardar'), 'error', mensajeEstado, true);
         }
       } catch (error) {
         console.error('Error:', error);
-        mostrarMensaje('❌ Error de conexión', 'error', mensajeEstado, true);
+        mostrarMensaje('Error de conexión', 'error', mensajeEstado, true);
       } finally {
         if (boton) {
           boton.disabled = false;

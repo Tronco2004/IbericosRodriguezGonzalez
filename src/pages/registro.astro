@@ -258,7 +258,7 @@ import Layout from '../layouts/Layout.astro';
         const data = await response.json();
 
         if (data.success) {
-          messageContainer.innerHTML = '<div style="padding: 1rem; background: #efe; border: 1px solid #cfc; color: #3c3; border-radius: 4px; font-size: 0.9rem;">✅ Registro exitoso! Iniciando sesión automáticamente...</div>';
+          messageContainer.innerHTML = '<div style="padding: 1rem; background: #efe; border: 1px solid #cfc; color: #3c3; border-radius: 4px; font-size: 0.9rem;">Registro exitoso! Iniciando sesión automáticamente...</div>';
           console.log('✅ Registro exitoso:', data.userId);
           
           // Guardar datos en localStorage para acceso posterior
@@ -303,10 +303,10 @@ import Layout from '../layouts/Layout.astro';
         if (data.success && data.url) {
           window.location.href = data.url;
         } else {
-          messageContainer.innerHTML = `<div style="padding: 1rem; background: #fee; border: 1px solid #fcc; color: #c33; border-radius: 4px; font-size: 0.9rem;">❌ ${data.error || 'Error al registrarse'}</div>`;
+          messageContainer.innerHTML = `<div style="padding: 1rem; background: #fee; border: 1px solid #fcc; color: #c33; border-radius: 4px; font-size: 0.9rem;">${data.error || 'Error al registrarse'}</div>`;
         }
       } catch (error) {
-        messageContainer.innerHTML = '<div style="padding: 1rem; background: #fee; border: 1px solid #fcc; color: #c33; border-radius: 4px; font-size: 0.9rem;">❌ Error al registrarse</div>';
+        messageContainer.innerHTML = '<div style="padding: 1rem; background: #fee; border: 1px solid #fcc; color: #c33; border-radius: 4px; font-size: 0.9rem;">Error al registrarse</div>';
       }
     }
 

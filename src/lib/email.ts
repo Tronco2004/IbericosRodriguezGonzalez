@@ -612,7 +612,7 @@ function generarEtiquetaDevolucion(numeroPedido: string): string {
       text-align: center;
       font-family: 'Courier New', monospace;
     ">
-      <h2 style="color: #001a33; margin: 0 0 15px 0; font-size: 1.2rem;">📦 ETIQUETA DE DEVOLUCIÓN</h2>
+      <h2 style="color: #001a33; margin: 0 0 15px 0; font-size: 1.2rem;">ETIQUETA DE DEVOLUCIÓN</h2>
       
       <div style="background: #f8f7f4; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
         <p style="color: #5c4a3d; margin: 0 0 10px 0; font-size: 0.9rem;">Número de Referencia:</p>
@@ -1063,7 +1063,7 @@ export async function notificarCancelacionAlAdmin(
           
           <div class="content">
             <div class="alert">
-              <strong>🚨 Un cliente ha cancelado su pedido</strong>
+              <strong>Un cliente ha cancelado su pedido</strong>
             </div>
 
             <div class="info-box">
@@ -1487,16 +1487,16 @@ export async function enviarEmailBienvenida(emailCliente: string, nombreCliente:
                   <h2 style="margin: 0 0 15px 0; color: #001a33; font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #a89968; padding-bottom: 8px;">¿Por qué elegirnos?</h2>
                   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
                     <tr>
-                      <td style="padding: 8px 0; color: #555; font-size: 14px;">🐷 Productos ibéricos de bellota de primera calidad</td>
+                      <td style="padding: 8px 0; color: #555; font-size: 14px;">Productos ibéricos de bellota de primera calidad</td>
                     </tr>
                     <tr>
-                      <td style="padding: 8px 0; color: #555; font-size: 14px;">🚚 Envío cuidado y rápido en 3-5 días hábiles</td>
+                      <td style="padding: 8px 0; color: #555; font-size: 14px;">Envío cuidado y rápido en 3-5 días hábiles</td>
                     </tr>
                     <tr>
-                      <td style="padding: 8px 0; color: #555; font-size: 14px;">✂️ Corte personalizado a tu gusto</td>
+                      <td style="padding: 8px 0; color: #555; font-size: 14px;">Corte personalizado a tu gusto</td>
                     </tr>
                     <tr>
-                      <td style="padding: 8px 0; color: #555; font-size: 14px;">💯 Garantía de satisfacción total</td>
+                      <td style="padding: 8px 0; color: #555; font-size: 14px;">Garantía de satisfacción total</td>
                     </tr>
                   </table>
                   

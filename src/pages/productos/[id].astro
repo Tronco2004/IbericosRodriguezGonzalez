@@ -1724,53 +1724,70 @@ export const prerender = false;
     }
 
     function mostrarNotificacion(mensaje, esError = false) {
-      const notificacion = document.createElement('div');
-      notificacion.textContent = mensaje;
-      notificacion.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${esError ? '#dc2626' : '#16a34a'};
+      const container = document.getElementById('notificacionesContainer') || crearContainerNotificaciones();
+      
+      const notif = document.createElement('div');
+      notif.style.cssText = `
+        background: ${esError ? '#f5576c' : '#a89968'};
         color: white;
         padding: 1rem 1.5rem;
         border-radius: 8px;
-        font-weight: 600;
-        z-index: 9999;
-        animation: slideIn 0.3s ease;
+        margin-bottom: 1rem;
+        animation: slideIn 0.3s ease-out;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        font-weight: 500;
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
       `;
-      document.body.appendChild(notificacion);
+
+      const icono = esError ? '✕' : '✓';
+
+      notif.innerHTML = `
+        <span style="font-size: 1.2rem; font-weight: bold;">${icono}</span>
+        <span>${mensaje}</span>
+      `;
+
+      container.appendChild(notif);
+
       setTimeout(() => {
-        notificacion.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => notificacion.remove(), 300);
+        notif.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => notif.remove(), 300);
       }, 3000);
     }
 
-    // Agregar estilos para animaciones
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes slideIn {
-        from {
-          transform: translateX(400px);
-          opacity: 0;
+    function crearContainerNotificaciones() {
+      const container = document.createElement('div');
+      container.id = 'notificacionesContainer';
+      container.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 2rem;
+        z-index: 9999;
+        max-width: 400px;
+        pointer-events: none;
+      `;
+      document.body.appendChild(container);
+
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateX(400px); }
+          to { opacity: 1; transform: translateX(0); }
         }
-        to {
-          transform: translateX(0);
-          opacity: 1;
+        @keyframes slideOut {
+          from { opacity: 1; transform: translateX(0); }
+          to { opacity: 0; transform: translateX(400px); }
         }
-      }
-      @keyframes slideOut {
-        from {
-          transform: translateX(0);
-          opacity: 1;
+        #notificacionesContainer > div {
+          pointer-events: auto;
         }
-        to {
-          transform: translateX(400px);
-          opacity: 0;
-        }
-      }
-    `;
-    document.head.appendChild(style);
+      `;
+      document.head.appendChild(style);
+
+      return container;
+    }
 
     function mostrarError(mensaje) {
       document.getElementById('loadingMessage').innerHTML = `
@@ -1858,7 +1875,7 @@ export const prerender = false;
           actualizarVariantesUI();
         }
 
-        mostrarNotificacion('✓ Producto agregado al carrito');
+        mostrarNotificacion(`Se ha añadido ${productoActual.nombre} al carrito`);
 
         // Enviar petición a la API de forma asincrónica
         const response = await fetch('/api/carrito', {
@@ -1895,11 +1912,11 @@ export const prerender = false;
             variantesDisponibles = variantesOriginales;
             actualizarVariantesUI();
           }
-          mostrarNotificacion('❌ Error: ' + (data.message || data.error), true);
+          mostrarNotificacion('Error: ' + (data.message || data.error), true);
         }
       } catch (error) {
         console.error('Error:', error);
-        mostrarNotificacion('❌ Error al agregar al carrito', true);
+        mostrarNotificacion('Error al agregar al carrito', true);
       } finally {
         procesandoCarrito = false;
         const btnAgregar = document.getElementById('btnAgregarCarrito');
@@ -2189,10 +2206,10 @@ export const prerender = false;
           const existe = carrito.find(c => c.producto_id === parseInt(productoId) && !c.producto_variante_id);
           if (existe) {
             existe.cantidad += cantidad;
-            mostrarNotificacion(`✓ Producto actualizado (${existe.cantidad}x)`);
+            mostrarNotificacion(`Se ha añadido ${productoActual.nombre} al carrito`);
           } else {
             carrito.push(item);
-            mostrarNotificacion('✓ Producto agregado al carrito');
+            mostrarNotificacion(`Se ha añadido ${productoActual.nombre} al carrito`);
           }
           
           // Usar stock que devuelve la BD (más preciso)
@@ -2201,7 +2218,7 @@ export const prerender = false;
         } else {
           // Las variantes son únicas
           carrito.push(item);
-          mostrarNotificacion('✓ Producto agregado al carrito');
+          mostrarNotificacion(`Se ha añadido ${productoActual.nombre} al carrito`);
           
           // Actualizar UI de variantes
           variantesDisponibles = variantesDisponibles.filter(v => v.id !== varianteSeleccionada.id);
@@ -2217,7 +2234,7 @@ export const prerender = false;
         window.dispatchEvent(new CustomEvent('carritoActualizado'));
       } catch (error) {
         console.error('Error:', error);
-        mostrarNotificacion('❌ Error al agregar al carrito', true);
+        mostrarNotificacion('Error al agregar al carrito', true);
       } finally {
         procesandoCarrito = false;
         const btnAgregar = document.getElementById('btnAgregarCarrito');

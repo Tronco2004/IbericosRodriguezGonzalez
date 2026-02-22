@@ -1738,9 +1738,7 @@ import Layout from '../../layouts/Layout.astro';
         console.log('✅ Resultado del API:', result);
         if (result.success) {
           console.log('✅ Producto agregado exitosamente');
-          mostrarNotificacion(`${producto.nombre} de ${peso.toFixed(3)} kg agregado al carrito`, 'exito');
-          
-          // Recargar variantes para actualizar la UI
+          mostrarNotificacion(`Se ha añadido ${producto.nombre} al carrito`, 'exito');
           const variantesRes = await fetch(`/api/variantes/obtener-disponibles?producto_id=${productoId}`);
           const variantesData = await variantesRes.json();
           if (variantesData.success) {
@@ -1833,10 +1831,10 @@ import Layout from '../../layouts/Layout.astro';
         const existe = carrito.find(c => c.producto_variante_id === parseInt(varianteId));
         if (existe) {
           existe.cantidad += 1;
-          mostrarNotificacion(`${producto.nombre} actualizado en carrito (${existe.cantidad}x)`, 'exito');
+          mostrarNotificacion(`Se ha añadido ${producto.nombre} al carrito`, 'exito');
         } else {
           carrito.push(item);
-          mostrarNotificacion(`${producto.nombre} de ${peso.toFixed(3)} kg agregado al carrito`, 'exito');
+          mostrarNotificacion(`Se ha añadido ${producto.nombre} al carrito`, 'exito');
         }
 
         // Guardar en localStorage
@@ -2068,7 +2066,7 @@ import Layout from '../../layouts/Layout.astro';
             console.log(`📊 Stock sincronizado desde BD: ${result.stockRestante}`);
           }
           
-          const msg = cortado ? 'Producto agregado al carrito (cortado)' : 'Producto agregado al carrito';
+          const msg = `Se ha añadido ${productoEnGrilla?.nombre || 'el producto'} al carrito`;
           mostrarNotificacion(msg, 'exito');
           // Disparar evento para actualizar stock en tiempo real
           window.dispatchEvent(new CustomEvent('carritoActualizado'));
@@ -2184,10 +2182,10 @@ import Layout from '../../layouts/Layout.astro';
         const existe = carrito.find(c => c.producto_id === parseInt(productoId) && !c.producto_variante_id);
         if (existe) {
           existe.cantidad += cantidad;
-          mostrarNotificacion(`Producto actualizado en carrito (${existe.cantidad}x)`, 'exito');
+          mostrarNotificacion(`Se ha añadido ${producto.nombre} al carrito`, 'exito');
         } else {
           carrito.push(item);
-          mostrarNotificacion('Producto agregado al carrito', 'exito');
+          mostrarNotificacion(`Se ha añadido ${producto.nombre} al carrito`, 'exito');
         }
 
         // Guardar en localStorage

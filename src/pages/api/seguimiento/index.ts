@@ -51,28 +51,28 @@ export const GET: APIRoute = async ({ url }) => {
       pagado: {
         titulo: 'Pedido Pagado',
         mensaje: 'Tu pedido ha sido pagado y está siendo preparado para envío',
-        icono: '💳',
+        icono: '',
         color: '#a89968',
         progreso: 33
       },
       enviado: {
         titulo: 'En Camino',
         mensaje: 'Tu pedido ha sido enviado y está en camino hacia tu dirección',
-        icono: '📦',
+        icono: '',
         color: '#3b82f6',
         progreso: 66
       },
       entregado: {
         titulo: 'Entregado',
         mensaje: '¡Tu pedido ha sido entregado! Esperamos que lo disfrutes',
-        icono: '✅',
+        icono: '',
         color: '#22c55e',
         progreso: 100
       },
       cancelado: {
         titulo: 'Pedido Cancelado',
         mensaje: 'Este pedido ha sido cancelado',
-        icono: '❌',
+        icono: '',
         color: '#ef4444',
         progreso: 0
       }

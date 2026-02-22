@@ -221,7 +221,7 @@ import Layout from '../layouts/Layout.astro';
       const mensaje = document.getElementById('mensaje').value.trim();
 
       if (!email || !asunto || !mensaje) {
-        formMessage.textContent = '⚠️ Por favor completa todos los campos';
+        formMessage.textContent = 'Por favor completa todos los campos';
         formMessage.style.background = '#fef3c7';
         formMessage.style.color = '#92400e';
         formMessage.style.display = 'block';
@@ -247,12 +247,12 @@ import Layout from '../layouts/Layout.astro';
           formMessage.style.color = '#065f46';
           contactForm.reset();
         } else {
-          formMessage.textContent = `❌ ${data.error || 'Error al enviar el mensaje'}`;
+          formMessage.textContent = `${data.error || 'Error al enviar el mensaje'}`;
           formMessage.style.background = '#fee2e2';
           formMessage.style.color = '#991b1b';
         }
       } catch (err) {
-        formMessage.textContent = '❌ Error de conexión. Por favor intenta más tarde.';
+        formMessage.textContent = 'Error de conexión. Por favor intenta más tarde.';
         formMessage.style.background = '#fee2e2';
         formMessage.style.color = '#991b1b';
       }

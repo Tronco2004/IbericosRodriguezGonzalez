@@ -45,11 +45,6 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       font-weight: 700;
     }
     
-    .prod-precio-empresa {
-      color: #16a34a;
-      font-weight: 700;
-    }
-    
     .prod-stock {
       color: var(--text-muted);
     }
@@ -316,9 +311,6 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
                 <th>Producto</th>
                 <th>Categoría</th>
                 <th class="center">Precio Público</th>
-                <th class="center">IVA %</th>
-                <th class="center">Precio Empresa</th>
-                <th class="center">IVA Emp %</th>
                 <th class="center">Stock</th>
                 <th class="center">Estado</th>
                 <th class="center">Acciones</th>
@@ -330,7 +322,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           </table>
         </div>
         <div id="emptyState" class="admin-empty-state" style="display: none;">
-          <div style="font-size: 3rem; margin-bottom: 1rem;">📦</div>
+          <div style="font-size: 3rem; margin-bottom: 1rem;"></div>
           <p>No hay productos que mostrar</p>
         </div>
       </div>
@@ -352,7 +344,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
               <p class="admin-hint">Click para cambiar imagen</p>
             </div>
             <div id="imagePlaceholder">
-              <div style="font-size: 2rem; margin-bottom: 0.5rem;">🖼️</div>
+              <div style="font-size: 2rem; margin-bottom: 0.5rem;"></div>
               <p class="image-drop-title">Arrastra una imagen aquí</p>
               <p class="admin-hint">o click para seleccionar</p>
             </div>
@@ -380,20 +372,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
             <input type="number" id="precio" placeholder="0.00" step="0.01" class="admin-input" required />
           </div>
 
-          <div class="admin-form-group">
-            <label class="admin-label">IVA (%)</label>
-            <input type="number" id="iva" placeholder="21" step="0.01" min="0" max="100" class="admin-input" required />
-          </div>
 
-          <div class="admin-form-group">
-            <label class="admin-label">Precio Empresa (€)</label>
-            <input type="number" id="precio_empresa" placeholder="0.00" step="0.01" class="admin-input" />
-          </div>
-
-          <div class="admin-form-group">
-            <label class="admin-label">IVA Empresa (%)</label>
-            <input type="number" id="iva_empresa" placeholder="21" step="0.01" min="0" max="100" class="admin-input" />
-          </div>
         </div>
 
         <!-- Opción: Peso Variable -->
@@ -499,9 +478,9 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       
       // Configurar icono y tipo
       popup.className = 'popup-notification popup-' + type;
-      if (type === 'error') icon.textContent = '⚠️';
-      else if (type === 'success') icon.textContent = '✅';
-      else if (type === 'warning') icon.textContent = '⚡';
+      if (type === 'error') icon.textContent = '';
+      else if (type === 'success') icon.textContent = '';
+      else if (type === 'warning') icon.textContent = '';
       
       text.textContent = message;
       
@@ -643,7 +622,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       uploadStatus.style.display = 'block';
       uploadStatus.style.background = '#f0f9ff';
       uploadStatus.style.color = '#0369a1';
-      uploadMessage.textContent = '⏳ Subiendo imagen...';
+      uploadMessage.textContent = 'Subiendo imagen...';
 
       const formData = new FormData();
       formData.append('file', file);
@@ -725,9 +704,6 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
             nombre: p.nombre,
             categoria: p.categorias?.slug || 'desconocida',
             precio: p.precio_centimos || p.precio,
-            iva: p.iva ?? 21,
-            precio_empresa: p.precio_empresa_centimos || 0,
-            iva_empresa: p.iva_empresa ?? 21,
             stock: p.stock,
             descripcion: p.descripcion || '',
             imagen: p.imagen_url || p.imagen,
@@ -785,9 +761,6 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
           <td class="prod-cell prod-nombre">${p.nombre}</td>
           <td class="prod-cell prod-categoria">${p.categoria}</td>
           <td class="prod-cell center prod-precio">${(p.precio / 100).toFixed(2)} €</td>
-          <td class="prod-cell center prod-precio">${(p.iva ?? 21).toFixed(2)}%</td>
-          <td class="prod-cell center prod-precio-empresa">${(p.precio_empresa || 0) / 100 > 0 ? ((p.precio_empresa || 0) / 100).toFixed(2) + ' €' : '-'}</td>
-          <td class="prod-cell center prod-precio-empresa">${(p.precio_empresa || 0) / 100 > 0 ? (p.iva_empresa ?? 21).toFixed(2) + '%' : '-'}</td>
           <td class="prod-cell center prod-stock">${p.stock}</td>
           <td class="prod-cell center">
             <span class="prod-badge ${p.estado === 'activo' ? 'activo' : 'inactivo'}">
@@ -845,9 +818,7 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
       document.getElementById('nombre').value = producto.nombre;
       document.getElementById('categoria').value = producto.categoria;
       document.getElementById('precio').value = (producto.precio / 100).toFixed(2);
-      document.getElementById('iva').value = (producto.iva ?? 21).toFixed(2);
-      document.getElementById('precio_empresa').value = (producto.precio_empresa || 0) / 100;
-      document.getElementById('iva_empresa').value = (producto.iva_empresa ?? 21).toFixed(2);
+
       document.getElementById('stock').value = producto.stock;
       document.getElementById('descripcion').value = producto.descripcion || '';
       
@@ -968,9 +939,6 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
         nombre: document.getElementById('nombre').value,
         categoria: document.getElementById('categoria').value,
         precio: Math.round(parseFloat(document.getElementById('precio').value) * 100),
-        iva: parseFloat(document.getElementById('iva').value ?? 21),
-        precio_empresa: Math.round(parseFloat(document.getElementById('precio_empresa').value || 0) * 100),
-        iva_empresa: parseFloat(document.getElementById('iva_empresa').value ?? 21),
         stock: esVariable ? 0 : parseInt(document.getElementById('stock').value),
         descripcion: document.getElementById('descripcion').value,
         imagen: imagenFinal,

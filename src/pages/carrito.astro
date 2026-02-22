@@ -1090,7 +1090,7 @@ import Layout from '../layouts/Layout.astro';
                 
                 <!-- Mensaje de alerta para usuarios no logueados -->
                 <div id="loginRequiredAlert" style="display: none; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 0.75rem; font-size: 0.9rem; color: #92400e; text-align: center;">
-                  <strong>⚠️ Debes <a href="/login" style="color: #d97706; text-decoration: underline; font-weight: 600;">iniciar sesión</a> para usar códigos de descuento</strong>
+                  <strong>Debes <a href="/login" style="color: #d97706; text-decoration: underline; font-weight: 600;">iniciar sesión</a> para usar códigos de descuento</strong>
                 </div>
                 
                 <div style="display: flex; flex-direction: column; gap: 0.75rem;">
@@ -2186,7 +2186,7 @@ import Layout from '../layouts/Layout.astro';
       const countdownGlobal = document.getElementById('countdownGlobal') as HTMLElement | null;
       if (countdownGlobal) {
         if (diff <= 0) {
-          countdownGlobal.textContent = '⚠️ EXPIRADO';
+          countdownGlobal.textContent = 'EXPIRADO';
           countdownGlobal.style.color = '#dc2626';
           // Redirigir al inicio cuando expire
           window.location.href = '/';
