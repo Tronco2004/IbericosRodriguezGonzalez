@@ -164,17 +164,50 @@ import Layout from '../layouts/Layout.astro';
           />
         </div>
 
-        <div style="margin-bottom: 2rem;">
+        <div style="margin-bottom: 1.5rem;">
           <label style="display: block; margin-bottom: 0.5rem; color: var(--text-primary); font-weight: 600;">
-            Dirección
+            Dirección *
           </label>
           <input 
             id="direccion"
             name="direccion"
-            type="text" 
-            placeholder="Calle, número, ciudad"
+            type="text"
+            required
+            placeholder="Ej: Calle Mayor 12, Madrid"
             style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 4px; font-size: 1rem; box-sizing: border-box; background: var(--bg-input); color: var(--text-primary);"
           />
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
+          <div>
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-primary); font-weight: 600;">
+              Código Postal *
+            </label>
+            <input 
+              id="codigoPostal"
+              name="codigoPostal"
+              type="text"
+              inputmode="numeric"
+              pattern="[0-9]{5}"
+              required
+              placeholder="Ej: 28001"
+              maxlength="5"
+              style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 4px; font-size: 1rem; box-sizing: border-box; background: var(--bg-input); color: var(--text-primary);"
+            />
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-primary); font-weight: 600;">
+              Piso / Puerta *
+            </label>
+            <input 
+              id="piso"
+              name="piso"
+              type="text"
+              required
+              placeholder="Ej: 2ºB"
+              style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 4px; font-size: 1rem; box-sizing: border-box; background: var(--bg-input); color: var(--text-primary);"
+            />
+          </div>
         </div>
 
         <button 
@@ -238,12 +271,32 @@ import Layout from '../layouts/Layout.astro';
       const email = (document.getElementById('email') as HTMLInputElement).value;
       const password = (document.getElementById('password') as HTMLInputElement).value;
       const telefono = (document.getElementById('telefono') as HTMLInputElement).value;
-      const direccion = (document.getElementById('direccion') as HTMLInputElement).value;
+      const direccionCalle = (document.getElementById('direccion') as HTMLInputElement).value.trim();
+      const codigoPostal = (document.getElementById('codigoPostal') as HTMLInputElement).value.trim();
+      const piso = (document.getElementById('piso') as HTMLInputElement).value.trim();
 
       if (password.length < 6) {
         messageContainer.innerHTML = '<div style="padding: 1rem; background: #fee; border: 1px solid #fcc; color: #c33; border-radius: 4px; font-size: 0.9rem;">La contraseña debe tener al menos 6 caracteres</div>';
         return;
       }
+
+      if (!direccionCalle) {
+        messageContainer.innerHTML = '<div style="padding: 1rem; background: #fee; border: 1px solid #fcc; color: #c33; border-radius: 4px; font-size: 0.9rem;">La dirección es obligatoria</div>';
+        return;
+      }
+
+      if (!codigoPostal || !/^\d{5}$/.test(codigoPostal)) {
+        messageContainer.innerHTML = '<div style="padding: 1rem; background: #fee; border: 1px solid #fcc; color: #c33; border-radius: 4px; font-size: 0.9rem;">El código postal debe ser un número de 5 dígitos</div>';
+        return;
+      }
+
+      if (!piso) {
+        messageContainer.innerHTML = '<div style="padding: 1rem; background: #fee; border: 1px solid #fcc; color: #c33; border-radius: 4px; font-size: 0.9rem;">El piso/puerta es obligatorio</div>';
+        return;
+      }
+
+      // Concatenar dirección en formato "Dirección | Código Postal | Piso"
+      const direccion = `${direccionCalle} | ${codigoPostal} | ${piso}`;
 
       submitBtn.disabled = true;
       submitBtn.textContent = 'Registrando...';
