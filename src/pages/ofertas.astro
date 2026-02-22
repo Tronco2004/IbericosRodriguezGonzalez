@@ -152,7 +152,8 @@ import Layout from '../layouts/Layout.astro';
           const imagenUrl = oferta.imagen_url || oferta.producto?.imagen_url || '';
           const nombreProducto = oferta.producto?.nombre || oferta.nombre_oferta || 'Producto en oferta';
           const productoId = oferta.producto?.id || '#';
-          const stock = oferta.producto?.stock || 0;
+          const esVariable = oferta.producto?.es_variable || false;
+          const stock = esVariable ? (oferta.producto?.stock_real ?? 0) : (oferta.producto?.stock || 0);
           const estaAgotado = stock <= 0;
           
           const badgeTexto = estaAgotado ? 'Agotado' : `Oferta activa`;

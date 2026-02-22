@@ -32,7 +32,8 @@ export const GET: APIRoute = async ({ request }) => {
           imagen_url,
           categoria_id,
           rating,
-          stock
+          stock,
+          es_variable
         )
       `)
       .eq('activa', true)
@@ -50,11 +51,35 @@ export const GET: APIRoute = async ({ request }) => {
       );
     }
 
+    // Para productos variables, contar variantes disponibles como stock
+    const ofertasEnriquecidas = ofertas || [];
+    const productosVariables = ofertasEnriquecidas.filter((o: any) => o.producto?.es_variable);
+
+    if (productosVariables.length > 0) {
+      const idsVariables = productosVariables.map((o: any) => o.producto.id);
+      const { data: variantes } = await supabase
+        .from('producto_variantes')
+        .select('producto_id')
+        .in('producto_id', idsVariables)
+        .eq('disponible', true);
+
+      const conteoVariantes: Record<number, number> = {};
+      variantes?.forEach((v: any) => {
+        conteoVariantes[v.producto_id] = (conteoVariantes[v.producto_id] || 0) + 1;
+      });
+
+      ofertasEnriquecidas.forEach((o: any) => {
+        if (o.producto?.es_variable) {
+          o.producto.stock_real = conteoVariantes[o.producto.id] || 0;
+        }
+      });
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
-        data: ofertas || [],
-        count: ofertas?.length || 0
+        data: ofertasEnriquecidas,
+        count: ofertasEnriquecidas.length
       }),
       { headers: { 'Content-Type': 'application/json' } }
     );

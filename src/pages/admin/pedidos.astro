@@ -512,6 +512,12 @@ import ProtectedLayout from '../../layouts/ProtectedLayout.astro';
                       <span class="pedido-totales-value">${parseFloat(pedido.envio).toFixed(2)}€</span>
                     </div>
                   ` : ''}
+                  ${(parseFloat(pedido.descuento_aplicado) || 0) > 0 ? `
+                    <div class="pedido-totales-row">
+                      <span class="pedido-totales-label" style="color: #28a745;">Descuento</span>
+                      <span class="pedido-totales-value" style="color: #28a745; font-weight: 600;">-${parseFloat(pedido.descuento_aplicado).toFixed(2)}€</span>
+                    </div>
+                  ` : ''}
                   ${pedido.impuestos > 0 ? `
                     <div class="pedido-totales-row">
                       <span class="pedido-totales-label">Impuestos</span>
