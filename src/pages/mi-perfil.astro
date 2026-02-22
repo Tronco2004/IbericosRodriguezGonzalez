@@ -155,11 +155,9 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
     async function cargarDatosUsuario() {
       try {
         let userId = localStorage.getItem('user_id');
-        console.log('🔍 userId desde localStorage:', userId);
         
         // Si no hay userId en localStorage, intentar obtenerlo del endpoint
         if (!userId || userId === 'null' || userId === 'undefined') {
-          console.log('🔄 Intentando obtener usuario desde /api/auth/me');
           try {
             const meResponse = await fetch('/api/auth/me', {
               credentials: 'include'
@@ -168,12 +166,11 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
               const meData = await meResponse.json();
               if (meData.success && meData.usuario) {
                 userId = meData.usuario.id;
-                console.log('✅ Usuario obtenido del endpoint:', userId);
                 if (userId) localStorage.setItem('user_id', userId);
               }
             }
           } catch (e) {
-            console.log('⚠️ No se pudo obtener usuario del endpoint');
+            // No se pudo obtener usuario del endpoint
           }
         }
         
@@ -184,9 +181,13 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
           }
         });
         
-        console.log('📡 Response status:', response.status);
         const data = await response.json();
-        console.log('📦 Data recibida:', data);
+        
+        if (!data.success || !data.usuario) {
+          // No hay sesión → redirigir a login
+          window.location.href = '/login?redirect=/mi-perfil';
+          return;
+        }
         
         if (data.success && data.usuario) {
           (document.getElementById('nombreInput') as HTMLInputElement).value = data.usuario.nombre || '';
@@ -203,19 +204,12 @@ import ProtectedLayout from '../layouts/ProtectedLayout.astro';
           
           // Detectar si el usuario viene de OAuth
           if (!data.usuario.tienePassword && data.usuario.provider !== 'email') {
-            console.log('Usuario OAuth sin contraseña local');
+            // Usuario OAuth sin contraseña local
           }
-          
-          console.log('✅ Datos cargados correctamente');
-        } else {
-          console.error('❌ Error en respuesta:', data.error);
-          const emailDisplay = document.getElementById('emailDisplay');
-          if (emailDisplay) emailDisplay.textContent = 'Error: ' + (data.error || 'No autorizado');
         }
       } catch (error) {
-        console.error('❌ Error cargando datos del usuario:', error);
-        const emailDisplay = document.getElementById('emailDisplay');
-        if (emailDisplay) emailDisplay.textContent = 'Error de conexión';
+        // Error de conexión → redirigir a login
+        window.location.href = '/login?redirect=/mi-perfil';
       }
     }
 
