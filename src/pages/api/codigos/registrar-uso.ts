@@ -49,10 +49,15 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Actualizar contador de usos
+    // Actualizar contador de usos contando los registros reales en uso_codigos
+    const { count: totalUsos } = await supabaseClient
+      .from('uso_codigos')
+      .select('*', { count: 'exact', head: true })
+      .eq('codigo_id', codigoData.id);
+
     const { error: errorUpdate } = await supabaseClient
       .from('codigos_promocionales')
-      .update({ usos_actuales: codigoData.id })
+      .update({ usos_actuales: totalUsos || 0 })
       .eq('id', codigoData.id);
 
     if (errorUpdate) {

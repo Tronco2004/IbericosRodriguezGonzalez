@@ -14,7 +14,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     console.log('\n✅ ======= [VALIDAR Y CREAR PEDIDO] INICIADO =======');
     
-    const { sessionId, cartItems, codigoDescuento, datosInvitado } = await request.json();
+    const { sessionId, cartItems, datosInvitado } = await request.json();
 
     if (!sessionId) {
       console.error('❌ No hay sessionId');
@@ -90,6 +90,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     console.log('✅ Pago confirmado en Stripe');
+
+    // Recuperar código de descuento desde metadata de Stripe (fuente fiable)
+    const codigoDescuento = session.metadata?.codigo_descuento || null;
+    if (codigoDescuento) {
+      console.log('🎟️ Código de descuento detectado:', codigoDescuento);
+    }
 
     // Obtener email del usuario autenticado (si existe) para usarlo como fallback
     let authUserEmail: string | null = null;
@@ -481,11 +487,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     // ✅ RECALCULAR SUBTOTAL Y TOTAL DEL PEDIDO basado en items insertados
     const subtotalCalculado = itemsCreated?.reduce((sum: number, item: any) => sum + (item.subtotal || 0), 0) || 0;
-    const totalCalculado = subtotalCalculado + envio;
+    const totalCalculado = subtotalCalculado + envio - descuento;
 
     console.log('💰 Recálculo de totales después de insertar items:', {
       subtotal: subtotalCalculado.toFixed(2),
       envio: envio.toFixed(2),
+      descuento: descuento.toFixed(2),
       total: totalCalculado.toFixed(2)
     });
 
@@ -494,6 +501,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       .from('pedidos')
       .update({
         subtotal: subtotalCalculado,
+        descuento_aplicado: descuento,
         total: totalCalculado
       })
       .eq('id', pedidoId);
@@ -503,6 +511,45 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       // Continuar aunque falle la actualización
     } else {
       console.log('✅ Totales del pedido actualizados correctamente');
+    }
+
+    // ✅ REGISTRAR USO DEL CÓDIGO PROMOCIONAL
+    if (codigoDescuento && descuento > 0) {
+      try {
+        const { data: codigoInfo } = await supabaseAdmin
+          .from('codigos_promocionales')
+          .select('id')
+          .eq('codigo', codigoDescuento.trim().toUpperCase())
+          .single();
+
+        if (codigoInfo) {
+          // Insertar registro en uso_codigos
+          await supabaseAdmin
+            .from('uso_codigos')
+            .insert({
+              codigo_id: codigoInfo.id,
+              usuario_id: finalUserId || null,
+              pedido_id: pedidoId,
+              descuento_aplicado: descuento,
+              email_usuario: customerEmail
+            });
+
+          // Actualizar contador de usos contando registros reales
+          const { count: totalUsos } = await supabaseAdmin
+            .from('uso_codigos')
+            .select('*', { count: 'exact', head: true })
+            .eq('codigo_id', codigoInfo.id);
+
+          await supabaseAdmin
+            .from('codigos_promocionales')
+            .update({ usos_actuales: totalUsos || 0 })
+            .eq('id', codigoInfo.id);
+
+          console.log('✅ Uso del código promocional registrado. Usos totales:', totalUsos);
+        }
+      } catch (codigoError) {
+        console.error('⚠️ Error registrando uso del código (no bloqueante):', codigoError);
+      }
     }
 
     // El código de seguimiento ya fue obtenido después del INSERT (línea anterior a ✅ CREAR ITEMS DEL PEDIDO)
@@ -521,9 +568,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           precio: item.precio || item.precio_unitario || 0,
           peso_kg: item.peso_kg
         })),
-        subtotal: Math.round(subtotalCalculado * 100), // Convertir a centimos para email
-        envio: Math.round(envio * 100), // Convertir a centimos para email
-        total: Math.round(totalCalculado * 100) // Convertir a centimos para email
+        subtotal: Math.round(subtotalCalculado * 100),
+        envio: Math.round(envio * 100),
+        descuento: Math.round(descuento * 100),
+        total: Math.round(totalCalculado * 100)
       });
       console.log('✅ Email de confirmación enviado');
     } catch (emailError) {

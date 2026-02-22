@@ -263,6 +263,7 @@ const success = params.get('status') === 'success';
         }
 
         // Llamar al nuevo endpoint que valida y crea el pedido
+        // El código de descuento se recupera desde la metadata de Stripe en el servidor
         const response = await fetch('/api/checkout/validar-y-crear-pedido', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -271,8 +272,6 @@ const success = params.get('status') === 'success';
             userId: finalUserId || null,
             userEmail: userEmail || null,
             cartItems,
-            codigoDescuento: null,
-            descuentoAplicado: 0,
             datosInvitado: JSON.parse(localStorage.getItem('checkout_invitado') || 'null')
           })
         });
@@ -290,6 +289,7 @@ const success = params.get('status') === 'success';
           localStorage.removeItem('carrito');
           localStorage.removeItem('carrito_invitado');
           localStorage.removeItem('checkout_data');
+          localStorage.removeItem('checkout_invitado');
           
           console.log('✅ Carrito limpiado de localStorage');
 

@@ -1715,7 +1715,7 @@ import Layout from '../layouts/Layout.astro';
           totalEuros: totalConDescuento
         });
 
-        const totalPrecio = document.getElementById('totalPrecio') as HTMLElement | null;
+        const totalPrecio = document.getElementById('totalAmount') as HTMLElement | null;
         if (totalPrecio) totalPrecio.textContent = `${totalConDescuento.toFixed(2)}€`;
         actualizarIVA(totalConDescuento);
       } else {
@@ -1734,7 +1734,7 @@ import Layout from '../layouts/Layout.astro';
         const envio = 500;
         const total = (subtotal + envio) / 100;
         
-        const totalDisplay = document.getElementById('totalPrecio') as HTMLElement | null;
+        const totalDisplay = document.getElementById('totalAmount') as HTMLElement | null;
         if (totalDisplay) totalDisplay.textContent = `${total.toFixed(2)}€`;
         actualizarIVA(total);
       }
@@ -1987,9 +1987,7 @@ import Layout from '../layouts/Layout.astro';
         if (datosInvitado) {
           localStorage.setItem('checkout_invitado', JSON.stringify({
             ...datosInvitado,
-            cartItems,
-            codigoDescuento: codigoValidado ? codigoValidado.codigo : null,
-            descuentoAplicado
+            cartItems
           }));
         }
 

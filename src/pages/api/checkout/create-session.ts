@@ -331,7 +331,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         es_invitado: datosInvitado ? 'true' : 'false',
         nombre_cliente: nombreCliente,
         telefono_cliente: telefonoCliente,
-        direccion_cliente: direccionCliente
+        direccion_cliente: direccionCliente,
+        codigo_descuento: codigoDescuento ? codigoDescuento.trim().toUpperCase() : ''
       }
     };
 

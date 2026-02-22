@@ -536,7 +536,7 @@ import Layout from '../layouts/Layout.astro';
                       <span style="color: var(--text-primary); font-weight: 600; transition: var(--theme-transition);">${pedido.impuestos.toFixed(2)}€</span>
                     </div>
                   ` : ''}
-                  ${pedido.descuento_aplicado > 0 ? `
+                  ${(pedido.descuento_aplicado || 0) > 0 ? `
                     <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; margin-bottom: 0.5rem;">
                       <span style="color: #28a745;">Descuento</span>
                       <span style="color: #28a745; font-weight: 600;">-${pedido.descuento_aplicado.toFixed(2)}€</span>
